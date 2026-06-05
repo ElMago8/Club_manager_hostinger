@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model GrowBed {
+  id                String             @id @default(cuid())
+  name              String
+  code              String             @unique
+  roomId            String?
+  status            String             @default("empty")
+  maxPlants         Int
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  plants            Plant[]
+  environmentalLogs EnvironmentalLog[]
+  irrigationLogs    IrrigationLog[]
+  measurements      CultivationMeasurement[]
+  operationalTasks  OperationalTask[]
+}
+
+model Plant {
+  id             String          @id @default(cuid())
+  internalCode   String          @unique
+  bedId          String
+  bedPosition    Int
+  batchId        String?
+  geneticsId     String?
+  motherPlantId  String?
+  origin         String
+  stage          String
+  status         String          @default("normal")
+  startDate      DateTime
+  stageStartDate DateTime?
+  potCode        String?
+  potSizeLiters  Float?
+  potType        String?
+  substrate      String?
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  bed            GrowBed         @relation(fields: [bedId], references: [id], onDelete: Cascade)
+  genetics       Genetics?       @relation(fields: [geneticsId], references: [id], onDelete: SetNull)
+  motherPlant    MotherPlant?    @relation(fields: [motherPlantId], references: [id], onDelete: SetNull)
+  irrigationLogs IrrigationLog[]
+  measurements   CultivationMeasurement[]
+  operationalTasks OperationalTask[]
+
+  @@unique([bedId, bedPosition])
+  @@index([bedId])
+  @@index([geneticsId])
+  @@index([motherPlantId])
+}
+
+model Genetics {
+  id              String          @id @default(cuid())
+  name            String
+  breeder         String?
+  type            String          @default("unknown")
+  dominantProfile String          @default("unknown")
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  plants          Plant[]
+  motherPlants    MotherPlant[]
+}
+
+model MotherPlant {
+  id        String            @id @default(cuid())
+  code      String            @unique
+  geneticsId String
+  roomId    String?
+  status    String            @default("active")
+  startDate DateTime
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  genetics  Genetics          @relation(fields: [geneticsId], references: [id], onDelete: Restrict)
+  plants    Plant[]
+  measurements CultivationMeasurement[]
+
+  @@index([geneticsId])
+}
+
+model EnvironmentalLog {
+  id               String    @id @default(cuid())
+  bedId            String?
+  batchId          String?
+  date             DateTime
+  time             String
+  airTempC         Float
+  relativeHumidity Float
+  leafTempC        Float?
+  co2ppm           Int?
+  calculatedVPD    Float
+  vpdStatus        String
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  bed              GrowBed?  @relation(fields: [bedId], references: [id], onDelete: SetNull)
+
+  @@index([bedId])
+  @@index([date])
+  @@index([vpdStatus])
+}
+
+model IrrigationLog {
+  id               String         @id @default(cuid())
+  bedId            String?
+  batchId          String?
+  plantId          String?
+  date             DateTime
+  time             String
+  irrigationType   String
+  litersPrepared   Float
+  litersApplied    Float
+  phIn             Float?
+  ppmIn            Float?
+  ecIn             Float?
+  phRunoff         Float?
+  ppmRunoff        Float?
+  ecRunoff         Float?
+  substratePH      Float?
+  substratePPM     Float?
+  substrateEC      Float?
+  runoffPercentage Float?
+  recipeName       String?
+  nutrientsNotes   String?
+  responsibleName  String
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  bed              GrowBed?       @relation(fields: [bedId], references: [id], onDelete: SetNull)
+  plant            Plant?         @relation(fields: [plantId], references: [id], onDelete: SetNull)
+
+  @@index([bedId])
+  @@index([plantId])
+  @@index([date])
+}
+
+model CultivationMeasurement {
+  id                String       @id @default(cuid())
+  measurementType   String
+  date              DateTime
+  time              String
+  roomId            String?
+  bedId             String?
+  plantId           String?
+  motherPlantId     String?
+  batchId           String?
+  relatedModule     String       @default("general")
+  substratePH       Float?
+  substratePPM      Float?
+  substrateEC       Float?
+  liquidPH          Float?
+  liquidPPM         Float?
+  liquidEC          Float?
+  runoffPH          Float?
+  runoffPPM         Float?
+  runoffEC          Float?
+  waterTempC        Float?
+  substrateTempC    Float?
+  measurementMethod String?
+  responsibleName   String?
+  status            String       @default("normal")
+  notes             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  bed               GrowBed?     @relation(fields: [bedId], references: [id], onDelete: SetNull)
+  plant             Plant?       @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  motherPlant       MotherPlant? @relation(fields: [motherPlantId], references: [id], onDelete: SetNull)
+
+  @@index([roomId])
+  @@index([bedId])
+  @@index([plantId])
+  @@index([motherPlantId])
+  @@index([batchId])
+  @@index([measurementType])
+  @@index([status])
+  @@index([relatedModule])
+  @@index([date])
+}
+
+model OperationalTask {
+  id                 String    @id @default(cuid())
+  title              String
+  description        String?
+  taskType           String
+  priority           String
+  status             String    @default("pending")
+  dueDate            DateTime
+  dueTime            String?
+  assignedToName     String?
+  assignedToUserId   String?
+  roomId             String?
+  bedId              String?
+  plantId            String?
+  batchId            String?
+  relatedModule      String    @default("cultivation")
+  recurrenceType     String    @default("none")
+  recurrenceInterval Int?
+  completedAt        DateTime?
+  completedByName    String?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  bed                GrowBed?  @relation(fields: [bedId], references: [id], onDelete: SetNull)
+  plant              Plant?    @relation(fields: [plantId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([priority])
+  @@index([taskType])
+  @@index([dueDate])
+  @@index([bedId])
+  @@index([plantId])
+}
