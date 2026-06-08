@@ -55,10 +55,10 @@ export function NotificationCenter({ open, onOpenChange, onOpenPrefs }: Notifica
   return (
     <>
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
-        <SheetHeader className="border-b border-border px-4 py-3">
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-base">
+      <SheetContent side="right" className="flex w-full flex-col p-0 sm:w-[400px]">
+        <SheetHeader className="border-b border-border px-4 py-3 pr-14">
+          <div className="flex items-start justify-between gap-3">
+            <SheetTitle className="min-w-0 pt-1 text-base">
               Notifications
               {unreadCount > 0 && (
                 <span className="ml-2 rounded-full bg-destructive px-2 py-0.5 font-mono text-xs text-destructive-foreground">
@@ -66,14 +66,14 @@ export function NotificationCenter({ open, onOpenChange, onOpenPrefs }: Notifica
                 </span>
               )}
             </SheetTitle>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               {unreadCount > 0 && (
-                <Button variant="ghost" size="sm" className="text-xs" onClick={markAllAsRead}>
+                <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 text-xs" onClick={markAllAsRead}>
                   <CheckCheck className="mr-1 h-3.5 w-3.5" />
-                  Mark All as Read
+                  Mark all
                 </Button>
               )}
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onOpenPrefs?.()} aria-label="Notification settings">
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => onOpenPrefs?.()} aria-label="Notification settings">
                 <Settings2 className="h-4 w-4" />
               </Button>
             </div>
@@ -154,11 +154,11 @@ function NotificationItem({
 
       <button
         type="button"
-        className="shrink-0 self-start rounded p-1 opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center self-start rounded-full text-muted-foreground opacity-0 transition-all duration-200 hover:rotate-90 hover:scale-105 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
         onClick={(e) => { e.stopPropagation(); onDismiss(); }}
         aria-label="Dismiss notification"
       >
-        <X className="h-3.5 w-3.5 text-muted-foreground" />
+        <X className="h-3.5 w-3.5" />
       </button>
     </div>
   );

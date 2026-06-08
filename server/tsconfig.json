@@ -11,5 +11,15 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "prisma/**/*.ts"]
+  "include": ["src/**/*.ts", "prisma/**/*.ts"],
+  "exclude": [
+    "src/modules/cultivation/beds/**",
+    "src/modules/cultivation/environmental/**",
+    "src/modules/cultivation/genetics/**",
+    "src/modules/cultivation/irrigation/**",
+    "src/modules/cultivation/measurements/**",
+    "src/modules/cultivation/mothers/**",
+    "src/modules/cultivation/operational-calendar/**",
+    "src/modules/cultivation/plants/**"
+  ]
 }

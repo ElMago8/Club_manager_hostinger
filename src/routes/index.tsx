@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useDemo } from "@/hooks/useDemo";
-import { Leaf, ShieldCheck, ArrowRight } from "lucide-react";
+import { ShieldCheck, ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import tickerLogo from "@/assets/ticker-transparent.png";
 
 export const Route = createFileRoute("/")({
   component: AccessPage,
@@ -37,7 +38,12 @@ function AccessPage() {
 
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
         <div className="flex items-center gap-2">
-          <Leaf className="h-5 w-5 text-primary" />
+          <img
+            src={tickerLogo}
+            alt=""
+            aria-hidden="true"
+            className="h-5 w-5 shrink-0 object-contain"
+          />
           <span className="text-sm font-semibold tracking-tight">Cannabis Club Manager</span>
         </div>
         <div className="flex items-center gap-3">

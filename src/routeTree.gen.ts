@@ -38,10 +38,12 @@ import { Route as AppCultivoGeneticasRouteImport } from './routes/app.cultivo.ge
 import { Route as AppCultivoCamillasRouteImport } from './routes/app.cultivo.camillas'
 import { Route as AppCultivoCalendarioRouteImport } from './routes/app.cultivo.calendario'
 import { Route as AppCultivoAmbienteRouteImport } from './routes/app.cultivo.ambiente'
+import { Route as AppCultivoSalasNuevaRouteImport } from './routes/app.cultivo.salas.nueva'
 import { Route as AppCultivoSalasIdRouteImport } from './routes/app.cultivo.salas.$id'
 import { Route as AppCultivoPlantasNuevaRouteImport } from './routes/app.cultivo.plantas.nueva'
-import { Route as AppCultivoPlantasIdRouteImport } from './routes/app.cultivo.plantas.$id'
 import { Route as AppCultivoGeneticasNuevaRouteImport } from './routes/app.cultivo.geneticas.nueva'
+import { Route as AppCultivoGeneticasIdRouteImport } from './routes/app.cultivo.geneticas.$id'
+import { Route as AppCultivoCamillasNuevaRouteImport } from './routes/app.cultivo.camillas.nueva'
 import { Route as AppCultivoCamillasIdRouteImport } from './routes/app.cultivo.camillas.$id'
 
 const AppRoute = AppRouteImport.update({
@@ -189,6 +191,11 @@ const AppCultivoAmbienteRoute = AppCultivoAmbienteRouteImport.update({
   path: '/ambiente',
   getParentRoute: () => AppCultivoRoute,
 } as any)
+const AppCultivoSalasNuevaRoute = AppCultivoSalasNuevaRouteImport.update({
+  id: '/nueva',
+  path: '/nueva',
+  getParentRoute: () => AppCultivoSalasRoute,
+} as any)
 const AppCultivoSalasIdRoute = AppCultivoSalasIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -199,17 +206,22 @@ const AppCultivoPlantasNuevaRoute = AppCultivoPlantasNuevaRouteImport.update({
   path: '/nueva',
   getParentRoute: () => AppCultivoPlantasRoute,
 } as any)
-const AppCultivoPlantasIdRoute = AppCultivoPlantasIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AppCultivoPlantasRoute,
-} as any)
 const AppCultivoGeneticasNuevaRoute =
   AppCultivoGeneticasNuevaRouteImport.update({
     id: '/nueva',
     path: '/nueva',
     getParentRoute: () => AppCultivoGeneticasRoute,
   } as any)
+const AppCultivoGeneticasIdRoute = AppCultivoGeneticasIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppCultivoGeneticasRoute,
+} as any)
+const AppCultivoCamillasNuevaRoute = AppCultivoCamillasNuevaRouteImport.update({
+  id: '/nueva',
+  path: '/nueva',
+  getParentRoute: () => AppCultivoCamillasRoute,
+} as any)
 const AppCultivoCamillasIdRoute = AppCultivoCamillasIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -247,10 +259,12 @@ export interface FileRoutesByFullPath {
   '/app/cultivo/salas': typeof AppCultivoSalasRouteWithChildren
   '/app/cultivo/vpd': typeof AppCultivoVpdRoute
   '/app/cultivo/camillas/$id': typeof AppCultivoCamillasIdRoute
+  '/app/cultivo/camillas/nueva': typeof AppCultivoCamillasNuevaRoute
+  '/app/cultivo/geneticas/$id': typeof AppCultivoGeneticasIdRoute
   '/app/cultivo/geneticas/nueva': typeof AppCultivoGeneticasNuevaRoute
-  '/app/cultivo/plantas/$id': typeof AppCultivoPlantasIdRoute
   '/app/cultivo/plantas/nueva': typeof AppCultivoPlantasNuevaRoute
   '/app/cultivo/salas/$id': typeof AppCultivoSalasIdRoute
+  '/app/cultivo/salas/nueva': typeof AppCultivoSalasNuevaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -282,10 +296,12 @@ export interface FileRoutesByTo {
   '/app/cultivo/salas': typeof AppCultivoSalasRouteWithChildren
   '/app/cultivo/vpd': typeof AppCultivoVpdRoute
   '/app/cultivo/camillas/$id': typeof AppCultivoCamillasIdRoute
+  '/app/cultivo/camillas/nueva': typeof AppCultivoCamillasNuevaRoute
+  '/app/cultivo/geneticas/$id': typeof AppCultivoGeneticasIdRoute
   '/app/cultivo/geneticas/nueva': typeof AppCultivoGeneticasNuevaRoute
-  '/app/cultivo/plantas/$id': typeof AppCultivoPlantasIdRoute
   '/app/cultivo/plantas/nueva': typeof AppCultivoPlantasNuevaRoute
   '/app/cultivo/salas/$id': typeof AppCultivoSalasIdRoute
+  '/app/cultivo/salas/nueva': typeof AppCultivoSalasNuevaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -319,10 +335,12 @@ export interface FileRoutesById {
   '/app/cultivo/salas': typeof AppCultivoSalasRouteWithChildren
   '/app/cultivo/vpd': typeof AppCultivoVpdRoute
   '/app/cultivo/camillas/$id': typeof AppCultivoCamillasIdRoute
+  '/app/cultivo/camillas/nueva': typeof AppCultivoCamillasNuevaRoute
+  '/app/cultivo/geneticas/$id': typeof AppCultivoGeneticasIdRoute
   '/app/cultivo/geneticas/nueva': typeof AppCultivoGeneticasNuevaRoute
-  '/app/cultivo/plantas/$id': typeof AppCultivoPlantasIdRoute
   '/app/cultivo/plantas/nueva': typeof AppCultivoPlantasNuevaRoute
   '/app/cultivo/salas/$id': typeof AppCultivoSalasIdRoute
+  '/app/cultivo/salas/nueva': typeof AppCultivoSalasNuevaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -357,10 +375,12 @@ export interface FileRouteTypes {
     | '/app/cultivo/salas'
     | '/app/cultivo/vpd'
     | '/app/cultivo/camillas/$id'
+    | '/app/cultivo/camillas/nueva'
+    | '/app/cultivo/geneticas/$id'
     | '/app/cultivo/geneticas/nueva'
-    | '/app/cultivo/plantas/$id'
     | '/app/cultivo/plantas/nueva'
     | '/app/cultivo/salas/$id'
+    | '/app/cultivo/salas/nueva'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -392,10 +412,12 @@ export interface FileRouteTypes {
     | '/app/cultivo/salas'
     | '/app/cultivo/vpd'
     | '/app/cultivo/camillas/$id'
+    | '/app/cultivo/camillas/nueva'
+    | '/app/cultivo/geneticas/$id'
     | '/app/cultivo/geneticas/nueva'
-    | '/app/cultivo/plantas/$id'
     | '/app/cultivo/plantas/nueva'
     | '/app/cultivo/salas/$id'
+    | '/app/cultivo/salas/nueva'
   id:
     | '__root__'
     | '/'
@@ -428,10 +450,12 @@ export interface FileRouteTypes {
     | '/app/cultivo/salas'
     | '/app/cultivo/vpd'
     | '/app/cultivo/camillas/$id'
+    | '/app/cultivo/camillas/nueva'
+    | '/app/cultivo/geneticas/$id'
     | '/app/cultivo/geneticas/nueva'
-    | '/app/cultivo/plantas/$id'
     | '/app/cultivo/plantas/nueva'
     | '/app/cultivo/salas/$id'
+    | '/app/cultivo/salas/nueva'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -644,6 +668,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCultivoAmbienteRouteImport
       parentRoute: typeof AppCultivoRoute
     }
+    '/app/cultivo/salas/nueva': {
+      id: '/app/cultivo/salas/nueva'
+      path: '/nueva'
+      fullPath: '/app/cultivo/salas/nueva'
+      preLoaderRoute: typeof AppCultivoSalasNuevaRouteImport
+      parentRoute: typeof AppCultivoSalasRoute
+    }
     '/app/cultivo/salas/$id': {
       id: '/app/cultivo/salas/$id'
       path: '/$id'
@@ -658,19 +689,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCultivoPlantasNuevaRouteImport
       parentRoute: typeof AppCultivoPlantasRoute
     }
-    '/app/cultivo/plantas/$id': {
-      id: '/app/cultivo/plantas/$id'
-      path: '/$id'
-      fullPath: '/app/cultivo/plantas/$id'
-      preLoaderRoute: typeof AppCultivoPlantasIdRouteImport
-      parentRoute: typeof AppCultivoPlantasRoute
-    }
     '/app/cultivo/geneticas/nueva': {
       id: '/app/cultivo/geneticas/nueva'
       path: '/nueva'
       fullPath: '/app/cultivo/geneticas/nueva'
       preLoaderRoute: typeof AppCultivoGeneticasNuevaRouteImport
       parentRoute: typeof AppCultivoGeneticasRoute
+    }
+    '/app/cultivo/geneticas/$id': {
+      id: '/app/cultivo/geneticas/$id'
+      path: '/$id'
+      fullPath: '/app/cultivo/geneticas/$id'
+      preLoaderRoute: typeof AppCultivoGeneticasIdRouteImport
+      parentRoute: typeof AppCultivoGeneticasRoute
+    }
+    '/app/cultivo/camillas/nueva': {
+      id: '/app/cultivo/camillas/nueva'
+      path: '/nueva'
+      fullPath: '/app/cultivo/camillas/nueva'
+      preLoaderRoute: typeof AppCultivoCamillasNuevaRouteImport
+      parentRoute: typeof AppCultivoCamillasRoute
     }
     '/app/cultivo/camillas/$id': {
       id: '/app/cultivo/camillas/$id'
@@ -684,20 +722,24 @@ declare module '@tanstack/react-router' {
 
 interface AppCultivoCamillasRouteChildren {
   AppCultivoCamillasIdRoute: typeof AppCultivoCamillasIdRoute
+  AppCultivoCamillasNuevaRoute: typeof AppCultivoCamillasNuevaRoute
 }
 
 const AppCultivoCamillasRouteChildren: AppCultivoCamillasRouteChildren = {
   AppCultivoCamillasIdRoute: AppCultivoCamillasIdRoute,
+  AppCultivoCamillasNuevaRoute: AppCultivoCamillasNuevaRoute,
 }
 
 const AppCultivoCamillasRouteWithChildren =
   AppCultivoCamillasRoute._addFileChildren(AppCultivoCamillasRouteChildren)
 
 interface AppCultivoGeneticasRouteChildren {
+  AppCultivoGeneticasIdRoute: typeof AppCultivoGeneticasIdRoute
   AppCultivoGeneticasNuevaRoute: typeof AppCultivoGeneticasNuevaRoute
 }
 
 const AppCultivoGeneticasRouteChildren: AppCultivoGeneticasRouteChildren = {
+  AppCultivoGeneticasIdRoute: AppCultivoGeneticasIdRoute,
   AppCultivoGeneticasNuevaRoute: AppCultivoGeneticasNuevaRoute,
 }
 
@@ -705,12 +747,10 @@ const AppCultivoGeneticasRouteWithChildren =
   AppCultivoGeneticasRoute._addFileChildren(AppCultivoGeneticasRouteChildren)
 
 interface AppCultivoPlantasRouteChildren {
-  AppCultivoPlantasIdRoute: typeof AppCultivoPlantasIdRoute
   AppCultivoPlantasNuevaRoute: typeof AppCultivoPlantasNuevaRoute
 }
 
 const AppCultivoPlantasRouteChildren: AppCultivoPlantasRouteChildren = {
-  AppCultivoPlantasIdRoute: AppCultivoPlantasIdRoute,
   AppCultivoPlantasNuevaRoute: AppCultivoPlantasNuevaRoute,
 }
 
@@ -719,10 +759,12 @@ const AppCultivoPlantasRouteWithChildren =
 
 interface AppCultivoSalasRouteChildren {
   AppCultivoSalasIdRoute: typeof AppCultivoSalasIdRoute
+  AppCultivoSalasNuevaRoute: typeof AppCultivoSalasNuevaRoute
 }
 
 const AppCultivoSalasRouteChildren: AppCultivoSalasRouteChildren = {
   AppCultivoSalasIdRoute: AppCultivoSalasIdRoute,
+  AppCultivoSalasNuevaRoute: AppCultivoSalasNuevaRoute,
 }
 
 const AppCultivoSalasRouteWithChildren = AppCultivoSalasRoute._addFileChildren(

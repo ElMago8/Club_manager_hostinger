@@ -9,10 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { getGenetics } from "@/services/geneticsService";
 import { getGrowBeds } from "@/services/growBedService";
-import { getGrowRooms } from "@/services/growRoomService";
 import { getMotherPlants } from "@/services/motherPlantService";
-import { createPlant } from "@/services/plantService";
-import type { Genetics, GrowBed, GrowRoom, MotherPlant, PlantOrigin, PlantStage, PlantStatus } from "@/types/cultivation";
+import { createPlant, getPlantById, updatePlant } from "@/services/plantService";
+import type { Genetics, GrowBed, MotherPlant, PlantOrigin, PlantStage, PlantStatus } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/plantas/nueva")({
   head: () => ({ meta: [{ title: "Nueva planta - Cannabis Club Manager" }] }),
@@ -20,18 +19,23 @@ export const Route = createFileRoute("/app/cultivo/plantas/nueva")({
 });
 
 const today = new Date().toISOString().slice(0, 10);
+const NEW_GENETICS_OPTION = "__new_genetics__";
+
+function hasAvailablePlantSlot(bed: GrowBed): boolean {
+  return bed.currentPlants < bed.maxPlants;
+}
 
 function NewPlantPage() {
   const navigate = useNavigate();
-  const [rooms, setRooms] = useState<GrowRoom[]>([]);
   const [beds, setBeds] = useState<GrowBed[]>([]);
   const [genetics, setGenetics] = useState<Genetics[]>([]);
   const [mothers, setMothers] = useState<MotherPlant[]>([]);
+  const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     internalCode: "",
-    roomId: "",
+    plantName: "",
     bedId: "",
     bedPosition: "1",
     batchId: "",
@@ -42,7 +46,6 @@ function NewPlantPage() {
     status: "normal" as PlantStatus,
     startDate: today,
     stageStartDate: today,
-    potCode: "",
     potSizeLiters: "",
     potType: "",
     substrate: "",
@@ -51,37 +54,45 @@ function NewPlantPage() {
 
   useEffect(() => {
     async function loadOptions() {
-      const [nextRooms, nextBeds, nextGenetics, nextMothers] = await Promise.all([
-        getGrowRooms(),
+      const searchEditId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("edit") : null;
+      setEditId(searchEditId);
+
+      const [nextBeds, nextGenetics, nextMothers] = await Promise.all([
         getGrowBeds(),
         getGenetics(),
         getMotherPlants(),
       ]);
 
-      setRooms(nextRooms);
       setBeds(nextBeds);
       setGenetics(nextGenetics);
       setMothers(nextMothers);
 
-      const firstRoom = nextRooms[0];
-      const firstBed = firstRoom
-        ? nextBeds.find((bed) => bed.roomId === firstRoom.id) ?? nextBeds[0]
-        : nextBeds[0];
+      const plantToEdit = searchEditId ? await getPlantById(searchEditId) : null;
+      const firstBed = nextBeds.find(hasAvailablePlantSlot);
 
       setForm((current) => ({
         ...current,
-        roomId: firstBed?.roomId ?? firstRoom?.id ?? "",
-        bedId: firstBed?.id ?? "",
+        internalCode: plantToEdit?.internalCode ?? current.internalCode,
+        plantName: plantToEdit?.plantName ?? current.plantName,
+        bedId: plantToEdit?.bedId ?? firstBed?.id ?? "",
+        bedPosition: plantToEdit ? String(plantToEdit.bedPosition) : current.bedPosition,
+        batchId: plantToEdit?.batchId ?? current.batchId,
+        geneticsId: plantToEdit?.geneticsId ?? (current.geneticsId === "none" ? nextGenetics[0]?.id ?? "none" : current.geneticsId),
+        motherPlantId: plantToEdit?.motherPlantId ?? current.motherPlantId,
+        origin: plantToEdit?.origin ?? current.origin,
+        stage: plantToEdit?.stage ?? current.stage,
+        status: plantToEdit?.status ?? current.status,
+        startDate: plantToEdit?.startDate ?? current.startDate,
+        stageStartDate: plantToEdit?.stageStartDate ?? plantToEdit?.startDate ?? current.stageStartDate,
+        potSizeLiters: plantToEdit?.potSizeLiters ? String(plantToEdit.potSizeLiters) : current.potSizeLiters,
+        potType: plantToEdit?.potType ?? current.potType,
+        substrate: plantToEdit?.substrate ?? current.substrate,
+        notes: plantToEdit?.notes ?? current.notes,
       }));
     }
 
     void loadOptions();
   }, []);
-
-  const filteredBeds = useMemo(() => {
-    if (!form.roomId) return beds;
-    return beds.filter((bed) => bed.roomId === form.roomId);
-  }, [beds, form.roomId]);
 
   const filteredMothers = useMemo(() => {
     if (form.geneticsId === "none") return mothers;
@@ -102,7 +113,17 @@ function NewPlantPage() {
     }
 
     if (!form.internalCode.trim()) {
+      setError("Ingresa el codigo interno de la planta.");
+      return;
+    }
+
+    if (!form.plantName.trim()) {
       setError("Ingresa el nombre de la planta.");
+      return;
+    }
+
+    if (form.geneticsId === "none") {
+      setError("Selecciona una genetica para la planta.");
       return;
     }
 
@@ -120,8 +141,9 @@ function NewPlantPage() {
       setSaving(true);
       const selectedGenetics = genetics.find((item) => item.id === form.geneticsId);
       const selectedMother = mothers.find((item) => item.id === form.motherPlantId);
-      const plant = await createPlant({
+      const payload = {
         internalCode: form.internalCode.trim(),
+        plantName: form.plantName.trim(),
         roomId: selectedBed.roomId,
         bedId: form.bedId,
         bedPosition,
@@ -135,16 +157,21 @@ function NewPlantPage() {
         status: form.status,
         startDate: form.startDate,
         stageStartDate: form.stageStartDate || undefined,
-        potCode: form.potCode.trim() || undefined,
         potSizeLiters,
         potType: form.potType.trim() || undefined,
         substrate: form.substrate.trim() || undefined,
         notes: form.notes.trim() || undefined,
-      });
+      };
 
-      await navigate({ to: "/app/cultivo/plantas/$id", params: { id: plant.id } });
+      if (editId) {
+        await updatePlant(editId, payload);
+      } else {
+        await createPlant(payload);
+      }
+
+      await navigate({ to: "/app/cultivo/plantas" });
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "No se pudo crear la planta.");
+      setError(nextError instanceof Error ? nextError.message : "No se pudo guardar la planta.");
     } finally {
       setSaving(false);
     }
@@ -159,8 +186,10 @@ function NewPlantPage() {
             Plantas
           </Link>
         </Button>
-        <h1 className="text-2xl font-semibold tracking-tight">Nueva planta</h1>
-        <p className="text-sm text-muted-foreground">Alta operativa de planta individual por sala, camilla y posicion.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{editId ? "Editar planta" : "Nueva planta"}</h1>
+        <p className="text-sm text-muted-foreground">
+          {editId ? "Actualiza los datos operativos de la planta." : "Alta operativa de planta individual por sala, camilla y posicion."}
+        </p>
       </div>
 
       {error ? (
@@ -170,12 +199,12 @@ function NewPlantPage() {
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Crear planta</CardTitle>
+            <CardTitle>{editId ? "Editar planta" : "Crear planta"}</CardTitle>
             <CardDescription>Define donde queda registrada la planta dentro del cultivo.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="internalCode">Nombre de la planta</Label>
+              <Label htmlFor="internalCode">Codigo interno</Label>
               <Input
                 id="internalCode"
                 value={form.internalCode}
@@ -185,21 +214,13 @@ function NewPlantPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Sala</Label>
-              <Select
-                value={form.roomId}
-                onValueChange={(roomId) => {
-                  const nextBed = beds.find((bed) => bed.roomId === roomId);
-                  setForm({ ...form, roomId, bedId: nextBed?.id ?? "" });
-                }}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecciona sala" /></SelectTrigger>
-                <SelectContent>
-                  {rooms.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>{room.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="plantName">Nombre planta</Label>
+              <Input
+                id="plantName"
+                value={form.plantName}
+                onChange={(event) => setForm({ ...form, plantName: event.target.value })}
+                placeholder="Madre 1 - esqueje A"
+              />
             </div>
 
             <div className="space-y-2">
@@ -207,11 +228,15 @@ function NewPlantPage() {
               <Select value={form.bedId} onValueChange={(bedId) => setForm({ ...form, bedId })}>
                 <SelectTrigger><SelectValue placeholder="Selecciona camilla" /></SelectTrigger>
                 <SelectContent>
-                  {filteredBeds.map((bed) => (
-                    <SelectItem key={bed.id} value={bed.id}>
-                      {bed.name} - {bed.currentPlants}/{bed.maxPlants}
+                  {beds.map((bed) => {
+                    const isCurrentBed = editId && bed.id === form.bedId;
+                    const isFull = !hasAvailablePlantSlot(bed) && !isCurrentBed;
+                    return (
+                    <SelectItem key={bed.id} value={bed.id} disabled={isFull}>
+                      {bed.name} - {bed.currentPlants}/{bed.maxPlants}{isFull ? " - Llena" : ""}
                     </SelectItem>
-                  ))}
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -240,10 +265,21 @@ function NewPlantPage() {
 
             <div className="space-y-2">
               <Label>Genetica</Label>
-              <Select value={form.geneticsId} onValueChange={(geneticsId) => setForm({ ...form, geneticsId, motherPlantId: "none" })}>
+              <Select
+                value={form.geneticsId}
+                onValueChange={(geneticsId) => {
+                  if (geneticsId === NEW_GENETICS_OPTION) {
+                    void navigate({ to: "/app/cultivo/geneticas/nueva" });
+                    return;
+                  }
+
+                  setForm({ ...form, geneticsId, motherPlantId: "none" });
+                }}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sin asignar</SelectItem>
+                  <SelectItem value={NEW_GENETICS_OPTION}>Nueva genética</SelectItem>
+                  <SelectItem value="none" disabled>Selecciona genetica</SelectItem>
                   {genetics.map((item) => (
                     <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
                   ))}
@@ -340,16 +376,6 @@ function NewPlantPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="potCode">Codigo de maceta</Label>
-              <Input
-                id="potCode"
-                value={form.potCode}
-                onChange={(event) => setForm({ ...form, potCode: event.target.value })}
-                placeholder="Opcional"
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="potSizeLiters">Tamano de maceta (L)</Label>
               <Input
                 id="potSizeLiters"
@@ -395,7 +421,7 @@ function NewPlantPage() {
             <div className="flex justify-end md:col-span-3">
               <Button type="submit" disabled={saving} className="gap-2">
                 <Save className="h-4 w-4" />
-                {saving ? "Guardando..." : "Guardar planta"}
+                {saving ? "Guardando..." : editId ? "Guardar cambios" : "Guardar planta"}
               </Button>
             </div>
           </CardContent>

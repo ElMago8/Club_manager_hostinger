@@ -128,17 +128,24 @@ export interface Genetics {
 export interface MotherPlant {
   id: string;
   code: string;
+  name?: string;
   geneticsId: string;
   geneticsName: string;
   roomId?: string;
+  bedId?: string;
   status: "activa" | "observacion" | "descartada" | "archivada";
+  sanitaryStatus?: "bueno" | "preventivo" | "observacion" | "critico";
   startDate: string;
+  lastCutDate?: string;
+  availableClones?: number;
+  origin?: string;
   notes?: string;
 }
 
 export interface Plant {
   id: string;
   internalCode: string;
+  plantName?: string;
   roomId: string;
   bedId: string;
   bedPosition: number;

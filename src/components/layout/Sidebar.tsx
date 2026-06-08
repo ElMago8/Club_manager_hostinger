@@ -13,6 +13,7 @@ import {
 import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import tickerLogo from "@/assets/ticker-transparent.png";
 
 interface NavItem {
   label: string;
@@ -53,9 +54,9 @@ const CULTIVO_SECTIONS: CultivoSection[] = [
   { label: "Plantas", href: "/app/cultivo/plantas" },
   { label: "Geneticas", href: "/app/cultivo/geneticas" },
   { label: "Madres", href: "/app/cultivo/madres" },
+  { label: "Calendario operativo", href: "/app/cultivo/calendario" },
   { label: "Parametros ambientales", href: "/app/cultivo/ambiente" },
   { label: "Mediciones pH / PPM", href: "/app/cultivo/mediciones" },
-  { label: "Calendario operativo", href: "/app/cultivo/calendario" },
   { label: "Tabla VPD", href: "/app/cultivo/vpd" },
 ] as const;
 
@@ -78,8 +79,13 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       className="flex h-full flex-col bg-sidebar text-sidebar-foreground"
     >
       <div className="flex h-14 items-center gap-2 px-5">
-        <Leaf className="h-5 w-5 text-sidebar-primary" />
-        <span className="text-sm font-semibold tracking-tight text-sidebar-primary-foreground">
+        <img
+          src={tickerLogo}
+          alt=""
+          aria-hidden="true"
+          className="h-5 w-5 shrink-0 object-contain"
+        />
+        <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
           Cannabis Club Manager
         </span>
       </div>
@@ -90,7 +96,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 pb-3">
+      <div className="sidebar-scrollbar flex-1 overflow-y-auto px-3 pb-3">
         <div className="space-y-0.5">
           {NAV_ITEMS.map((item) => {
             if (item.href === "/app/cultivo") {
@@ -102,7 +108,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                     className={cn(
                       "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors",
                       isActive(item.href)
-                        ? "bg-sidebar-accent font-medium text-sidebar-primary-foreground"
+                        ? "bg-sidebar-accent/90 font-medium text-sidebar-accent-foreground"
                         : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                     )}
                     aria-expanded={cultivoOpen}
@@ -148,7 +154,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                   isActive(item.href)
-                    ? "bg-sidebar-accent font-medium text-sidebar-primary-foreground"
+                    ? "bg-sidebar-accent/90 font-medium text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                 )}
               >

@@ -4,21 +4,44 @@ import type { MotherPlant } from "@/types/cultivation";
 
 type CreateMotherPlantPayload = Omit<MotherPlant, "id"> & { id?: string };
 type UpdateMotherPlantPayload = Partial<Omit<MotherPlant, "id">>;
-type ApiMotherStatus = "active" | "observation" | "discarded" | "archived";
+type ApiMotherStatus = "active" | "observation" | "discarded" | "archived" | MotherPlant["status"];
 
 interface ApiMotherPlant {
-  id: string;
-  code: string;
-  geneticsId: string;
+  id: string | number;
+  code?: string;
+  codigoMadre?: string;
+  name?: string | null;
+  nombreMadre?: string | null;
+  geneticsId?: string;
+  geneticaId?: number;
   roomId?: string | null;
+  salaCultivoId?: number | null;
+  bedId?: string | null;
+  camillaId?: number | null;
   status: ApiMotherStatus;
-  startDate: string;
+  estado?: ApiMotherStatus;
+  sanitaryStatus?: MotherPlant["sanitaryStatus"] | null;
+  estadoSanitario?: MotherPlant["sanitaryStatus"] | null;
+  startDate?: string;
+  fechaInicio?: string;
+  lastCutDate?: string | null;
+  fechaUltimoCorte?: string | null;
+  availableClones?: number | null;
+  cantidadEsquejesDisponibles?: number | null;
+  origin?: string | null;
+  origen?: string | null;
   notes?: string | null;
+  observaciones?: string | null;
   genetics?: {
     name: string;
+    nombre?: string;
+  } | null;
+  genetica?: {
+    nombre: string;
   } | null;
   _count?: {
     plants?: number;
+    plantas?: number;
   };
 }
 
@@ -31,6 +54,10 @@ const API_TO_UI_STATUS: Record<ApiMotherStatus, MotherPlant["status"]> = {
   observation: "observacion",
   discarded: "descartada",
   archived: "archivada",
+  activa: "activa",
+  observacion: "observacion",
+  descartada: "descartada",
+  archivada: "archivada",
 };
 
 const UI_TO_API_STATUS: Record<MotherPlant["status"], ApiMotherStatus> = {
@@ -60,27 +87,47 @@ function dateOnly(value: string): string {
 }
 
 function mapApiMotherPlant(motherPlant: ApiMotherPlant): MotherPlantWithPlantCount {
+  const status = motherPlant.estado ?? motherPlant.status;
+
   return {
-    id: motherPlant.id,
-    code: motherPlant.code,
-    geneticsId: motherPlant.geneticsId,
-    geneticsName: motherPlant.genetics?.name ?? "Genetica pendiente",
-    roomId: motherPlant.roomId ?? undefined,
-    status: API_TO_UI_STATUS[motherPlant.status],
-    startDate: dateOnly(motherPlant.startDate),
-    notes: motherPlant.notes ?? undefined,
-    derivedPlantsCount: motherPlant._count?.plants ?? 0,
+    id: String(motherPlant.id),
+    code: motherPlant.codigoMadre ?? motherPlant.code ?? "",
+    name: motherPlant.nombreMadre ?? motherPlant.name ?? undefined,
+    geneticsId: motherPlant.geneticsId ?? (motherPlant.geneticaId ? String(motherPlant.geneticaId) : ""),
+    geneticsName: motherPlant.genetica?.nombre ?? motherPlant.genetics?.nombre ?? motherPlant.genetics?.name ?? "Genetica pendiente",
+    roomId: motherPlant.roomId ?? (motherPlant.salaCultivoId ? String(motherPlant.salaCultivoId) : undefined),
+    bedId: motherPlant.bedId ?? (motherPlant.camillaId ? String(motherPlant.camillaId) : undefined),
+    status: API_TO_UI_STATUS[status],
+    sanitaryStatus: motherPlant.estadoSanitario ?? motherPlant.sanitaryStatus ?? "bueno",
+    startDate: dateOnly(motherPlant.fechaInicio ?? motherPlant.startDate ?? ""),
+    lastCutDate: motherPlant.fechaUltimoCorte || motherPlant.lastCutDate ? dateOnly(motherPlant.fechaUltimoCorte ?? motherPlant.lastCutDate ?? "") : undefined,
+    availableClones: motherPlant.cantidadEsquejesDisponibles ?? motherPlant.availableClones ?? 0,
+    origin: motherPlant.origen ?? motherPlant.origin ?? undefined,
+    notes: motherPlant.observaciones ?? motherPlant.notes ?? undefined,
+    derivedPlantsCount: motherPlant._count?.plants ?? motherPlant._count?.plantas ?? 0,
   };
+}
+
+function optionalString(value: string | undefined): string | null | undefined {
+  if (value === undefined) return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
 }
 
 function toApiMotherPlantPayload(payload: CreateMotherPlantPayload | UpdateMotherPlantPayload) {
   return {
-    code: payload.code,
-    geneticsId: payload.geneticsId,
-    roomId: payload.roomId,
-    status: payload.status ? UI_TO_API_STATUS[payload.status] : undefined,
-    startDate: payload.startDate,
-    notes: payload.notes,
+    codigoMadre: payload.code,
+    nombreMadre: optionalString(payload.name),
+    geneticaId: payload.geneticsId ? Number(payload.geneticsId) : undefined,
+    salaCultivoId: payload.roomId ? Number(payload.roomId) : undefined,
+    camillaId: payload.bedId ? Number(payload.bedId) : undefined,
+    estado: payload.status,
+    estadoSanitario: payload.sanitaryStatus,
+    fechaInicio: payload.startDate,
+    fechaUltimoCorte: payload.lastCutDate || undefined,
+    cantidadEsquejesDisponibles: payload.availableClones,
+    origen: optionalString(payload.origin),
+    observaciones: optionalString(payload.notes),
   };
 }
 
@@ -147,6 +194,22 @@ export async function updateMotherPlant(
 
       Object.assign(motherPlant, payload);
       return withPlantCount(motherPlant);
+    },
+  );
+}
+
+export async function deleteMotherPlant(id: string): Promise<void> {
+  return withMockFallback(
+    async () => {
+      await apiRequest<unknown>(`/cultivation/mothers/${id}`, { method: "DELETE" });
+    },
+    () => {
+      const index = motherPlants.findIndex((item) => item.id === id);
+      if (index === -1) {
+        throw new Error("Planta madre no encontrada.");
+      }
+
+      motherPlants.splice(index, 1);
     },
   );
 }

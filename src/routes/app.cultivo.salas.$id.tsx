@@ -92,7 +92,7 @@ function GrowRoomDetailPage() {
     if (!room || !form) return;
     const updatedRoom = await updateGrowRoomTechnicalConfig(room.id, form);
     setRoom({ ...updatedRoom });
-    setSavedMessage("Configuracion tecnica actualizada en mock data.");
+    setSavedMessage("Configuracion tecnica actualizada correctamente.");
   }
 
   function toggleSensor(sensor: SensorType) {
@@ -119,7 +119,7 @@ function GrowRoomDetailPage() {
             </Link>
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">{room.name}</h1>
-          <p className="text-sm text-muted-foreground">Ficha tecnica de sala y configuracion mock editable.</p>
+          <p className="text-sm text-muted-foreground">Ficha tecnica de sala y configuracion editable.</p>
         </div>
         <Badge variant="outline" className="capitalize">{room.status.replace("_", " ")}</Badge>
       </div>
@@ -212,7 +212,7 @@ function GrowRoomDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle>Editar configuracion tecnica</CardTitle>
-          <CardDescription>Actualiza el mock data local. No hay backend conectado.</CardDescription>
+          <CardDescription>Actualiza la configuracion tecnica registrada para esta sala.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2">
@@ -368,7 +368,7 @@ function GrowRoomDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle>Camillas de la sala</CardTitle>
-          <CardDescription>Relacion visual sala - camillas usando mock data.</CardDescription>
+          <CardDescription>Relacion visual sala - camillas con datos registrados.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border">

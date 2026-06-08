@@ -7,215 +7,278 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model GrowBed {
-  id                String             @id @default(cuid())
-  name              String
-  code              String             @unique
-  roomId            String?
-  status            String             @default("empty")
-  maxPlants         Int
-  notes             String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  plants            Plant[]
-  environmentalLogs EnvironmentalLog[]
-  irrigationLogs    IrrigationLog[]
-  measurements      CultivationMeasurement[]
-  operationalTasks  OperationalTask[]
+model SalaCultivo {
+  id                       Int      @id @default(autoincrement())
+  codigoSala               String   @unique @map("codigo_sala")
+  nombre                   String
+  tipo                     String
+  estado                   String   @default("activa")
+  potenciaWatts            Int      @default(0) @map("potencia_watts")
+  tipoRiego                String   @default("manual") @map("tipo_riego")
+  tieneAireAcondicionado   Boolean  @default(false) @map("tiene_aire_acondicionado")
+  tieneDeshumidificador    Boolean  @default(false) @map("tiene_deshumidificador")
+  sensores                 String?
+  descripcion              String?
+  creadoEn                 DateTime @default(now()) @map("creado_en")
+  actualizadoEn DateTime @updatedAt @map("actualizado_en")
+
+  camillas              Camilla[]
+  madres                Madre[]
+  lotesCultivo          LoteCultivo[]
+  registrosAmbientales  RegistroAmbiental[]
+  tareasCultivo         TareaCultivo[]
+
+  @@map("salas_cultivo")
 }
 
-model Plant {
-  id             String          @id @default(cuid())
-  internalCode   String          @unique
-  bedId          String
-  bedPosition    Int
-  batchId        String?
-  geneticsId     String?
-  motherPlantId  String?
-  origin         String
-  stage          String
-  status         String          @default("normal")
-  startDate      DateTime
-  stageStartDate DateTime?
-  potCode        String?
-  potSizeLiters  Float?
-  potType        String?
-  substrate      String?
-  notes          String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  bed            GrowBed         @relation(fields: [bedId], references: [id], onDelete: Cascade)
-  genetics       Genetics?       @relation(fields: [geneticsId], references: [id], onDelete: SetNull)
-  motherPlant    MotherPlant?    @relation(fields: [motherPlantId], references: [id], onDelete: SetNull)
-  irrigationLogs IrrigationLog[]
-  measurements   CultivationMeasurement[]
-  operationalTasks OperationalTask[]
+model Camilla {
+  id                     Int      @id @default(autoincrement())
+  codigoCamilla          String   @unique @map("codigo_camilla")
+  salaCultivoId          Int      @map("sala_cultivo_id")
+  nombre                 String
+  estado                 String   @default("activa")
+  capacidadMaximaPlantas Int      @map("capacidad_maxima_plantas")
+  descripcion            String?
+  creadoEn               DateTime @default(now()) @map("creado_en")
+  actualizadoEn          DateTime @updatedAt @map("actualizado_en")
 
-  @@unique([bedId, bedPosition])
-  @@index([bedId])
-  @@index([geneticsId])
-  @@index([motherPlantId])
+  salaCultivo SalaCultivo @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  madres      Madre[]
+  plantas     Planta[]
+  tareasCultivo TareaCultivo[]
+
+  @@index([salaCultivoId])
+  @@map("camillas")
 }
 
-model Genetics {
-  id              String          @id @default(cuid())
-  name            String
-  breeder         String?
-  type            String          @default("unknown")
-  dominantProfile String          @default("unknown")
-  notes           String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  plants          Plant[]
-  motherPlants    MotherPlant[]
+model Genetica {
+  id                  Int      @id @default(autoincrement())
+  codigoGenetica      String   @unique @map("codigo_genetica")
+  nombre              String
+  breeder             String?
+  tipo                String
+  thcEstimado         Float?   @map("thc_estimado")
+  cbdEstimado         Float?   @map("cbd_estimado")
+  sativaPorcentaje    Float?   @map("sativa_porcentaje")
+  indicaPorcentaje    Float?   @map("indica_porcentaje")
+  sabor               String?
+  efecto              String?
+  aroma               String?
+  tiempoFloracionDias Int?     @map("tiempo_floracion_dias")
+  estado              String   @default("activa")
+  descripcion         String?
+  observaciones       String?
+  creadoEn            DateTime @default(now()) @map("creado_en")
+  actualizadoEn       DateTime @updatedAt @map("actualizado_en")
+
+  madres       Madre[]
+  lotesCultivo LoteCultivo[]
+  plantas      Planta[]
+
+  @@map("geneticas")
 }
 
-model MotherPlant {
-  id        String            @id @default(cuid())
-  code      String            @unique
-  geneticsId String
-  roomId    String?
-  status    String            @default("active")
-  startDate DateTime
-  notes     String?
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  genetics  Genetics          @relation(fields: [geneticsId], references: [id], onDelete: Restrict)
-  plants    Plant[]
-  measurements CultivationMeasurement[]
+model Madre {
+  id                            Int       @id @default(autoincrement())
+  codigoMadre                   String    @unique @map("codigo_madre")
+  nombreMadre                   String?   @map("nombre_madre")
+  geneticaId                    Int       @map("genetica_id")
+  salaCultivoId                 Int       @map("sala_cultivo_id")
+  camillaId                     Int       @map("camilla_id")
+  estado                        String    @default("activa")
+  estadoSanitario               String    @default("bueno") @map("estado_sanitario")
+  fechaInicio                   DateTime  @map("fecha_inicio")
+  fechaUltimoCorte              DateTime? @map("fecha_ultimo_corte")
+  cantidadEsquejesDisponibles   Int       @default(0) @map("cantidad_esquejes_disponibles")
+  origen                        String?
+  observaciones                 String?
+  creadoEn                      DateTime  @default(now()) @map("creado_en")
+  actualizadoEn                 DateTime  @updatedAt @map("actualizado_en")
 
-  @@index([geneticsId])
+  genetica    Genetica    @relation(fields: [geneticaId], references: [id], onDelete: Restrict)
+  salaCultivo SalaCultivo @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  camilla     Camilla     @relation(fields: [camillaId], references: [id], onDelete: Restrict)
+  plantas     Planta[]
+
+  @@index([geneticaId])
+  @@index([salaCultivoId])
+  @@index([camillaId])
+  @@map("madres")
 }
 
-model EnvironmentalLog {
-  id               String    @id @default(cuid())
-  bedId            String?
-  batchId          String?
-  date             DateTime
-  time             String
-  airTempC         Float
-  relativeHumidity Float
-  leafTempC        Float?
-  co2ppm           Int?
-  calculatedVPD    Float
-  vpdStatus        String
-  notes            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  bed              GrowBed?  @relation(fields: [bedId], references: [id], onDelete: SetNull)
+model LoteCultivo {
+  id                    Int       @id @default(autoincrement())
+  codigoLote            String    @unique @map("codigo_lote")
+  geneticaId            Int       @map("genetica_id")
+  salaCultivoId         Int       @map("sala_cultivo_id")
+  fechaInicio           DateTime  @map("fecha_inicio")
+  fechaInicioFloracion  DateTime? @map("fecha_inicio_floracion")
+  fechaEstimadaCosecha  DateTime? @map("fecha_estimada_cosecha")
+  fechaCosechaReal      DateTime? @map("fecha_cosecha_real")
+  estado                String    @default("activo")
+  observaciones         String?
+  creadoEn              DateTime  @default(now()) @map("creado_en")
+  actualizadoEn         DateTime  @updatedAt @map("actualizado_en")
 
-  @@index([bedId])
-  @@index([date])
-  @@index([vpdStatus])
+  genetica              Genetica              @relation(fields: [geneticaId], references: [id], onDelete: Restrict)
+  salaCultivo           SalaCultivo           @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  plantas               Planta[]
+  registrosAmbientales  RegistroAmbiental[]
+  riegos                Riego[]
+  tareasCultivo         TareaCultivo[]
+  cosechas              Cosecha[]
+
+  @@index([geneticaId])
+  @@index([salaCultivoId])
+  @@map("lotes_cultivo")
 }
 
-model IrrigationLog {
-  id               String         @id @default(cuid())
-  bedId            String?
-  batchId          String?
-  plantId          String?
-  date             DateTime
-  time             String
-  irrigationType   String
-  litersPrepared   Float
-  litersApplied    Float
-  phIn             Float?
-  ppmIn            Float?
-  ecIn             Float?
-  phRunoff         Float?
-  ppmRunoff        Float?
-  ecRunoff         Float?
-  substratePH      Float?
-  substratePPM     Float?
-  substrateEC      Float?
-  runoffPercentage Float?
-  recipeName       String?
-  nutrientsNotes   String?
-  responsibleName  String
-  notes            String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  bed              GrowBed?       @relation(fields: [bedId], references: [id], onDelete: SetNull)
-  plant            Plant?         @relation(fields: [plantId], references: [id], onDelete: SetNull)
+model Planta {
+  id               Int       @id @default(autoincrement())
+  codigoPlanta     String    @unique @map("codigo_planta")
+  nombrePlanta     String    @map("nombre_planta")
+  loteCultivoId    Int?      @map("lote_cultivo_id")
+  geneticaId       Int       @map("genetica_id")
+  madreId          Int?      @map("madre_id")
+  camillaId        Int       @map("camilla_id")
+  posicionCamilla  Int       @map("posicion_camilla")
+  origen           String
+  etapa            String
+  estado           String    @default("activa")
+  fechaInicio      DateTime  @map("fecha_inicio")
+  fechaInicioEtapa DateTime? @map("fecha_inicio_etapa")
+  macetaCodigo     String?   @map("maceta_codigo")
+  macetaLitros     Float?    @map("maceta_litros")
+  tipoMaceta       String?   @map("tipo_maceta")
+  sustrato         String?
+  observaciones    String?
+  creadoEn         DateTime  @default(now()) @map("creado_en")
+  actualizadoEn    DateTime  @updatedAt @map("actualizado_en")
 
-  @@index([bedId])
-  @@index([plantId])
-  @@index([date])
+  loteCultivo       LoteCultivo?       @relation(fields: [loteCultivoId], references: [id], onDelete: SetNull)
+  genetica          Genetica           @relation(fields: [geneticaId], references: [id], onDelete: Restrict)
+  madre             Madre?             @relation(fields: [madreId], references: [id], onDelete: SetNull)
+  camilla           Camilla            @relation(fields: [camillaId], references: [id], onDelete: Restrict)
+  riegos            Riego[]
+  medicionesCultivo MedicionCultivo[]
+  tareasCultivo     TareaCultivo[]
+
+  @@unique([camillaId, posicionCamilla])
+  @@index([loteCultivoId])
+  @@index([geneticaId])
+  @@index([madreId])
+  @@index([camillaId])
+  @@map("plantas")
 }
 
-model CultivationMeasurement {
-  id                String       @id @default(cuid())
-  measurementType   String
-  date              DateTime
-  time              String
-  roomId            String?
-  bedId             String?
-  plantId           String?
-  motherPlantId     String?
-  batchId           String?
-  relatedModule     String       @default("general")
-  substratePH       Float?
-  substratePPM      Float?
-  substrateEC       Float?
-  liquidPH          Float?
-  liquidPPM         Float?
-  liquidEC          Float?
-  runoffPH          Float?
-  runoffPPM         Float?
-  runoffEC          Float?
-  waterTempC        Float?
-  substrateTempC    Float?
-  measurementMethod String?
-  responsibleName   String?
-  status            String       @default("normal")
-  notes             String?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  bed               GrowBed?     @relation(fields: [bedId], references: [id], onDelete: SetNull)
-  plant             Plant?       @relation(fields: [plantId], references: [id], onDelete: SetNull)
-  motherPlant       MotherPlant? @relation(fields: [motherPlantId], references: [id], onDelete: SetNull)
+model RegistroAmbiental {
+  id             Int      @id @default(autoincrement())
+  salaCultivoId  Int      @map("sala_cultivo_id")
+  loteCultivoId  Int?     @map("lote_cultivo_id")
+  temperatura    Float
+  humedad        Float
+  vpd            Float?
+  co2            Int?
+  observaciones  String?
+  registradoEn   DateTime @default(now()) @map("registrado_en")
+  creadoEn       DateTime @default(now()) @map("creado_en")
 
-  @@index([roomId])
-  @@index([bedId])
-  @@index([plantId])
-  @@index([motherPlantId])
-  @@index([batchId])
-  @@index([measurementType])
-  @@index([status])
-  @@index([relatedModule])
-  @@index([date])
+  salaCultivo SalaCultivo @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  loteCultivo LoteCultivo? @relation(fields: [loteCultivoId], references: [id], onDelete: SetNull)
+
+  @@index([salaCultivoId])
+  @@index([loteCultivoId])
+  @@index([registradoEn])
+  @@map("registros_ambientales")
 }
 
-model OperationalTask {
-  id                 String    @id @default(cuid())
-  title              String
-  description        String?
-  taskType           String
-  priority           String
-  status             String    @default("pending")
-  dueDate            DateTime
-  dueTime            String?
-  assignedToName     String?
-  assignedToUserId   String?
-  roomId             String?
-  bedId              String?
-  plantId            String?
-  batchId            String?
-  relatedModule      String    @default("cultivation")
-  recurrenceType     String    @default("none")
-  recurrenceInterval Int?
-  completedAt        DateTime?
-  completedByName    String?
-  notes              String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  bed                GrowBed?  @relation(fields: [bedId], references: [id], onDelete: SetNull)
-  plant              Plant?    @relation(fields: [plantId], references: [id], onDelete: SetNull)
+model Riego {
+  id             Int      @id @default(autoincrement())
+  plantaId       Int?     @map("planta_id")
+  loteCultivoId  Int?     @map("lote_cultivo_id")
+  tipoRiego      String   @map("tipo_riego")
+  volumenLitros  Float    @map("volumen_litros")
+  ph             Float?
+  ec             Float?
+  observaciones  String?
+  fechaRiego     DateTime @default(now()) @map("fecha_riego")
+  creadoEn       DateTime @default(now()) @map("creado_en")
 
-  @@index([status])
-  @@index([priority])
-  @@index([taskType])
-  @@index([dueDate])
-  @@index([bedId])
-  @@index([plantId])
+  planta      Planta?      @relation(fields: [plantaId], references: [id], onDelete: SetNull)
+  loteCultivo LoteCultivo? @relation(fields: [loteCultivoId], references: [id], onDelete: SetNull)
+
+  @@index([plantaId])
+  @@index([loteCultivoId])
+  @@index([fechaRiego])
+  @@map("riegos")
+}
+
+model MedicionCultivo {
+  id              Int      @id @default(autoincrement())
+  plantaId        Int      @map("planta_id")
+  alturaCm        Float?   @map("altura_cm")
+  diametroTalloMm Float?   @map("diametro_tallo_mm")
+  cantidadNodos   Int?     @map("cantidad_nodos")
+  estadoGeneral   String?  @map("estado_general")
+  observaciones   String?
+  fechaMedicion   DateTime @default(now()) @map("fecha_medicion")
+  creadoEn        DateTime @default(now()) @map("creado_en")
+
+  planta Planta @relation(fields: [plantaId], references: [id], onDelete: Cascade)
+
+  @@index([plantaId])
+  @@index([fechaMedicion])
+  @@map("mediciones_cultivo")
+}
+
+model TareaCultivo {
+  id              Int       @id @default(autoincrement())
+  titulo          String
+  descripcion     String?
+  tipo            String
+  prioridad       String   @default("media")
+  estado          String   @default("pendiente")
+  salaCultivoId   Int?     @map("sala_cultivo_id")
+  camillaId       Int?     @map("camilla_id")
+  loteCultivoId   Int?     @map("lote_cultivo_id")
+  plantaId        Int?     @map("planta_id")
+  fechaProgramada DateTime @map("fecha_programada")
+  fechaCompletada DateTime? @map("fecha_completada")
+  observaciones   String?
+  creadoEn        DateTime @default(now()) @map("creado_en")
+  actualizadoEn   DateTime @updatedAt @map("actualizado_en")
+
+  salaCultivo SalaCultivo? @relation(fields: [salaCultivoId], references: [id], onDelete: SetNull)
+  camilla     Camilla?     @relation(fields: [camillaId], references: [id], onDelete: SetNull)
+  loteCultivo LoteCultivo? @relation(fields: [loteCultivoId], references: [id], onDelete: SetNull)
+  planta      Planta?      @relation(fields: [plantaId], references: [id], onDelete: SetNull)
+
+  @@index([estado])
+  @@index([prioridad])
+  @@index([tipo])
+  @@index([salaCultivoId])
+  @@index([camillaId])
+  @@index([loteCultivoId])
+  @@index([plantaId])
+  @@index([fechaProgramada])
+  @@map("tareas_cultivo")
+}
+
+model Cosecha {
+  id                Int       @id @default(autoincrement())
+  codigoCosecha     String    @unique @map("codigo_cosecha")
+  loteCultivoId     Int       @map("lote_cultivo_id")
+  fechaCosecha      DateTime  @map("fecha_cosecha")
+  pesoHumedoGramos  Float?    @map("peso_humedo_gramos")
+  pesoSecoGramos    Float?    @map("peso_seco_gramos")
+  pesoMermaGramos   Float?    @map("peso_merma_gramos")
+  estado            String    @default("registrada")
+  observaciones     String?
+  creadoEn          DateTime  @default(now()) @map("creado_en")
+  actualizadoEn     DateTime  @updatedAt @map("actualizado_en")
+
+  loteCultivo LoteCultivo @relation(fields: [loteCultivoId], references: [id], onDelete: Restrict)
+
+  @@index([loteCultivoId])
+  @@map("cosechas")
 }

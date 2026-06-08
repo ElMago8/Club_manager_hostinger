@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { ArrowRight, Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { getGenetics } from "@/services/geneticsService";
 import { getGrowBeds } from "@/services/growBedService";
 import { getGrowRooms } from "@/services/growRoomService";
 import { getMotherPlants } from "@/services/motherPlantService";
-import { getPlants, type PlantFilters } from "@/services/plantService";
+import { deletePlant, getPlants, type PlantFilters } from "@/services/plantService";
 import type { Genetics, GrowBed, GrowRoom, MotherPlant, Plant, PlantStage, PlantStatus } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/plantas")({
@@ -34,6 +35,8 @@ function PlantsPage() {
   const [beds, setBeds] = useState<GrowBed[]>([]);
   const [genetics, setGenetics] = useState<Genetics[]>([]);
   const [mothers, setMothers] = useState<MotherPlant[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<Plant | null>(null);
+  const [message, setMessage] = useState("");
   const [filters, setFilters] = useState({
     roomId: "all",
     bedId: "all",
@@ -73,6 +76,19 @@ function PlantsPage() {
     setPlants(await getPlants(serviceFilters));
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) return;
+
+    try {
+      await deletePlant(deleteTarget.id);
+      setPlants((current) => current.filter((item) => item.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      setMessage("Planta eliminada correctamente.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudo eliminar la planta.");
+    }
+  }
+
   function roomName(id: string): string {
     return rooms.find((room) => room.id === id)?.name ?? id;
   }
@@ -109,7 +125,7 @@ function PlantsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Filtros</CardTitle>
-          <CardDescription>Filtra plantas usando services mock.</CardDescription>
+          <CardDescription>Filtra plantas registradas.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-4">
           <Select value={filters.roomId} onValueChange={(roomId) => setFilters({ ...filters, roomId, bedId: "all" })}>
@@ -173,14 +189,16 @@ function PlantsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Listado de plantas</CardTitle>
-          <CardDescription>{plants.length} registros mock encontrados.</CardDescription>
+          <CardDescription>{plants.length} registros encontrados.</CardDescription>
+          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-md border">
+          <div className="overflow-x-auto rounded-md border [&_td]:text-center [&_th]:text-center">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Codigo interno</TableHead>
+                  <TableHead>Nombre planta</TableHead>
                   <TableHead>Genetica</TableHead>
                   <TableHead>Lote</TableHead>
                   <TableHead>Sala</TableHead>
@@ -189,13 +207,14 @@ function PlantsPage() {
                   <TableHead>Madre</TableHead>
                   <TableHead>Etapa</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {plants.map((plant) => (
                   <TableRow key={plant.id}>
                     <TableCell className="font-mono text-xs font-medium">{plant.internalCode}</TableCell>
+                    <TableCell>{plant.plantName ?? "-"}</TableCell>
                     <TableCell>{plant.geneticsName ?? "genetica pendiente"}</TableCell>
                     <TableCell className="font-mono text-xs">{plant.batchId ?? "-"}</TableCell>
                     <TableCell>{roomName(plant.roomId)}</TableCell>
@@ -206,13 +225,24 @@ function PlantsPage() {
                     <TableCell>
                       <Badge variant="outline" className={PLANT_STATUS_CLASS[plant.status]}>{plant.status}</Badge>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Button asChild variant="ghost" size="sm" className="gap-1">
-                        <Link to="/app/cultivo/plantas/$id" params={{ id: plant.id }}>
-                          Ver
-                          <ArrowRight className="h-4 w-4" />
+                    <TableCell>
+                      <div className="flex justify-center gap-1 whitespace-nowrap">
+                      <Button asChild variant="ghost" size="sm" className="gap-1 text-emerald-700 hover:text-emerald-800">
+                        <Link to="/app/cultivo/plantas/nueva" search={{ edit: plant.id }}>
+                          <Pencil className="h-4 w-4" />
+                          Editar
                         </Link>
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTarget(plant)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Eliminar
+                      </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -221,6 +251,14 @@ function PlantsPage() {
           </div>
         </CardContent>
       </Card>
+      <DeleteConfirmDialog
+        open={Boolean(deleteTarget)}
+        entityLabel="planta"
+        itemName={deleteTarget?.internalCode}
+        description={`Estas por eliminar la planta ${deleteTarget?.internalCode ?? ""}. Esta accion no se puede deshacer.`}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

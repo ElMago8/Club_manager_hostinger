@@ -9,7 +9,8 @@
     "start": "node dist/src/index.js",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "seed:cultivo-prueba": "tsx prisma/seed-cultivo-prueba.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

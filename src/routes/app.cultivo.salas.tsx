@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { ArrowRight, Snowflake, Wind } from "lucide-react";
+import { Pencil, Plus, Snowflake, Trash2, Wind } from "lucide-react";
+import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getGrowRooms } from "@/services/growRoomService";
+import { deleteGrowRoom, getGrowRooms } from "@/services/growRoomService";
 import type { GrowRoom, RoomStatus } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/salas")({
@@ -34,6 +35,8 @@ function yesNo(value: boolean): string {
 function GrowRoomsPage() {
   const location = useLocation();
   const [rooms, setRooms] = useState<GrowRoom[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<GrowRoom | null>(null);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     void getGrowRooms().then(setRooms);
@@ -43,13 +46,34 @@ function GrowRoomsPage() {
     return <Outlet />;
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) return;
+
+    try {
+      await deleteGrowRoom(deleteTarget.id);
+      setRooms((current) => current.filter((item) => item.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      setMessage("Sala eliminada correctamente.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudo eliminar la sala.");
+    }
+  }
+
   return (
     <div className="mx-auto max-w-[1400px] space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Salas</h1>
-        <p className="text-sm text-muted-foreground">
-          Vista tecnica de salas registradas para el seguimiento interno de cultivo.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Salas</h1>
+          <p className="text-sm text-muted-foreground">
+            Vista tecnica de salas registradas para el seguimiento interno de cultivo.
+          </p>
+        </div>
+        <Button asChild className="gap-2">
+          <Link to="/app/cultivo/salas/nueva">
+            <Plus className="h-4 w-4" />
+            Nueva sala
+          </Link>
+        </Button>
       </header>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -80,10 +104,11 @@ function GrowRoomsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Listado de salas</CardTitle>
-          <CardDescription>Datos ficticios preparados para futura API REST.</CardDescription>
+          <CardDescription>Datos conectados al backend local de cultivo.</CardDescription>
+          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-md border">
+          <div className="overflow-x-auto rounded-md border [&_td]:text-center [&_th]:text-center">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -96,7 +121,7 @@ function GrowRoomsPage() {
                   <TableHead>A/C</TableHead>
                   <TableHead>Deshumidificador</TableHead>
                   <TableHead>Sensores</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -115,19 +140,19 @@ function GrowRoomsPage() {
                     </TableCell>
                     <TableCell className="capitalize">{room.technicalConfig.irrigationSystem}</TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center gap-1 text-sm">
+                      <span className="inline-flex items-center justify-center gap-1 text-sm">
                         <Snowflake className="h-3.5 w-3.5 text-muted-foreground" />
                         {yesNo(room.technicalConfig.hasAirConditioning)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center gap-1 text-sm">
+                      <span className="inline-flex items-center justify-center gap-1 text-sm">
                         <Wind className="h-3.5 w-3.5 text-muted-foreground" />
                         {yesNo(room.technicalConfig.hasDehumidifier)}
                       </span>
                     </TableCell>
                     <TableCell className="max-w-[240px]">
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap justify-center gap-1">
                         {room.technicalConfig.installedSensors.map((sensor) => (
                           <Badge key={sensor} variant="secondary" className="capitalize">
                             {sensor.replace("_", " ")}
@@ -135,13 +160,24 @@ function GrowRoomsPage() {
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Button asChild variant="ghost" size="sm" className="gap-1">
+                    <TableCell>
+                      <div className="flex justify-center gap-1 whitespace-nowrap">
+                      <Button asChild variant="ghost" size="sm" className="gap-1 text-emerald-700 hover:text-emerald-800">
                         <Link to="/app/cultivo/salas/$id" params={{ id: room.id }}>
-                          Ver
-                          <ArrowRight className="h-4 w-4" />
+                          <Pencil className="h-4 w-4" />
+                          Editar
                         </Link>
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTarget(room)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Eliminar
+                      </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -150,6 +186,14 @@ function GrowRoomsPage() {
           </div>
         </CardContent>
       </Card>
+      <DeleteConfirmDialog
+        open={Boolean(deleteTarget)}
+        entityLabel="sala"
+        itemName={deleteTarget?.name}
+        description={`Estas por eliminar la sala ${deleteTarget?.name ?? ""}. Si tiene camillas o registros asociados, la base puede impedir la eliminacion.`}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

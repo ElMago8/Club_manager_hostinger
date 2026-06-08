@@ -1,0 +1,738 @@
+import { Router, type NextFunction, type Request, type Response } from "express";
+import { z } from "zod";
+import { prisma } from "../../config/prisma.js";
+import { ApiError } from "../../utils/ApiError.js";
+
+const intId = z.coerce.number().int().positive();
+const optionalText = z.string().trim().min(1).optional();
+const nullableText = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+  z.string().trim().nullable().optional(),
+);
+const optionalDate = z.coerce.date().optional();
+
+function parseId(req: Request) {
+  return intId.parse(req.params.id);
+}
+
+type CrudDelegate = {
+  findMany: (args?: any) => Promise<unknown>;
+  findUnique: (args: any) => Promise<unknown>;
+  create: (args: any) => Promise<unknown>;
+  update: (args: any) => Promise<unknown>;
+  delete: (args: any) => Promise<unknown>;
+};
+
+function crudRoutes(delegate: CrudDelegate, createSchema: z.ZodObject<any>, updateSchema = createSchema.partial()) {
+  const router = Router();
+
+  router.get("/", async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await delegate.findMany({ orderBy: { id: "desc" } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.status(201).json(await delegate.create({ data: createSchema.parse(req.body) }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const record = await delegate.findUnique({ where: { id: parseId(req) } });
+      if (!record) throw new ApiError(404, "Registro no encontrado.");
+      res.json(record);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await delegate.update({ where: { id: parseId(req) }, data: updateSchema.parse(req.body) }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await delegate.delete({ where: { id: parseId(req) } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
+}
+
+function parseOptionalString(value: unknown) {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function activePlantWhereForCamilla(camillaId: number) {
+  return {
+    camillaId,
+    estado: { notIn: ["descartada", "discarded"] },
+  };
+}
+
+async function assertCamillaCapacity(camillaId: number, adding = 1, ignoredPlantId?: number) {
+  const camilla = await prisma.camilla.findUnique({ where: { id: camillaId } });
+  if (!camilla) throw new ApiError(404, "Camilla no encontrada.");
+
+  const currentPlants = await prisma.planta.count({
+    where: {
+      ...activePlantWhereForCamilla(camillaId),
+      id: ignoredPlantId ? { not: ignoredPlantId } : undefined,
+    },
+  });
+
+  if (currentPlants + adding > camilla.capacidadMaximaPlantas) {
+    throw new ApiError(400, "No hay capacidad disponible en la camilla seleccionada.");
+  }
+}
+
+async function assertCamillaPosition(camillaId: number, posicionCamilla: number, ignoredPlantId?: number) {
+  const camilla = await prisma.camilla.findUnique({ where: { id: camillaId } });
+  if (!camilla) throw new ApiError(404, "Camilla no encontrada.");
+  if (posicionCamilla > camilla.capacidadMaximaPlantas) {
+    throw new ApiError(400, "La posicion no puede superar la capacidad maxima de la camilla.");
+  }
+
+  const existing = await prisma.planta.findFirst({
+    where: {
+      camillaId,
+      posicionCamilla,
+      estado: { notIn: ["descartada", "discarded"] },
+      id: ignoredPlantId ? { not: ignoredPlantId } : undefined,
+    },
+  });
+
+  if (existing) throw new ApiError(409, "Ya existe una planta en esa posicion de la camilla.");
+}
+
+function parseCamillaPayload(body: any, partial = false) {
+  const parsed = z.object({
+    codigoCamilla: z.string().trim().min(1).optional(),
+    code: z.string().trim().min(1).optional(),
+    salaCultivoId: intId.optional(),
+    roomId: intId.optional(),
+    nombre: z.string().trim().min(1).optional(),
+    name: z.string().trim().min(1).optional(),
+    estado: z.string().trim().min(1).optional(),
+    status: z.string().trim().min(1).optional(),
+    capacidadMaximaPlantas: z.coerce.number().int().min(0).max(100).optional(),
+    maxPlants: z.coerce.number().int().min(0).max(100).optional(),
+    descripcion: nullableText,
+    notes: nullableText,
+  }).parse(body);
+
+  const data = {
+    codigoCamilla: parsed.codigoCamilla ?? parsed.code,
+    salaCultivoId: parsed.salaCultivoId ?? parsed.roomId,
+    nombre: parsed.nombre ?? parsed.name,
+    estado: parsed.estado ?? parsed.status ?? (!partial ? "activa" : undefined),
+    capacidadMaximaPlantas: parsed.capacidadMaximaPlantas ?? parsed.maxPlants,
+    descripcion: parsed.descripcion ?? parsed.notes,
+  };
+
+  if (!partial && (!data.codigoCamilla || !data.salaCultivoId || !data.nombre || data.capacidadMaximaPlantas === undefined)) {
+    throw new ApiError(400, "Codigo, sala, nombre y capacidad de camilla son obligatorios.");
+  }
+
+  return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined));
+}
+
+function parsePlantaPayload(body: any, partial = false) {
+  const parsed = plantaSchema.partial().extend({
+    codigoPlanta: z.string().trim().min(1).optional(),
+    nombrePlanta: z.string().trim().min(1).optional(),
+  }).parse(body);
+
+  if (!partial && (!parsed.codigoPlanta || !parsed.nombrePlanta || !parsed.geneticaId || !parsed.camillaId || !parsed.posicionCamilla || !parsed.origen || !parsed.etapa || !parsed.fechaInicio)) {
+    throw new ApiError(400, "Codigo, nombre, genetica, camilla, posicion, origen, etapa y fecha de inicio son obligatorios.");
+  }
+
+  return Object.fromEntries(
+    Object.entries(parsed).map(([key, value]) => [key, parseOptionalString(value)]).filter(([, value]) => value !== undefined),
+  );
+}
+
+function salaRoutes() {
+  const router = Router();
+
+  router.get("/", async (_req, res, next) => {
+    try {
+      res.json(await prisma.salaCultivo.findMany({ orderBy: { id: "desc" } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/", async (req, res, next) => {
+    try {
+      res.status(201).json(await prisma.salaCultivo.create({ data: salaCultivoSchema.parse(req.body) }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id", async (req, res, next) => {
+    try {
+      const record = await prisma.salaCultivo.findUnique({ where: { id: parseId(req) } });
+      if (!record) throw new ApiError(404, "Sala no encontrada.");
+      res.json(record);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:id", async (req, res, next) => {
+    try {
+      res.json(await prisma.salaCultivo.update({
+        where: { id: parseId(req) },
+        data: salaCultivoSchema.partial().parse(req.body),
+      }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:id", async (req, res, next) => {
+    try {
+      const id = parseId(req);
+      const [camillas, madres, lotes, registrosAmbientales, tareasCultivo] = await Promise.all([
+        prisma.camilla.count({ where: { salaCultivoId: id } }),
+        prisma.madre.count({ where: { salaCultivoId: id } }),
+        prisma.loteCultivo.count({ where: { salaCultivoId: id } }),
+        prisma.registroAmbiental.count({ where: { salaCultivoId: id } }),
+        prisma.tareaCultivo.count({ where: { salaCultivoId: id } }),
+      ]);
+
+      const related = [
+        camillas ? `${camillas} camilla${camillas === 1 ? "" : "s"}` : "",
+        madres ? `${madres} madre${madres === 1 ? "" : "s"}` : "",
+        lotes ? `${lotes} lote${lotes === 1 ? "" : "s"} de cultivo` : "",
+        registrosAmbientales ? `${registrosAmbientales} registro${registrosAmbientales === 1 ? "" : "s"} ambiental${registrosAmbientales === 1 ? "" : "es"}` : "",
+        tareasCultivo ? `${tareasCultivo} tarea${tareasCultivo === 1 ? "" : "s"} de cultivo` : "",
+      ].filter(Boolean);
+
+      if (related.length > 0) {
+        throw new ApiError(
+          409,
+          `No se puede eliminar la sala porque tiene datos relacionados: ${related.join(", ")}. Borra o reasigna esos datos antes de eliminarla.`,
+        );
+      }
+
+      res.json(await prisma.salaCultivo.delete({ where: { id } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
+}
+
+function camillaRoutes() {
+  const router = Router();
+
+  router.get("/", async (_req, res, next) => {
+    try {
+      res.json(await prisma.camilla.findMany({
+        include: { _count: { select: { plantas: { where: { estado: { notIn: ["descartada", "discarded"] } } } } } },
+        orderBy: { id: "desc" },
+      }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/", async (req, res, next) => {
+    try {
+      res.status(201).json(await prisma.camilla.create({ data: parseCamillaPayload(req.body) as any }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id/occupancy", async (req, res, next) => {
+    try {
+      const id = parseId(req);
+      const camilla = await prisma.camilla.findUnique({ where: { id } });
+      if (!camilla) throw new ApiError(404, "Camilla no encontrada.");
+      const occupied = await prisma.planta.count({ where: activePlantWhereForCamilla(id) });
+      const available = Math.max(camilla.capacidadMaximaPlantas - occupied, 0);
+      const occupancyPercentage = camilla.capacidadMaximaPlantas > 0
+        ? Number(((occupied / camilla.capacidadMaximaPlantas) * 100).toFixed(1))
+        : 0;
+      res.json({ bedId: String(id), maxPlants: camilla.capacidadMaximaPlantas, occupied, available, occupancyPercentage });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.patch("/:id/capacity", async (req, res, next) => {
+    try {
+      const id = parseId(req);
+      const maxPlants = z.coerce.number().int().min(0).max(100).parse(req.body.maxPlants ?? req.body.capacidadMaximaPlantas);
+      const occupied = await prisma.planta.count({ where: activePlantWhereForCamilla(id) });
+      if (maxPlants < occupied) throw new ApiError(400, "No se puede reducir la capacidad por debajo de la cantidad actual de plantas asignadas.");
+      res.json(await prisma.camilla.update({ where: { id }, data: { capacidadMaximaPlantas: maxPlants } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id", async (req, res, next) => {
+    try {
+      const record = await prisma.camilla.findUnique({
+        where: { id: parseId(req) },
+        include: { plantas: true, _count: { select: { plantas: { where: { estado: { notIn: ["descartada", "discarded"] } } } } } },
+      });
+      if (!record) throw new ApiError(404, "Camilla no encontrada.");
+      res.json(record);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:id", async (req, res, next) => {
+    try {
+      const id = parseId(req);
+      const data = parseCamillaPayload(req.body, true) as any;
+      if (data.capacidadMaximaPlantas !== undefined) {
+        const occupied = await prisma.planta.count({ where: activePlantWhereForCamilla(id) });
+        if (data.capacidadMaximaPlantas < occupied) throw new ApiError(400, "La capacidad no puede quedar por debajo de las plantas actuales.");
+      }
+      res.json(await prisma.camilla.update({ where: { id }, data }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:id", async (req, res, next) => {
+    try {
+      const id = parseId(req);
+      const [plantas, madres, tareasCultivo] = await Promise.all([
+        prisma.planta.count({ where: { camillaId: id } }),
+        prisma.madre.count({ where: { camillaId: id } }),
+        prisma.tareaCultivo.count({ where: { camillaId: id } }),
+      ]);
+
+      const related = [
+        plantas ? `${plantas} planta${plantas === 1 ? "" : "s"}` : "",
+        madres ? `${madres} madre${madres === 1 ? "" : "s"}` : "",
+        tareasCultivo ? `${tareasCultivo} tarea${tareasCultivo === 1 ? "" : "s"} de cultivo` : "",
+      ].filter(Boolean);
+
+      if (related.length > 0) {
+        throw new ApiError(
+          409,
+          `No se puede eliminar la camilla porque tiene datos relacionados: ${related.join(", ")}. Borra o reasigna esos datos antes de eliminarla.`,
+        );
+      }
+
+      res.json(await prisma.camilla.delete({ where: { id } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
+}
+
+function plantaRoutes() {
+  const router = Router();
+  const include = { camilla: true, genetica: true, madre: true, loteCultivo: true };
+
+  router.get("/", async (req, res, next) => {
+    try {
+      const filters = req.query;
+      res.json(await prisma.planta.findMany({
+        where: {
+          camillaId: filters.bedId ? Number(filters.bedId) : undefined,
+          geneticaId: filters.geneticsId ? Number(filters.geneticsId) : undefined,
+          loteCultivoId: filters.batchId ? Number(filters.batchId) : undefined,
+          madreId: filters.motherPlantId ? Number(filters.motherPlantId) : undefined,
+          etapa: filters.stage ? String(filters.stage) : undefined,
+          estado: filters.status ? String(filters.status) : undefined,
+        },
+        include,
+        orderBy: [{ camillaId: "asc" }, { posicionCamilla: "asc" }],
+      }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/", async (req, res, next) => {
+    try {
+      const data = parsePlantaPayload(req.body);
+      await assertCamillaCapacity(Number(data.camillaId), 1);
+      await assertCamillaPosition(Number(data.camillaId), Number(data.posicionCamilla));
+      res.status(201).json(await prisma.planta.create({ data: data as any, include }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/bulk", async (req, res, next) => {
+    try {
+      const body = z.object({
+        bedId: intId,
+        count: z.coerce.number().int().min(1).max(100),
+        internalCodePrefix: z.string().trim().min(1).default("PLANT"),
+        batchId: intId.optional(),
+        geneticsId: intId,
+        motherPlantId: intId.optional(),
+        origin: z.string().trim().min(1),
+        stage: z.string().trim().min(1),
+        status: z.string().trim().min(1).default("normal"),
+        startDate: z.coerce.date(),
+        stageStartDate: z.coerce.date().optional(),
+        potSizeLiters: z.coerce.number().positive().optional(),
+        potType: nullableText,
+        substrate: nullableText,
+        notes: nullableText,
+      }).parse(req.body);
+
+      await assertCamillaCapacity(body.bedId, body.count);
+      const camilla = await prisma.camilla.findUnique({ where: { id: body.bedId } });
+      if (!camilla) throw new ApiError(404, "Camilla no encontrada.");
+
+      const occupied = new Set(
+        (await prisma.planta.findMany({
+          where: activePlantWhereForCamilla(body.bedId),
+          select: { posicionCamilla: true },
+        })).map((plant) => plant.posicionCamilla),
+      );
+      const freePositions = Array.from(
+        { length: Math.min(camilla.capacidadMaximaPlantas, 100) },
+        (_, index) => index + 1,
+      ).filter((position) => !occupied.has(position));
+
+      if (freePositions.length < body.count) throw new ApiError(400, "No hay posiciones libres suficientes en la camilla.");
+
+      const created = [];
+      for (let index = 0; index < body.count; index += 1) {
+        const position = freePositions[index];
+        const sequence = String(position).padStart(3, "0");
+        const codigoPlanta = `${body.internalCodePrefix}-${sequence}`;
+        created.push(await prisma.planta.create({
+          data: {
+            codigoPlanta,
+            nombrePlanta: codigoPlanta,
+            camillaId: body.bedId,
+            posicionCamilla: position,
+            loteCultivoId: body.batchId,
+            geneticaId: body.geneticsId,
+            madreId: body.motherPlantId,
+            origen: body.origin,
+            etapa: body.stage,
+            estado: body.status,
+            fechaInicio: body.startDate,
+            fechaInicioEtapa: body.stageStartDate,
+            macetaLitros: body.potSizeLiters,
+            tipoMaceta: body.potType ?? undefined,
+            sustrato: body.substrate ?? undefined,
+            observaciones: body.notes ?? undefined,
+          },
+          include,
+        }));
+      }
+
+      res.status(201).json(created);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.patch("/:id/stage", async (req, res, next) => {
+    try {
+      const id = parseId(req);
+      const etapa = z.string().trim().min(1).parse(req.body.etapa ?? req.body.stage);
+      const fechaInicioEtapa = req.body.fechaInicioEtapa ?? req.body.stageStartDate;
+      res.json(await prisma.planta.update({
+        where: { id },
+        data: {
+          etapa,
+          fechaInicioEtapa: fechaInicioEtapa ? z.coerce.date().parse(fechaInicioEtapa) : undefined,
+          observaciones: parseOptionalString(req.body.observaciones ?? req.body.notes) as string | undefined,
+        },
+        include,
+      }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.patch("/:id/status", async (req, res, next) => {
+    try {
+      const id = parseId(req);
+      const estado = z.string().trim().min(1).parse(req.body.estado ?? req.body.status);
+      res.json(await prisma.planta.update({
+        where: { id },
+        data: {
+          estado,
+          observaciones: parseOptionalString(req.body.observaciones ?? req.body.notes) as string | undefined,
+        },
+        include,
+      }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id", async (req, res, next) => {
+    try {
+      const record = await prisma.planta.findUnique({ where: { id: parseId(req) }, include });
+      if (!record) throw new ApiError(404, "Planta no encontrada.");
+      res.json(record);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:id", async (req, res, next) => {
+    try {
+      const id = parseId(req);
+      const current = await prisma.planta.findUnique({ where: { id } });
+      if (!current) throw new ApiError(404, "Planta no encontrada.");
+      const data = parsePlantaPayload(req.body, true);
+      const nextCamillaId = Number(data.camillaId ?? current.camillaId);
+      const nextPosition = Number(data.posicionCamilla ?? current.posicionCamilla);
+      await assertCamillaCapacity(nextCamillaId, 1, id);
+      await assertCamillaPosition(nextCamillaId, nextPosition, id);
+      res.json(await prisma.planta.update({ where: { id }, data: data as any, include }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:id", async (req, res, next) => {
+    try {
+      res.json(await prisma.planta.delete({ where: { id: parseId(req) } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
+}
+
+function madreRoutes() {
+  const router = Router();
+  const include = { genetica: true, salaCultivo: true, camilla: true, _count: { select: { plantas: true } } };
+
+  router.get("/", async (_req, res, next) => {
+    try {
+      res.json(await prisma.madre.findMany({ include, orderBy: { id: "desc" } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/", async (req, res, next) => {
+    try {
+      res.status(201).json(await prisma.madre.create({ data: madreSchema.parse(req.body), include }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id", async (req, res, next) => {
+    try {
+      const record = await prisma.madre.findUnique({ where: { id: parseId(req) }, include });
+      if (!record) throw new ApiError(404, "Madre no encontrada.");
+      res.json(record);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:id", async (req, res, next) => {
+    try {
+      res.json(await prisma.madre.update({ where: { id: parseId(req) }, data: madreSchema.partial().parse(req.body), include }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:id", async (req, res, next) => {
+    try {
+      res.json(await prisma.madre.delete({ where: { id: parseId(req) } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
+}
+
+const salaCultivoSchema = z.object({
+  codigoSala: z.string().trim().min(1),
+  nombre: z.string().trim().min(1),
+  tipo: z.string().trim().min(1),
+  estado: z.string().trim().min(1).default("activa"),
+  potenciaWatts: z.coerce.number().int().min(0).default(0),
+  tipoRiego: z.enum(["manual", "automatico", "mixto"]).default("manual"),
+  tieneAireAcondicionado: z.coerce.boolean().default(false),
+  tieneDeshumidificador: z.coerce.boolean().default(false),
+  sensores: optionalText,
+  descripcion: optionalText,
+});
+
+const camillaSchema = z.object({
+  codigoCamilla: z.string().trim().min(1),
+  salaCultivoId: intId,
+  nombre: z.string().trim().min(1),
+  estado: z.string().trim().min(1).default("activa"),
+  capacidadMaximaPlantas: z.coerce.number().int().min(0),
+  descripcion: optionalText,
+});
+
+const geneticaSchema = z.object({
+  codigoGenetica: z.string().trim().min(1),
+  nombre: z.string().trim().min(1),
+  breeder: nullableText,
+  tipo: z.string().trim().min(1),
+  thcEstimado: z.coerce.number().min(0).max(100).optional(),
+  cbdEstimado: z.coerce.number().min(0).max(100).optional(),
+  sativaPorcentaje: z.coerce.number().min(0).max(100).optional(),
+  indicaPorcentaje: z.coerce.number().min(0).max(100).optional(),
+  sabor: nullableText,
+  efecto: nullableText,
+  aroma: nullableText,
+  tiempoFloracionDias: z.coerce.number().int().positive().optional(),
+  estado: z.string().trim().min(1).default("activa"),
+  descripcion: optionalText,
+  observaciones: nullableText,
+});
+
+const madreSchema = z.object({
+  codigoMadre: z.string().trim().min(1),
+  nombreMadre: nullableText,
+  geneticaId: intId,
+  salaCultivoId: intId,
+  camillaId: intId,
+  estado: z.string().trim().min(1).default("activa"),
+  estadoSanitario: z.enum(["bueno", "preventivo", "observacion", "critico"]).default("bueno"),
+  fechaInicio: z.coerce.date(),
+  fechaUltimoCorte: optionalDate,
+  cantidadEsquejesDisponibles: z.coerce.number().int().min(0).default(0),
+  origen: nullableText,
+  observaciones: nullableText,
+});
+
+const loteCultivoSchema = z.object({
+  codigoLote: z.string().trim().min(1),
+  geneticaId: intId,
+  salaCultivoId: intId,
+  fechaInicio: z.coerce.date(),
+  fechaInicioFloracion: optionalDate,
+  fechaEstimadaCosecha: optionalDate,
+  fechaCosechaReal: optionalDate,
+  estado: z.string().trim().min(1).default("activo"),
+  observaciones: optionalText,
+});
+
+const plantaSchema = z.object({
+  codigoPlanta: z.string().trim().min(1),
+  nombrePlanta: z.string().trim().min(1),
+  loteCultivoId: intId.optional(),
+  geneticaId: intId,
+  madreId: intId.optional(),
+  camillaId: intId,
+  posicionCamilla: z.coerce.number().int().positive(),
+  origen: z.string().trim().min(1),
+  etapa: z.string().trim().min(1),
+  estado: z.string().trim().min(1).default("activa"),
+  fechaInicio: z.coerce.date(),
+  fechaInicioEtapa: optionalDate,
+  macetaCodigo: optionalText,
+  macetaLitros: z.coerce.number().positive().optional(),
+  tipoMaceta: optionalText,
+  sustrato: optionalText,
+  observaciones: optionalText,
+});
+
+const registroAmbientalSchema = z.object({
+  salaCultivoId: intId,
+  loteCultivoId: intId.optional(),
+  temperatura: z.coerce.number(),
+  humedad: z.coerce.number().min(0).max(100),
+  vpd: z.coerce.number().optional(),
+  co2: z.coerce.number().int().positive().optional(),
+  observaciones: optionalText,
+  registradoEn: z.coerce.date().default(() => new Date()),
+});
+
+const riegoSchema = z.object({
+  plantaId: intId.optional(),
+  loteCultivoId: intId.optional(),
+  tipoRiego: z.string().trim().min(1),
+  volumenLitros: z.coerce.number().positive(),
+  ph: z.coerce.number().optional(),
+  ec: z.coerce.number().optional(),
+  observaciones: optionalText,
+  fechaRiego: z.coerce.date().default(() => new Date()),
+});
+
+const medicionCultivoSchema = z.object({
+  plantaId: intId,
+  alturaCm: z.coerce.number().positive().optional(),
+  diametroTalloMm: z.coerce.number().positive().optional(),
+  cantidadNodos: z.coerce.number().int().min(0).optional(),
+  estadoGeneral: optionalText,
+  observaciones: optionalText,
+  fechaMedicion: z.coerce.date().default(() => new Date()),
+});
+
+const tareaCultivoSchema = z.object({
+  titulo: z.string().trim().min(1),
+  descripcion: optionalText,
+  tipo: z.string().trim().min(1),
+  prioridad: z.string().trim().min(1).default("media"),
+  estado: z.string().trim().min(1).default("pendiente"),
+  salaCultivoId: intId.optional(),
+  camillaId: intId.optional(),
+  loteCultivoId: intId.optional(),
+  plantaId: intId.optional(),
+  fechaProgramada: z.coerce.date(),
+  fechaCompletada: optionalDate,
+  observaciones: optionalText,
+});
+
+const cosechaSchema = z.object({
+  codigoCosecha: z.string().trim().min(1),
+  loteCultivoId: intId,
+  fechaCosecha: z.coerce.date(),
+  pesoHumedoGramos: z.coerce.number().min(0).optional(),
+  pesoSecoGramos: z.coerce.number().min(0).optional(),
+  pesoMermaGramos: z.coerce.number().min(0).optional(),
+  estado: z.string().trim().min(1).default("registrada"),
+  observaciones: optionalText,
+});
+
+export const cultivationRoutes = Router();
+
+cultivationRoutes.use("/rooms", salaRoutes());
+cultivationRoutes.use("/beds", camillaRoutes());
+cultivationRoutes.use("/genetics", crudRoutes(prisma.genetica, geneticaSchema));
+cultivationRoutes.use("/mothers", madreRoutes());
+cultivationRoutes.use("/batches", crudRoutes(prisma.loteCultivo, loteCultivoSchema));
+cultivationRoutes.use("/plants", plantaRoutes());
+cultivationRoutes.use("/environmental-logs", crudRoutes(prisma.registroAmbiental, registroAmbientalSchema));
+cultivationRoutes.use("/irrigation-logs", crudRoutes(prisma.riego, riegoSchema));
+cultivationRoutes.use("/measurements", crudRoutes(prisma.medicionCultivo, medicionCultivoSchema));
+cultivationRoutes.use("/tasks", crudRoutes(prisma.tareaCultivo, tareaCultivoSchema));
+cultivationRoutes.use("/operational-tasks", crudRoutes(prisma.tareaCultivo, tareaCultivoSchema));
+cultivationRoutes.use("/harvests", crudRoutes(prisma.cosecha, cosechaSchema));

@@ -1,14 +1,13 @@
-import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart3, CalendarClock, FileText, Leaf, Sprout, TestTube, Timer, TrendingUp, Warehouse } from "lucide-react";
+import { BarChart3, FileText, Leaf, Sprout, TestTube, Timer, TrendingUp, Warehouse } from "lucide-react";
 import { Cell, Label, Pie, PieChart } from "recharts";
 
-type CultivoSection = "resumen" | "trazabilidad" | "lotes" | "rendimientos" | "inventario" | "calendario";
+type CultivoSection = "resumen" | "trazabilidad" | "lotes" | "rendimientos" | "inventario";
 
 export const Route = createFileRoute("/app/cultivo")({
   head: () => ({
@@ -24,8 +23,7 @@ export const Route = createFileRoute("/app/cultivo")({
       section === "trazabilidad" ||
       section === "lotes" ||
       section === "rendimientos" ||
-      section === "inventario" ||
-      section === "calendario"
+      section === "inventario"
     ) {
       return { section };
     }
@@ -253,7 +251,6 @@ function CultivoPage() {
           <TabsTrigger value="lotes">Lotes</TabsTrigger>
           <TabsTrigger value="rendimientos">Rendimientos</TabsTrigger>
           <TabsTrigger value="inventario">Inventario</TabsTrigger>
-          <TabsTrigger value="calendario">Calendario operativo</TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumen" className="space-y-4">
@@ -714,35 +711,6 @@ function CultivoPage() {
           </section>
         </TabsContent>
 
-        <TabsContent value="calendario" className="space-y-4">
-          {/* === CALENDARIO OPERATIVO === */}
-          <section className="space-y-4">
-            <div className="space-y-1 border-l-2 border-primary/60 pl-3">
-              <h2 className="text-lg font-semibold tracking-tight">Calendario operativo</h2>
-              <p className="text-sm text-muted-foreground">
-                El calendario operativo completo ahora funciona con backend real.
-              </p>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <CalendarClock className="h-4 w-4 text-muted-foreground" />
-                  <CardTitle>Calendario operativo</CardTitle>
-                </div>
-                <CardDescription>Tareas, filtros, estados y acciones conectadas a la API local.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-muted-foreground">
-                  Abrí la vista completa para crear tareas, filtrar, marcar en curso, completar o cancelar.
-                </p>
-                <Button asChild>
-                  <Link to="/app/cultivo/calendario">Abrir calendario operativo</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </section>
-        </TabsContent>
       </Tabs>
     </div>
   );

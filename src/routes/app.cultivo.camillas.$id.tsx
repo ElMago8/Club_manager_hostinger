@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Plus } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { getGenetics } from "@/services/geneticsService";
-import { getGrowBedById, getGrowBedOccupancy, updateGrowBedCapacity, type GrowBedOccupancy } from "@/services/growBedService";
+import { deleteGrowBed, getGrowBedById, getGrowBedOccupancy, updateGrowBedCapacity, type GrowBedOccupancy } from "@/services/growBedService";
 import { getGrowRoomById } from "@/services/growRoomService";
 import { getMeasurements } from "@/services/measurementService";
 import { getMotherPlants } from "@/services/motherPlantService";
@@ -54,6 +55,28 @@ const PLANT_STATUS_CLASS: Record<PlantStatus, string> = {
   alerta: "border-amber-200 bg-amber-500/10 text-amber-700",
   descartada: "border-muted bg-muted text-muted-foreground",
   cosechada: "border-violet-200 bg-violet-500/10 text-violet-700",
+};
+
+const PLANT_STAGE_CLASS: Record<PlantStage, string> = {
+  esqueje: "border-lime-200 bg-lime-500/15 text-lime-800 hover:bg-lime-500/20",
+  vegetativo: "border-emerald-200 bg-emerald-500/15 text-emerald-800 hover:bg-emerald-500/20",
+  floracion: "border-fuchsia-200 bg-fuchsia-500/15 text-fuchsia-800 hover:bg-fuchsia-500/20",
+  cosecha: "border-amber-200 bg-amber-500/20 text-amber-900 hover:bg-amber-500/25",
+  secado: "border-orange-200 bg-orange-500/20 text-orange-900 hover:bg-orange-500/25",
+  curado: "border-violet-200 bg-violet-500/15 text-violet-800 hover:bg-violet-500/20",
+  liberado: "border-sky-200 bg-sky-500/15 text-sky-800 hover:bg-sky-500/20",
+  descartado: "border-zinc-200 bg-zinc-500/15 text-zinc-700 hover:bg-zinc-500/20",
+};
+
+const STAGE_LABEL: Record<PlantStage, string> = {
+  esqueje: "Esqueje",
+  vegetativo: "Vegetativo",
+  floracion: "Floracion",
+  cosecha: "Cosecha",
+  secado: "Secado",
+  curado: "Curado",
+  liberado: "Liberado",
+  descartado: "Descartado",
 };
 
 const PARAM_STATUS_CLASS: Record<MeasurementStatus, string> = {
@@ -100,6 +123,7 @@ function shortCode(code: string): string {
 
 function GrowBedDetailPage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const [bed, setBed] = useState<GrowBed | null>(null);
   const [room, setRoom] = useState<GrowRoom | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
@@ -115,6 +139,8 @@ function GrowBedDetailPage() {
   const [capacityError, setCapacityError] = useState("");
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [quickNotes, setQuickNotes] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState("");
 
   async function loadData() {
     const nextBed = await getGrowBedById(id);
@@ -123,7 +149,12 @@ function GrowBedDetailPage() {
     setOccupancy(nextBed ? await getGrowBedOccupancy(nextBed.id) : null);
     setCapacityValue(nextBed ? String(nextBed.maxPlants) : "");
     setRoom(nextBed ? await getGrowRoomById(nextBed.roomId) : null);
-    setGenetics(await getGenetics());
+    const nextGenetics = await getGenetics();
+    setGenetics(nextGenetics);
+    setBulkForm((current) => ({
+      ...current,
+      geneticsId: current.geneticsId === "none" ? nextGenetics[0]?.id ?? "none" : current.geneticsId,
+    }));
     setMothers(await getMotherPlants());
     setMeasurements(nextBed ? await getMeasurements({ bedId: nextBed.id }) : []);
   }
@@ -170,6 +201,11 @@ function GrowBedDetailPage() {
     const selectedGenetics = genetics.find((item) => item.id === bulkForm.geneticsId);
     const selectedMother = mothers.find((item) => item.id === bulkForm.motherPlantId);
 
+    if (!selectedGenetics) {
+      setBulkError("Selecciona una genetica para crear plantas en la camilla.");
+      return;
+    }
+
     try {
       await bulkCreatePlantsForBed({
         bedId: bed.id,
@@ -178,8 +214,8 @@ function GrowBedDetailPage() {
           roomId: bed.roomId,
           batchId: bulkForm.batchId || undefined,
           cycleId: undefined,
-          geneticsId: selectedGenetics?.id,
-          geneticsName: selectedGenetics?.name,
+          geneticsId: selectedGenetics.id,
+          geneticsName: selectedGenetics.name,
           motherPlantId: selectedMother?.id,
           motherPlantCode: selectedMother?.code,
           origin: bulkForm.origin,
@@ -234,6 +270,18 @@ function GrowBedDetailPage() {
     await loadData();
   }
 
+  async function handleDeleteBed() {
+    if (!bed) return;
+
+    try {
+      await deleteGrowBed(bed.id);
+      await navigate({ to: "/app/cultivo/camillas" });
+    } catch (error) {
+      setDeleteMessage(error instanceof Error ? error.message : "No se pudo eliminar la camilla.");
+      setDeleteOpen(false);
+    }
+  }
+
   if (!bed) {
     return (
       <div className="mx-auto max-w-[1000px] space-y-4">
@@ -263,13 +311,30 @@ function GrowBedDetailPage() {
           <h1 className="text-2xl font-semibold tracking-tight">{bed.name}</h1>
           <p className="text-sm text-muted-foreground">Grilla de posiciones y ocupacion de plantas.</p>
         </div>
-        <Button onClick={() => setBulkOpen(true)} className="gap-2" disabled={bed.status === "fuera_de_uso"}>
-          <Plus className="h-4 w-4" />
-          Carga masiva de plantas
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild className="gap-2 bg-emerald-700 hover:bg-emerald-800">
+            <Link to="/app/cultivo/camillas/nueva" search={{ edit: bed.id }}>
+              <Pencil className="h-4 w-4" />
+              Editar
+            </Link>
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+            Eliminar
+          </Button>
+          <Button onClick={() => setBulkOpen(true)} className="gap-2" disabled={bed.status === "fuera_de_uso"}>
+            <Plus className="h-4 w-4" />
+            Carga masiva de plantas
+          </Button>
+        </div>
       </div>
 
       {bulkMessage ? <p className="rounded-md border border-emerald-200 bg-emerald-500/10 p-3 text-sm text-emerald-700">{bulkMessage}</p> : null}
+      {deleteMessage ? <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{deleteMessage}</p> : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <Card>
@@ -368,7 +433,20 @@ function GrowBedDetailPage() {
           <CardTitle>Grilla de posiciones</CardTitle>
           <CardDescription>Slots generados desde 1 hasta la capacidad maxima de la camilla.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(STAGE_LABEL) as PlantStage[]).map((stage) => (
+              <span
+                key={stage}
+                className={[
+                  "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
+                  PLANT_STAGE_CLASS[stage],
+                ].join(" ")}
+              >
+                {STAGE_LABEL[stage]}
+              </span>
+            ))}
+          </div>
           <div className="grid grid-cols-5 gap-2 sm:grid-cols-8 md:grid-cols-10 xl:grid-cols-12">
             {Array.from({ length: Math.min(bed.maxPlants, 100) }, (_, index) => {
               const position = index + 1;
@@ -385,14 +463,14 @@ function GrowBedDetailPage() {
                   }}
                   className={[
                     "aspect-square rounded-md border p-1 text-left transition-colors",
-                    plant ? PLANT_STATUS_CLASS[plant.status] : "border-dashed bg-muted/30 text-muted-foreground hover:bg-muted/50",
+                    plant ? PLANT_STAGE_CLASS[plant.stage] : "border-dashed bg-muted/30 text-muted-foreground hover:bg-muted/50",
                   ].join(" ")}
                 >
                   <span className="block font-mono text-[10px] leading-none">#{position}</span>
                   <span className="mt-1 block truncate text-[11px] font-medium">
                     {plant ? shortCode(plant.internalCode) : "vacio"}
                   </span>
-                  {plant ? <span className="block truncate text-[10px]">{plant.stage}</span> : null}
+                  {plant ? <span className="block truncate text-[10px]">{STAGE_LABEL[plant.stage]}</span> : null}
                   {plant ? <span className="block truncate text-[10px]">{plant.potCode ?? (plant.potSizeLiters ? `${plant.potSizeLiters} L` : plant.status)}</span> : null}
                 </button>
               );
@@ -506,6 +584,15 @@ function GrowBedDetailPage() {
           </Button>
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        entityLabel="camilla"
+        itemName={bed.name}
+        description={`Estas por eliminar la camilla ${bed.name}. Si tiene plantas, madres o tareas asociadas, la base no va a permitir la eliminacion.`}
+        onOpenChange={setDeleteOpen}
+        onConfirm={handleDeleteBed}
+      />
 
       <Dialog open={Boolean(selectedPlant)} onOpenChange={(open) => !open && setSelectedPlant(null)}>
         <DialogContent className="sm:max-w-lg">

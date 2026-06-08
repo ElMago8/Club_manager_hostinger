@@ -25,6 +25,12 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (prismaError.code === "P2025") {
       return res.status(404).json({ error: "Record not found" });
     }
+    if (prismaError.code === "P2003") {
+      return res.status(409).json({
+        error: "No se puede eliminar el registro porque tiene datos relacionados. Borra o reasigna esos datos antes de eliminarlo.",
+        details: prismaError.meta,
+      });
+    }
   }
 
   console.error(error);

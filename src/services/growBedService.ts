@@ -19,15 +19,22 @@ export interface GrowBedOccupancy {
 type ApiBedStatus = "empty" | "active" | "cleaning" | "maintenance" | "out_of_use";
 
 interface ApiGrowBed {
-  id: string;
-  name: string;
-  code: string;
+  id: string | number;
+  name?: string;
+  nombre?: string;
+  code?: string;
+  codigoCamilla?: string;
   roomId?: string | null;
+  salaCultivoId?: number | null;
   status: ApiBedStatus;
+  estado?: ApiBedStatus | GrowBed["status"];
   maxPlants: number;
+  capacidadMaximaPlantas?: number;
   notes?: string | null;
+  descripcion?: string | null;
   _count?: {
     plants?: number;
+    plantas?: number;
   };
 }
 
@@ -37,6 +44,19 @@ const API_TO_UI_STATUS: Record<ApiBedStatus, GrowBed["status"]> = {
   cleaning: "limpieza",
   maintenance: "mantenimiento",
   out_of_use: "fuera_de_uso",
+};
+
+const API_RAW_TO_UI_STATUS: Partial<Record<string, GrowBed["status"]>> = {
+  empty: "vacia",
+  active: "activa",
+  cleaning: "limpieza",
+  maintenance: "mantenimiento",
+  out_of_use: "fuera_de_uso",
+  vacia: "vacia",
+  activa: "activa",
+  limpieza: "limpieza",
+  mantenimiento: "mantenimiento",
+  fuera_de_uso: "fuera_de_uso",
 };
 
 const UI_TO_API_STATUS: Record<GrowBed["status"], ApiBedStatus> = {
@@ -67,25 +87,25 @@ function validateMaxPlants(maxPlants: number, currentPlants = 0): void {
 
 function mapApiGrowBed(bed: ApiGrowBed): GrowBed {
   return {
-    id: bed.id,
-    name: bed.name,
-    code: bed.code,
-    roomId: bed.roomId ?? "room-sin-asignar",
-    status: API_TO_UI_STATUS[bed.status],
-    maxPlants: bed.maxPlants,
-    currentPlants: bed._count?.plants ?? 0,
-    notes: bed.notes ?? undefined,
+    id: String(bed.id),
+    name: bed.nombre ?? bed.name ?? "",
+    code: bed.codigoCamilla ?? bed.code ?? "",
+    roomId: bed.roomId ?? (bed.salaCultivoId ? String(bed.salaCultivoId) : "room-sin-asignar"),
+    status: API_RAW_TO_UI_STATUS[bed.estado ?? bed.status] ?? API_TO_UI_STATUS[bed.status],
+    maxPlants: bed.capacidadMaximaPlantas ?? bed.maxPlants,
+    currentPlants: bed._count?.plants ?? bed._count?.plantas ?? 0,
+    notes: bed.descripcion ?? bed.notes ?? undefined,
   };
 }
 
 function toApiGrowBedPayload(payload: CreateGrowBedPayload | UpdateGrowBedPayload) {
   return {
-    name: payload.name,
-    code: payload.code,
-    roomId: payload.roomId,
-    status: payload.status ? UI_TO_API_STATUS[payload.status] : undefined,
-    maxPlants: payload.maxPlants,
-    notes: payload.notes,
+    nombre: payload.name,
+    codigoCamilla: payload.code,
+    salaCultivoId: payload.roomId ? Number(payload.roomId) : undefined,
+    estado: payload.status,
+    capacidadMaximaPlantas: payload.maxPlants,
+    descripcion: payload.notes,
   };
 }
 
@@ -136,15 +156,9 @@ export async function createGrowBed(payload: CreateGrowBedPayload): Promise<Grow
 }
 
 export async function updateGrowBed(id: string, payload: UpdateGrowBedPayload): Promise<GrowBed> {
-  const bed = growBeds.find((item) => item.id === id);
-
-  if (!bed) {
-    throw new Error("Camilla de cultivo no encontrada.");
+  if (payload.maxPlants !== undefined) {
+    validateMaxPlants(payload.maxPlants, payload.currentPlants ?? 0);
   }
-
-  const nextMaxPlants = payload.maxPlants ?? bed.maxPlants;
-  const nextCurrentPlants = payload.currentPlants ?? bed.currentPlants;
-  validateMaxPlants(nextMaxPlants, nextCurrentPlants);
 
   return withMockFallback(
     async () =>
@@ -155,8 +169,32 @@ export async function updateGrowBed(id: string, payload: UpdateGrowBedPayload): 
         }),
       ),
     () => {
+      const bed = growBeds.find((item) => item.id === id);
+      if (!bed) {
+        throw new Error("Camilla de cultivo no encontrada.");
+      }
+
+      const nextMaxPlants = payload.maxPlants ?? bed.maxPlants;
+      const nextCurrentPlants = payload.currentPlants ?? bed.currentPlants;
+      validateMaxPlants(nextMaxPlants, nextCurrentPlants);
       Object.assign(bed, payload);
       return bed;
+    },
+  );
+}
+
+export async function deleteGrowBed(id: string): Promise<void> {
+  return withMockFallback(
+    async () => {
+      await apiRequest<unknown>(`/cultivation/beds/${id}`, { method: "DELETE" });
+    },
+    () => {
+      const index = growBeds.findIndex((bed) => bed.id === id);
+      if (index === -1) {
+        throw new Error("Camilla de cultivo no encontrada.");
+      }
+
+      growBeds.splice(index, 1);
     },
   );
 }

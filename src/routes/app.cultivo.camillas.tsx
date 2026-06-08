@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { Eye, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,12 +84,21 @@ function GrowBedsPage() {
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Camillas</h1>
-        <p className="text-sm text-muted-foreground">
-          Administracion visual de camillas, capacidad y ocupacion por sala.
-        </p>
-      </header>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <header className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Camillas</h1>
+          <p className="text-sm text-muted-foreground">
+            Administracion visual de camillas, capacidad y ocupacion por sala.
+          </p>
+        </header>
+
+        <Button asChild className="gap-2">
+          <Link to="/app/cultivo/camillas/nueva">
+            <Plus className="h-4 w-4" />
+            Nueva camilla
+          </Link>
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>
@@ -139,10 +148,10 @@ function GrowBedsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Listado de camillas</CardTitle>
-          <CardDescription>Datos mock preparados para futura API REST.</CardDescription>
+          <CardDescription>Datos conectados al backend local de cultivo.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-md border">
+          <div className="overflow-x-auto rounded-md border [&_td]:text-center [&_th]:text-center">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -159,7 +168,7 @@ function GrowBedsPage() {
                   <TableHead>Estado parametros</TableHead>
                   <TableHead>Lote principal</TableHead>
                   <TableHead>Responsable</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -186,13 +195,15 @@ function GrowBedsPage() {
                       </TableCell>
                       <TableCell className="font-mono text-xs">{bed.mainBatchId ?? "-"}</TableCell>
                       <TableCell>{bed.responsibleUserId ?? "Sin asignar"}</TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild variant="ghost" size="sm" className="gap-1">
-                          <Link to="/app/cultivo/camillas/$id" params={{ id: bed.id }}>
+                      <TableCell>
+                        <div className="flex justify-center gap-1 whitespace-nowrap">
+                          <Button asChild variant="ghost" size="sm" className="gap-1">
+                            <Link to="/app/cultivo/camillas/$id" params={{ id: bed.id }}>
+                              <Eye className="h-4 w-4" />
                             Ver
-                            <ArrowRight className="h-4 w-4" />
-                          </Link>
-                        </Button>
+                            </Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

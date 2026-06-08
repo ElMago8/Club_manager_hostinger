@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Leaf, Save, Sparkles, Tag, Wind } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { GeneticsProfileSlider, normalizeGeneticsProfile } from "@/components/cultivation/GeneticsProfileSlider";
-import { createGenetics } from "@/services/geneticsService";
+import { getGeneticsById, updateGenetics } from "@/services/geneticsService";
 import type { Genetics } from "@/types/cultivation";
 
-export const Route = createFileRoute("/app/cultivo/geneticas/nueva")({
-  head: () => ({ meta: [{ title: "Nueva genética - Cannabis Club Manager" }] }),
-  component: NewGeneticsPage,
+export const Route = createFileRoute("/app/cultivo/geneticas/$id")({
+  head: () => ({ meta: [{ title: "Editar genetica - Cannabis Club Manager" }] }),
+  component: EditGeneticsPage,
 });
 
 type GeneticsForm = Omit<Genetics, "id">;
@@ -24,8 +24,10 @@ function optionalNumber(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function NewGeneticsPage() {
+function EditGeneticsPage() {
+  const { id } = Route.useParams();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState<GeneticsForm>({
@@ -42,19 +44,46 @@ function NewGeneticsPage() {
     notes: "",
   });
 
+  useEffect(() => {
+    async function loadGenetics() {
+      try {
+        const genetics = await getGeneticsById(id);
+        const profile = normalizeGeneticsProfile(genetics.sativaPercent, genetics.indicaPercent);
+        setForm({
+          name: genetics.name,
+          breeder: genetics.breeder ?? "",
+          type: genetics.type,
+          dominantProfile: genetics.dominantProfile,
+          thcPercent: genetics.thcPercent,
+          ...profile,
+          taste: genetics.taste ?? "",
+          effect: genetics.effect ?? "",
+          aroma: genetics.aroma ?? "",
+          notes: genetics.notes ?? "",
+        });
+      } catch (nextError) {
+        setError(nextError instanceof Error ? nextError.message : "No se pudo cargar la genetica.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadGenetics();
+  }, [id]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
 
     if (!form.name.trim()) {
-      setError("El nombre de la genética es obligatorio.");
+      setError("El nombre de la genetica es obligatorio.");
       return;
     }
 
     try {
       setSaving(true);
       const profile = normalizeGeneticsProfile(form.sativaPercent, form.indicaPercent);
-      await createGenetics({
+      await updateGenetics(id, {
         ...form,
         ...profile,
         name: form.name.trim(),
@@ -66,10 +95,26 @@ function NewGeneticsPage() {
       });
       await navigate({ to: "/app/cultivo/geneticas" });
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "No se pudo crear la genética.");
+      setError(nextError instanceof Error ? nextError.message : "No se pudo actualizar la genetica.");
     } finally {
       setSaving(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-[1000px] space-y-4">
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/app/cultivo/geneticas">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Geneticas
+          </Link>
+        </Button>
+        <Card>
+          <CardContent className="py-10 text-sm text-muted-foreground">Cargando genetica...</CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -78,11 +123,11 @@ function NewGeneticsPage() {
         <Button asChild variant="ghost" size="sm" className="-ml-2">
           <Link to="/app/cultivo/geneticas">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Genéticas
+            Geneticas
           </Link>
         </Button>
-        <h1 className="text-2xl font-semibold tracking-tight">Nueva genética</h1>
-        <p className="text-sm text-muted-foreground">Ficha técnica de variedad para asociarla luego a plantas o madres.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Editar genetica</h1>
+        <p className="text-sm text-muted-foreground">Ficha tecnica de variedad.</p>
       </div>
 
       {error ? (
@@ -92,14 +137,14 @@ function NewGeneticsPage() {
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Crear genética</CardTitle>
-            <CardDescription>Completá las especificaciones principales de la variedad.</CardDescription>
+            <CardTitle>Datos de genetica</CardTitle>
+            <CardDescription>Actualiza las especificaciones principales de la variedad.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-1">
             <div className="grid gap-3 border-b py-3 md:grid-cols-[220px_1fr] md:items-center">
               <Label htmlFor="name" className="flex items-center gap-2 font-semibold">
                 <Leaf className="h-4 w-4 text-muted-foreground" />
-                Genética
+                Genetica
               </Label>
               <Input
                 id="name"
@@ -149,7 +194,7 @@ function NewGeneticsPage() {
                 <SelectContent>
                   <SelectItem value="regular">Regular</SelectItem>
                   <SelectItem value="feminizada">Feminizada</SelectItem>
-                  <SelectItem value="automatica">Automática</SelectItem>
+                  <SelectItem value="automatica">Automatica</SelectItem>
                   <SelectItem value="esqueje">Esqueje</SelectItem>
                   <SelectItem value="desconocida">Desconocida</SelectItem>
                 </SelectContent>
@@ -177,7 +222,7 @@ function NewGeneticsPage() {
                 id="taste"
                 value={form.taste ?? ""}
                 onChange={(event) => setForm({ ...form, taste: event.target.value })}
-                placeholder="Dulce, terroso, cítrico"
+                placeholder="Dulce, terroso, citrico"
               />
             </div>
 
@@ -190,7 +235,7 @@ function NewGeneticsPage() {
                 id="effect"
                 value={form.effect ?? ""}
                 onChange={(event) => setForm({ ...form, effect: event.target.value })}
-                placeholder="Lúcido, energético, creativo"
+                placeholder="Lucido, energetico, creativo"
               />
             </div>
 
@@ -210,7 +255,7 @@ function NewGeneticsPage() {
             <div className="grid gap-3 py-3 md:grid-cols-[220px_1fr]">
               <Label htmlFor="notes" className="flex items-center gap-2 pt-2 font-semibold">
                 <Sparkles className="h-4 w-4 text-muted-foreground" />
-                Observación
+                Observacion
               </Label>
               <Textarea
                 id="notes"
@@ -223,7 +268,7 @@ function NewGeneticsPage() {
             <div className="flex justify-end pt-4">
               <Button type="submit" disabled={saving} className="gap-2">
                 <Save className="h-4 w-4" />
-                {saving ? "Guardando..." : "Guardar genética"}
+                {saving ? "Guardando..." : "Guardar cambios"}
               </Button>
             </div>
           </CardContent>

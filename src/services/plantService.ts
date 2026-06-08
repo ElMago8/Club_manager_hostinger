@@ -15,36 +15,62 @@ export interface PlantFilters {
 type CreatePlantPayload = Omit<Plant, "id"> & { id?: string };
 type UpdatePlantPayload = Partial<Omit<Plant, "id">>;
 
-type ApiPlantOrigin = "seed" | "clone" | "internal_mother" | "external_purchase" | "other";
-type ApiPlantStage = "clone" | "vegetative" | "flowering" | "harvest" | "drying" | "curing" | "released" | "discarded";
-type ApiPlantStatus = "normal" | "observation" | "alert" | "discarded" | "harvested";
+type ApiPlantOrigin = "seed" | "clone" | "internal_mother" | "external_purchase" | "other" | Plant["origin"];
+type ApiPlantStage = "clone" | "vegetative" | "flowering" | "harvest" | "drying" | "curing" | "released" | "discarded" | PlantStage;
+type ApiPlantStatus = "normal" | "observation" | "alert" | "discarded" | "harvested" | PlantStatus;
 
 interface ApiPlant {
   id: string;
-  internalCode: string;
-  bedId: string;
-  bedPosition: number;
+  codigoPlanta?: string;
+  internalCode?: string;
+  nombrePlanta?: string | null;
+  bedId?: string;
+  camillaId?: number;
+  bedPosition?: number;
+  posicionCamilla?: number;
   batchId?: string | null;
+  loteCultivoId?: number | null;
   geneticsId?: string | null;
+  geneticaId?: number | null;
   motherPlantId?: string | null;
+  madreId?: number | null;
   origin: ApiPlantOrigin;
+  origen?: ApiPlantOrigin;
   stage: ApiPlantStage;
+  etapa?: ApiPlantStage;
   status: ApiPlantStatus;
-  startDate: string;
+  estado?: ApiPlantStatus;
+  startDate?: string;
+  fechaInicio?: string;
   stageStartDate?: string | null;
+  fechaInicioEtapa?: string | null;
   potCode?: string | null;
+  macetaCodigo?: string | null;
   potSizeLiters?: number | null;
+  macetaLitros?: number | null;
   potType?: string | null;
+  tipoMaceta?: string | null;
   substrate?: string | null;
+  sustrato?: string | null;
   notes?: string | null;
+  observaciones?: string | null;
   bed?: {
     roomId?: string | null;
+  } | null;
+  camilla?: {
+    salaCultivoId?: number | null;
   } | null;
   genetics?: {
     name: string;
   } | null;
+  genetica?: {
+    nombre: string;
+  } | null;
   motherPlant?: {
     code: string;
+  } | null;
+  madre?: {
+    codigoMadre: string;
   } | null;
 }
 
@@ -56,7 +82,7 @@ export interface BulkCreatePlantsForBedPayload {
   };
 }
 
-const API_TO_UI_ORIGIN: Record<ApiPlantOrigin, Plant["origin"]> = {
+const API_TO_UI_ORIGIN: Partial<Record<ApiPlantOrigin, Plant["origin"]>> = {
   seed: "semilla",
   clone: "esqueje",
   internal_mother: "madre_interna",
@@ -72,7 +98,7 @@ const UI_TO_API_ORIGIN: Record<Plant["origin"], ApiPlantOrigin> = {
   otro: "other",
 };
 
-const API_TO_UI_STAGE: Record<ApiPlantStage, PlantStage> = {
+const API_TO_UI_STAGE: Partial<Record<ApiPlantStage, PlantStage>> = {
   clone: "esqueje",
   vegetative: "vegetativo",
   flowering: "floracion",
@@ -94,7 +120,7 @@ const UI_TO_API_STAGE: Record<PlantStage, ApiPlantStage> = {
   descartado: "discarded",
 };
 
-const API_TO_UI_STATUS: Record<ApiPlantStatus, PlantStatus> = {
+const API_TO_UI_STATUS: Partial<Record<ApiPlantStatus, PlantStatus>> = {
   normal: "normal",
   observation: "observacion",
   alert: "alerta",
@@ -180,48 +206,54 @@ function dateOnly(value?: string | null): string | undefined {
 }
 
 function mapApiPlant(plant: ApiPlant): Plant {
+  const origin = plant.origen ?? plant.origin;
+  const stage = plant.etapa ?? plant.stage;
+  const status = plant.estado ?? plant.status;
+
   return {
     id: plant.id,
-    internalCode: plant.internalCode,
-    roomId: plant.bed?.roomId ?? "room-sin-asignar",
-    bedId: plant.bedId,
-    bedPosition: plant.bedPosition,
-    batchId: plant.batchId ?? undefined,
-    geneticsId: plant.geneticsId ?? undefined,
-    geneticsName: plant.genetics?.name,
-    motherPlantId: plant.motherPlantId ?? undefined,
-    motherPlantCode: plant.motherPlant?.code,
-    origin: API_TO_UI_ORIGIN[plant.origin],
-    stage: API_TO_UI_STAGE[plant.stage],
-    status: API_TO_UI_STATUS[plant.status],
-    startDate: dateOnly(plant.startDate) ?? "",
-    stageStartDate: dateOnly(plant.stageStartDate),
-    potCode: plant.potCode ?? undefined,
-    potSizeLiters: plant.potSizeLiters ?? undefined,
-    potType: plant.potType ?? undefined,
-    substrate: plant.substrate ?? undefined,
-    notes: plant.notes ?? undefined,
+    internalCode: plant.codigoPlanta ?? plant.internalCode ?? "",
+    plantName: plant.nombrePlanta ?? undefined,
+    roomId: plant.bed?.roomId ?? (plant.camilla?.salaCultivoId ? String(plant.camilla.salaCultivoId) : "room-sin-asignar"),
+    bedId: plant.bedId ?? String(plant.camillaId ?? ""),
+    bedPosition: plant.bedPosition ?? plant.posicionCamilla ?? 0,
+    batchId: plant.batchId ?? (plant.loteCultivoId ? String(plant.loteCultivoId) : undefined),
+    geneticsId: plant.geneticsId ?? (plant.geneticaId ? String(plant.geneticaId) : undefined),
+    geneticsName: plant.genetics?.name ?? plant.genetica?.nombre,
+    motherPlantId: plant.motherPlantId ?? (plant.madreId ? String(plant.madreId) : undefined),
+    motherPlantCode: plant.motherPlant?.code ?? plant.madre?.codigoMadre,
+    origin: API_TO_UI_ORIGIN[origin] ?? (origin as Plant["origin"]),
+    stage: API_TO_UI_STAGE[stage] ?? (stage as PlantStage),
+    status: API_TO_UI_STATUS[status] ?? (status as PlantStatus),
+    startDate: dateOnly(plant.startDate ?? plant.fechaInicio) ?? "",
+    stageStartDate: dateOnly(plant.stageStartDate ?? plant.fechaInicioEtapa),
+    potCode: plant.potCode ?? plant.macetaCodigo ?? undefined,
+    potSizeLiters: plant.potSizeLiters ?? plant.macetaLitros ?? undefined,
+    potType: plant.potType ?? plant.tipoMaceta ?? undefined,
+    substrate: plant.substrate ?? plant.sustrato ?? undefined,
+    notes: plant.notes ?? plant.observaciones ?? undefined,
   };
 }
 
 function toApiPlantPayload(payload: CreatePlantPayload | UpdatePlantPayload) {
   return {
-    internalCode: payload.internalCode,
-    bedId: payload.bedId,
-    bedPosition: payload.bedPosition,
-    batchId: payload.batchId,
-    geneticsId: payload.geneticsId,
-    motherPlantId: payload.motherPlantId,
-    origin: payload.origin ? UI_TO_API_ORIGIN[payload.origin] : undefined,
-    stage: payload.stage ? UI_TO_API_STAGE[payload.stage] : undefined,
-    status: payload.status ? UI_TO_API_STATUS[payload.status] : undefined,
-    startDate: payload.startDate,
-    stageStartDate: payload.stageStartDate,
-    potCode: payload.potCode,
-    potSizeLiters: payload.potSizeLiters,
-    potType: payload.potType,
-    substrate: payload.substrate,
-    notes: payload.notes,
+    codigoPlanta: payload.internalCode,
+    nombrePlanta: payload.plantName,
+    camillaId: payload.bedId ? Number(payload.bedId) : undefined,
+    posicionCamilla: payload.bedPosition,
+    loteCultivoId: payload.batchId && /^\d+$/.test(payload.batchId) ? Number(payload.batchId) : undefined,
+    geneticaId: payload.geneticsId ? Number(payload.geneticsId) : undefined,
+    madreId: payload.motherPlantId ? Number(payload.motherPlantId) : undefined,
+    origen: payload.origin,
+    etapa: payload.stage,
+    estado: payload.status,
+    fechaInicio: payload.startDate,
+    fechaInicioEtapa: payload.stageStartDate,
+    macetaCodigo: payload.potCode,
+    macetaLitros: payload.potSizeLiters,
+    tipoMaceta: payload.potType,
+    sustrato: payload.substrate,
+    observaciones: payload.notes,
   };
 }
 
@@ -329,6 +361,24 @@ export async function updatePlant(id: string, payload: UpdatePlantPayload): Prom
   );
 }
 
+export async function deletePlant(id: string): Promise<void> {
+  const plant = plants.find((item) => item.id === id);
+
+  return withMockFallback(
+    async () => {
+      await apiRequest<unknown>(`/cultivation/plants/${id}`, { method: "DELETE" });
+    },
+    () => {
+      if (!plant) {
+        throw new Error("Planta no encontrada.");
+      }
+
+      plants.splice(plants.indexOf(plant), 1);
+      syncBedCurrentPlants(plant.bedId);
+    },
+  );
+}
+
 export async function bulkCreatePlantsForBed(payload: BulkCreatePlantsForBedPayload): Promise<Plant[]> {
   return withMockFallback(
     async () =>
@@ -342,9 +392,9 @@ export async function bulkCreatePlantsForBed(payload: BulkCreatePlantsForBedPayl
             batchId: payload.plant.batchId,
             geneticsId: payload.plant.geneticsId,
             motherPlantId: payload.plant.motherPlantId,
-            origin: UI_TO_API_ORIGIN[payload.plant.origin],
-            stage: UI_TO_API_STAGE[payload.plant.stage],
-            status: UI_TO_API_STATUS[payload.plant.status],
+            origin: payload.plant.origin,
+            stage: payload.plant.stage,
+            status: payload.plant.status,
             startDate: payload.plant.startDate,
             stageStartDate: payload.plant.stageStartDate,
             potSizeLiters: payload.plant.potSizeLiters,
@@ -402,7 +452,7 @@ export async function updatePlantStage(
         await apiRequest<ApiPlant>(`/cultivation/plants/${id}/stage`, {
           method: "PATCH",
           body: JSON.stringify({
-            stage: UI_TO_API_STAGE[payload.stage],
+            etapa: payload.stage,
             stageStartDate: payload.stageStartDate,
             notes: payload.notes,
           }),
@@ -422,7 +472,7 @@ export async function updatePlantStatus(
         await apiRequest<ApiPlant>(`/cultivation/plants/${id}/status`, {
           method: "PATCH",
           body: JSON.stringify({
-            status: UI_TO_API_STATUS[payload.status],
+            estado: payload.status,
             notes: payload.notes,
           }),
         }),
