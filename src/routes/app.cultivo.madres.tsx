@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { ExpandableTextCell } from "@/components/cultivation/ExpandableTextCell";
+import { CultivationStatusMessage } from "@/components/cultivation/RelationshipWarning";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -298,7 +299,7 @@ function MotherPlantsPage() {
               <Label>Observaciones</Label>
               <Textarea value={form.notes ?? ""} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
             </div>
-            {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+            {message ? <CultivationStatusMessage message={message} /> : null}
             <div className="flex flex-wrap gap-2">
               <Button onClick={handleSave} className="gap-2">
                 {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}

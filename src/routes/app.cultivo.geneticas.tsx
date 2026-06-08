@@ -3,6 +3,7 @@ import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-rout
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { ExpandableTextCell } from "@/components/cultivation/ExpandableTextCell";
+import { CultivationStatusMessage } from "@/components/cultivation/RelationshipWarning";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,7 +69,7 @@ function GeneticsPage() {
           <CardHeader>
             <CardTitle>Geneticas registradas</CardTitle>
             <CardDescription>Datos cargados desde el modulo de cultivo.</CardDescription>
-            {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+            {message ? <CultivationStatusMessage message={message} /> : null}
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto rounded-md border [&_td]:text-center [&_th]:text-center">

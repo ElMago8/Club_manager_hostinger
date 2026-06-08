@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Pencil, Plus, Snowflake, Trash2, Wind } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
+import { CultivationStatusMessage } from "@/components/cultivation/RelationshipWarning";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,7 +106,7 @@ function GrowRoomsPage() {
         <CardHeader>
           <CardTitle>Listado de salas</CardTitle>
           <CardDescription>Datos conectados al backend local de cultivo.</CardDescription>
-          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+          {message ? <CultivationStatusMessage message={message} /> : null}
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border [&_td]:text-center [&_th]:text-center">
@@ -163,7 +164,7 @@ function GrowRoomsPage() {
                     <TableCell>
                       <div className="flex justify-center gap-1 whitespace-nowrap">
                       <Button asChild variant="ghost" size="sm" className="gap-1 text-emerald-700 hover:text-emerald-800">
-                        <Link to="/app/cultivo/salas/$id" params={{ id: room.id }}>
+                        <Link to="/app/cultivo/salas/nueva" search={{ edit: room.id }}>
                           <Pencil className="h-4 w-4" />
                           Editar
                         </Link>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
+import { RelationshipWarning } from "@/components/cultivation/RelationshipWarning";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -334,7 +335,7 @@ function GrowBedDetailPage() {
       </div>
 
       {bulkMessage ? <p className="rounded-md border border-emerald-200 bg-emerald-500/10 p-3 text-sm text-emerald-700">{bulkMessage}</p> : null}
-      {deleteMessage ? <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{deleteMessage}</p> : null}
+      {deleteMessage ? <RelationshipWarning message={deleteMessage} /> : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <Card>

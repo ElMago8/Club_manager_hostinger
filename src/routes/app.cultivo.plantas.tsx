@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
+import { CultivationStatusMessage } from "@/components/cultivation/RelationshipWarning";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -190,7 +191,7 @@ function PlantsPage() {
         <CardHeader>
           <CardTitle>Listado de plantas</CardTitle>
           <CardDescription>{plants.length} registros encontrados.</CardDescription>
-          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+          {message ? <CultivationStatusMessage message={message} /> : null}
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border [&_td]:text-center [&_th]:text-center">

@@ -209,6 +209,13 @@ export async function deleteMotherPlant(id: string): Promise<void> {
         throw new Error("Planta madre no encontrada.");
       }
 
+      const linkedPlants = countPlantsFromMotherPlant(id);
+      if (linkedPlants > 0) {
+        throw new Error(
+          `No se puede eliminar la madre porque tiene ${linkedPlants} planta${linkedPlants === 1 ? "" : "s"} asociada${linkedPlants === 1 ? "" : "s"}. Para conservar la trazabilidad, archivala o descartala, o reasigna esas plantas antes.`,
+        );
+      }
+
       motherPlants.splice(index, 1);
     },
   );

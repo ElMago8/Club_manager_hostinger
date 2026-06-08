@@ -568,7 +568,17 @@ function madreRoutes() {
 
   router.delete("/:id", async (req, res, next) => {
     try {
-      res.json(await prisma.madre.delete({ where: { id: parseId(req) } }));
+      const id = parseId(req);
+      const plantas = await prisma.planta.count({ where: { madreId: id } });
+
+      if (plantas > 0) {
+        throw new ApiError(
+          409,
+          `No se puede eliminar la madre porque tiene ${plantas} planta${plantas === 1 ? "" : "s"} asociada${plantas === 1 ? "" : "s"}. Para conservar la trazabilidad, archivala o descartala, o reasigna esas plantas antes.`,
+        );
+      }
+
+      res.json(await prisma.madre.delete({ where: { id } }));
     } catch (error) {
       next(error);
     }
