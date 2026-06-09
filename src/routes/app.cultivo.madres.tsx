@@ -345,9 +345,13 @@ function MotherPlantsPage() {
                       <TableCell>{bedName(item.bedId)}</TableCell>
                       <TableCell><Badge variant="outline" className={STATUS_CLASS[item.status]}>{item.status}</Badge></TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={SANITARY_STATUS_CLASS[item.sanitaryStatus ?? "bueno"]}>
-                          {SANITARY_STATUS_LABEL[item.sanitaryStatus ?? "bueno"]}
-                        </Badge>
+                        <SanitaryStatusSelect
+                          value={item.sanitaryStatus ?? "bueno"}
+                          onChange={async (next) => {
+                            setMothers((prev) => prev.map((m) => m.id === item.id ? { ...m, sanitaryStatus: next } : m));
+                            await updateMotherPlant(item.id, { sanitaryStatus: next });
+                          }}
+                        />
                       </TableCell>
                       <TableCell>{item.startDate}</TableCell>
                       <TableCell>{item.lastCutDate ?? "-"}</TableCell>
@@ -395,5 +399,38 @@ function MotherPlantsPage() {
         onConfirm={handleDelete}
       />
     </div>
+  );
+}
+
+function SanitaryStatusSelect({
+  value,
+  onChange,
+}: {
+  value: MotherSanitaryStatus;
+  onChange: (next: MotherSanitaryStatus) => Promise<void>;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleChange(next: string) {
+    setLoading(true);
+    try {
+      await onChange(next as MotherSanitaryStatus);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Select value={value} onValueChange={handleChange} disabled={loading}>
+      <SelectTrigger className={`h-7 w-[140px] border text-xs font-medium ${SANITARY_STATUS_CLASS[value]}`}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="bueno">Bueno</SelectItem>
+        <SelectItem value="preventivo">Preventivo</SelectItem>
+        <SelectItem value="observacion">En observacion</SelectItem>
+        <SelectItem value="critico">Critico</SelectItem>
+      </SelectContent>
+    </Select>
   );
 }

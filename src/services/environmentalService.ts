@@ -156,6 +156,7 @@ export async function createEnvironmentalLog(
         await apiRequest<ApiEnvironmentalLog>("/cultivation/environmental-logs", {
           method: "POST",
           body: JSON.stringify({
+            roomId: payload.roomId,
             bedId: payload.bedId,
             batchId: payload.batchId,
             date: payload.date,

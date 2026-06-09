@@ -13,7 +13,7 @@ import { getGenetics } from "@/services/geneticsService";
 import { getGrowBeds } from "@/services/growBedService";
 import { getGrowRooms } from "@/services/growRoomService";
 import { getMotherPlants } from "@/services/motherPlantService";
-import { deletePlant, getPlants, type PlantFilters } from "@/services/plantService";
+import { deletePlant, getPlants, updatePlant, type PlantFilters } from "@/services/plantService";
 import type { Genetics, GrowBed, GrowRoom, MotherPlant, Plant, PlantStage, PlantStatus } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/plantas")({
@@ -27,6 +27,22 @@ const PLANT_STATUS_CLASS: Record<PlantStatus, string> = {
   alerta: "border-amber-200 bg-amber-500/10 text-amber-700",
   descartada: "border-muted bg-muted text-muted-foreground",
   cosechada: "border-violet-200 bg-violet-500/10 text-violet-700",
+};
+
+type SanitaryStatus = NonNullable<Plant["sanitaryStatus"]>;
+
+const SANITARY_STATUS_CLASS: Record<SanitaryStatus, string> = {
+  bueno:       "border-emerald-200 bg-emerald-500/10 text-emerald-700",
+  preventivo:  "border-amber-200 bg-amber-500/10 text-amber-700",
+  observacion: "border-sky-200 bg-sky-500/10 text-sky-700",
+  critico:     "border-red-200 bg-red-500/10 text-red-700",
+};
+
+const SANITARY_STATUS_LABEL: Record<SanitaryStatus, string> = {
+  bueno:       "Bueno",
+  preventivo:  "Preventivo",
+  observacion: "En observacion",
+  critico:     "Critico",
 };
 
 function PlantsPage() {
@@ -49,9 +65,8 @@ function PlantsPage() {
   });
 
   useEffect(() => {
-    void Promise.all([getPlants(), getGrowRooms(), getGrowBeds(), getGenetics(), getMotherPlants()]).then(
-      ([nextPlants, nextRooms, nextBeds, nextGenetics, nextMothers]) => {
-        setPlants(nextPlants);
+    void Promise.all([getGrowRooms(), getGrowBeds(), getGenetics(), getMotherPlants()]).then(
+      ([nextRooms, nextBeds, nextGenetics, nextMothers]) => {
         setRooms(nextRooms);
         setBeds(nextBeds);
         setGenetics(nextGenetics);
@@ -65,17 +80,22 @@ function PlantsPage() {
     return beds.filter((bed) => bed.roomId === filters.roomId);
   }, [beds, filters.roomId]);
 
-  async function applyFilters() {
+  async function applyFilters(nextFilters = filters) {
     const serviceFilters: PlantFilters = {};
-    if (filters.roomId !== "all") serviceFilters.roomId = filters.roomId;
-    if (filters.bedId !== "all") serviceFilters.bedId = filters.bedId;
-    if (filters.geneticsId !== "all") serviceFilters.geneticsId = filters.geneticsId;
-    if (filters.batchId) serviceFilters.batchId = filters.batchId;
-    if (filters.motherPlantId !== "all") serviceFilters.motherPlantId = filters.motherPlantId;
-    if (filters.stage !== "all") serviceFilters.stage = filters.stage as PlantStage;
-    if (filters.status !== "all") serviceFilters.status = filters.status as PlantStatus;
+    if (nextFilters.roomId !== "all") serviceFilters.roomId = nextFilters.roomId;
+    if (nextFilters.bedId !== "all") serviceFilters.bedId = nextFilters.bedId;
+    if (nextFilters.geneticsId !== "all") serviceFilters.geneticsId = nextFilters.geneticsId;
+    if (nextFilters.batchId) serviceFilters.batchId = nextFilters.batchId;
+    if (nextFilters.motherPlantId !== "all") serviceFilters.motherPlantId = nextFilters.motherPlantId;
+    if (nextFilters.stage !== "all") serviceFilters.stage = nextFilters.stage as PlantStage;
+    if (nextFilters.status !== "all") serviceFilters.status = nextFilters.status as PlantStatus;
     setPlants(await getPlants(serviceFilters));
   }
+
+  useEffect(() => {
+    void applyFilters(filters);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.roomId, filters.bedId, filters.geneticsId, filters.batchId, filters.motherPlantId, filters.stage, filters.status]);
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -116,7 +136,7 @@ function PlantsPage() {
         </header>
 
         <Button asChild className="gap-2">
-          <Link to="/app/cultivo/plantas/nueva">
+          <Link to="/app/cultivo/plantas/nueva" search={{ edit: undefined }}>
             <Plus className="h-4 w-4" />
             Nueva planta
           </Link>
@@ -162,14 +182,14 @@ function PlantsPage() {
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las etapas</SelectItem>
-              <SelectItem value="esqueje">Esqueje</SelectItem>
               <SelectItem value="vegetativo">Vegetativo</SelectItem>
               <SelectItem value="floracion">Floracion</SelectItem>
               <SelectItem value="cosecha">Cosecha</SelectItem>
               <SelectItem value="secado">Secado</SelectItem>
               <SelectItem value="curado">Curado</SelectItem>
               <SelectItem value="liberado">Liberado</SelectItem>
-              <SelectItem value="descartado">Descartado</SelectItem>
+              <SelectItem value="a_limpiar">A Limpiar</SelectItem>
+              <SelectItem value="a_reparar">A Reparar</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filters.status} onValueChange={(status) => setFilters({ ...filters, status })}>
@@ -183,7 +203,6 @@ function PlantsPage() {
               <SelectItem value="cosechada">Cosechada</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => void applyFilters()}>Aplicar filtros</Button>
         </CardContent>
       </Card>
 
@@ -208,6 +227,7 @@ function PlantsPage() {
                   <TableHead>Madre</TableHead>
                   <TableHead>Etapa</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead>Estado sanitario</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -225,6 +245,15 @@ function PlantsPage() {
                     <TableCell className="capitalize">{plant.stage}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={PLANT_STATUS_CLASS[plant.status]}>{plant.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <SanitaryStatusSelect
+                        value={plant.sanitaryStatus ?? "bueno"}
+                        onChange={async (next) => {
+                          setPlants((prev) => prev.map((p) => p.id === plant.id ? { ...p, sanitaryStatus: next } : p));
+                          await updatePlant(plant.id, { sanitaryStatus: next });
+                        }}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-center gap-1 whitespace-nowrap">
@@ -261,5 +290,38 @@ function PlantsPage() {
         onConfirm={handleDelete}
       />
     </div>
+  );
+}
+
+function SanitaryStatusSelect({
+  value,
+  onChange,
+}: {
+  value: SanitaryStatus;
+  onChange: (next: SanitaryStatus) => Promise<void>;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleChange(next: string) {
+    setLoading(true);
+    try {
+      await onChange(next as SanitaryStatus);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Select value={value} onValueChange={handleChange} disabled={loading}>
+      <SelectTrigger className={`h-7 w-[140px] border text-xs font-medium ${SANITARY_STATUS_CLASS[value]}`}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="bueno">Bueno</SelectItem>
+        <SelectItem value="preventivo">Preventivo</SelectItem>
+        <SelectItem value="observacion">En observacion</SelectItem>
+        <SelectItem value="critico">Critico</SelectItem>
+      </SelectContent>
+    </Select>
   );
 }

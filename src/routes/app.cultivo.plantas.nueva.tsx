@@ -14,6 +14,9 @@ import { createPlant, getPlantById, updatePlant } from "@/services/plantService"
 import type { Genetics, GrowBed, MotherPlant, PlantOrigin, PlantStage, PlantStatus } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/plantas/nueva")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    edit: typeof search.edit === "string" ? search.edit : undefined,
+  }),
   head: () => ({ meta: [{ title: "Nueva planta - Cannabis Club Manager" }] }),
   component: NewPlantPage,
 });
@@ -27,10 +30,10 @@ function hasAvailablePlantSlot(bed: GrowBed): boolean {
 
 function NewPlantPage() {
   const navigate = useNavigate();
+  const { edit: editId } = Route.useSearch();
   const [beds, setBeds] = useState<GrowBed[]>([]);
   const [genetics, setGenetics] = useState<Genetics[]>([]);
   const [mothers, setMothers] = useState<MotherPlant[]>([]);
-  const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -44,6 +47,7 @@ function NewPlantPage() {
     origin: "esqueje" as PlantOrigin,
     stage: "vegetativo" as PlantStage,
     status: "normal" as PlantStatus,
+    sanitaryStatus: "bueno" as "bueno" | "preventivo" | "observacion" | "critico",
     startDate: today,
     stageStartDate: today,
     potSizeLiters: "",
@@ -54,9 +58,6 @@ function NewPlantPage() {
 
   useEffect(() => {
     async function loadOptions() {
-      const searchEditId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("edit") : null;
-      setEditId(searchEditId);
-
       const [nextBeds, nextGenetics, nextMothers] = await Promise.all([
         getGrowBeds(),
         getGenetics(),
@@ -67,7 +68,7 @@ function NewPlantPage() {
       setGenetics(nextGenetics);
       setMothers(nextMothers);
 
-      const plantToEdit = searchEditId ? await getPlantById(searchEditId) : null;
+      const plantToEdit = editId ? await getPlantById(editId) : null;
       const firstBed = nextBeds.find(hasAvailablePlantSlot);
 
       setForm((current) => ({
@@ -82,6 +83,7 @@ function NewPlantPage() {
         origin: plantToEdit?.origin ?? current.origin,
         stage: plantToEdit?.stage ?? current.stage,
         status: plantToEdit?.status ?? current.status,
+        sanitaryStatus: plantToEdit?.sanitaryStatus ?? current.sanitaryStatus,
         startDate: plantToEdit?.startDate ?? current.startDate,
         stageStartDate: plantToEdit?.stageStartDate ?? plantToEdit?.startDate ?? current.stageStartDate,
         potSizeLiters: plantToEdit?.potSizeLiters ? String(plantToEdit.potSizeLiters) : current.potSizeLiters,
@@ -92,7 +94,7 @@ function NewPlantPage() {
     }
 
     void loadOptions();
-  }, []);
+  }, [editId]);
 
   const filteredMothers = useMemo(() => {
     if (form.geneticsId === "none") return mothers;
@@ -155,6 +157,7 @@ function NewPlantPage() {
         origin: form.origin,
         stage: form.stage,
         status: form.status,
+        sanitaryStatus: form.sanitaryStatus,
         startDate: form.startDate,
         stageStartDate: form.stageStartDate || undefined,
         potSizeLiters,
@@ -329,14 +332,14 @@ function NewPlantPage() {
               <Select value={form.stage} onValueChange={(stage) => setForm({ ...form, stage: stage as PlantStage })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="esqueje">Esqueje</SelectItem>
                   <SelectItem value="vegetativo">Vegetativo</SelectItem>
                   <SelectItem value="floracion">Floracion</SelectItem>
                   <SelectItem value="cosecha">Cosecha</SelectItem>
                   <SelectItem value="secado">Secado</SelectItem>
                   <SelectItem value="curado">Curado</SelectItem>
                   <SelectItem value="liberado">Liberado</SelectItem>
-                  <SelectItem value="descartado">Descartado</SelectItem>
+                  <SelectItem value="a_limpiar">A Limpiar</SelectItem>
+                  <SelectItem value="a_reparar">A Reparar</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -351,6 +354,19 @@ function NewPlantPage() {
                   <SelectItem value="alerta">Alerta</SelectItem>
                   <SelectItem value="descartada">Descartada</SelectItem>
                   <SelectItem value="cosechada">Cosechada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Estado sanitario</Label>
+              <Select value={form.sanitaryStatus} onValueChange={(v) => setForm({ ...form, sanitaryStatus: v as typeof form.sanitaryStatus })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bueno">Bueno</SelectItem>
+                  <SelectItem value="preventivo">Preventivo</SelectItem>
+                  <SelectItem value="observacion">En observacion</SelectItem>
+                  <SelectItem value="critico">Critico</SelectItem>
                 </SelectContent>
               </Select>
             </div>

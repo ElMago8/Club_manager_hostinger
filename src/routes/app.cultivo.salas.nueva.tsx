@@ -11,6 +11,9 @@ import { createGrowRoom, getGrowRoomById, updateGrowRoom } from "@/services/grow
 import type { RoomStatus, RoomType } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/salas/nueva")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    edit: typeof search.edit === "string" ? search.edit : undefined,
+  }),
   head: () => ({ meta: [{ title: "Nueva sala - Cannabis Club Manager" }] }),
   component: NewGrowRoomPage,
 });
@@ -43,40 +46,47 @@ const initialForm: GrowRoomForm = {
 
 function NewGrowRoomPage() {
   const navigate = useNavigate();
-  const [editId, setEditId] = useState<string | null>(null);
+  const { edit: editId } = Route.useSearch();
   const [form, setForm] = useState<GrowRoomForm>(initialForm);
+  const [loading, setLoading] = useState(Boolean(editId));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const id = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("edit") : null;
-    setEditId(id);
+    if (!editId) {
+      setLoading(false);
+      return;
+    }
 
-    if (!id) return;
+    const safeId = editId;
 
     async function loadRoom() {
-      const room = await getGrowRoomById(id);
-      if (!room) {
-        setError("Sala no encontrada.");
-        return;
-      }
+      try {
+        const room = await getGrowRoomById(safeId);
+        if (!room) {
+          setError("Sala no encontrada.");
+          return;
+        }
 
-      setForm({
-        code: room.code,
-        name: room.name,
-        type: room.type,
-        status: room.status,
-        installedPowerWatts: String(room.technicalConfig.installedPowerWatts),
-        irrigationSystem: room.technicalConfig.irrigationSystem === "automatico" ? "automatico" : "manual",
-        hasAirConditioning: room.technicalConfig.hasAirConditioning ? "si" : "no",
-        hasDehumidifier: room.technicalConfig.hasDehumidifier ? "si" : "no",
-        sensors: room.technicalConfig.installedSensors.join(", "),
-        notes: room.notes ?? "",
-      });
+        setForm({
+          code: room.code,
+          name: room.name,
+          type: room.type,
+          status: room.status,
+          installedPowerWatts: String(room.technicalConfig.installedPowerWatts),
+          irrigationSystem: room.technicalConfig.irrigationSystem === "automatico" ? "automatico" : "manual",
+          hasAirConditioning: room.technicalConfig.hasAirConditioning ? "si" : "no",
+          hasDehumidifier: room.technicalConfig.hasDehumidifier ? "si" : "no",
+          sensors: room.technicalConfig.installedSensors.join(", "),
+          notes: room.notes ?? "",
+        });
+      } finally {
+        setLoading(false);
+      }
     }
 
     void loadRoom();
-  }, []);
+  }, [editId]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -144,6 +154,11 @@ function NewGrowRoomPage() {
         </p>
       ) : null}
 
+      {loading ? (
+        <Card>
+          <CardContent className="p-6 text-sm text-muted-foreground">Cargando datos de la sala...</CardContent>
+        </Card>
+      ) : (
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
@@ -301,6 +316,7 @@ function NewGrowRoomPage() {
           </CardContent>
         </Card>
       </form>
+      )}
     </div>
   );
 }

@@ -49,14 +49,14 @@ export type PlantOrigin =
   | "otro";
 
 export type PlantStage =
-  | "esqueje"
   | "vegetativo"
   | "floracion"
   | "cosecha"
   | "secado"
   | "curado"
   | "liberado"
-  | "descartado";
+  | "a_limpiar"
+  | "a_reparar";
 
 export type PlantStatus =
   | "normal"
@@ -158,6 +158,7 @@ export interface Plant {
   origin: PlantOrigin;
   stage: PlantStage;
   status: PlantStatus;
+  sanitaryStatus?: "bueno" | "preventivo" | "observacion" | "critico";
   startDate: string;
   stageStartDate?: string;
   potCode?: string;
@@ -203,7 +204,7 @@ export type MeasurementRelatedModule =
 
 export type MeasurementStatus = "normal" | "observation" | "alert" | "critical";
 
-export type MeasurementMethod = "manual_meter" | "drops" | "lab" | "sensor" | "estimated" | "other";
+export type MeasurementMethod = "gota" | "sensor" | "riego_continuo" | "riego_manual" | "otro";
 
 export interface CultivationMeasurement {
   id: string;
@@ -242,4 +243,40 @@ export interface MeasurementSummary {
   averageSubstratePPM: number | null;
   alertsCount: number;
   criticalCount: number;
+}
+
+export interface Batch {
+  id: string;
+  code: string;
+  geneticsId: string;
+  geneticsName?: string;
+  roomId: string;
+  roomName?: string;
+  status: string;
+  startDate: string;
+  estimatedHarvestDate?: string;
+  notes?: string;
+}
+
+export type HarvestStatus =
+  | "registrada"
+  | "en_secado"
+  | "seca"
+  | "en_curado"
+  | "lista_para_stock"
+  | "descartada";
+
+export interface Harvest {
+  id: string;
+  code: string;
+  batchId: string;
+  batchCode?: string;
+  geneticsName?: string;
+  roomName?: string;
+  harvestDate: string;
+  wetWeightGrams?: number;
+  dryWeightGrams?: number;
+  shrinkageGrams?: number;
+  status: HarvestStatus;
+  notes?: string;
 }

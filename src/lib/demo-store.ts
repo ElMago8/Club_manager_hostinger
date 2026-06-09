@@ -417,9 +417,14 @@ export class DemoStore {
 
   // ─── Cannabis Club Manager · Usuarios del sistema ─────
   getAppUsers(): AppUser[] { return [...this.data.appUsers]; }
+  addAppUser(user: AppUser): void { this.data.appUsers.push(user); this.version++; }
   updateAppUser(id: string, updates: Partial<AppUser>): void {
     const idx = this.data.appUsers.findIndex((u) => u.id === id);
     if (idx !== -1) { this.data.appUsers[idx] = { ...this.data.appUsers[idx], ...updates }; this.version++; }
+  }
+  deleteAppUser(id: string): void {
+    this.data.appUsers = this.data.appUsers.filter((u) => u.id !== id);
+    this.version++;
   }
 }
 

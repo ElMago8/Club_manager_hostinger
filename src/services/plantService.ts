@@ -40,6 +40,8 @@ interface ApiPlant {
   etapa?: ApiPlantStage;
   status: ApiPlantStatus;
   estado?: ApiPlantStatus;
+  sanitaryStatus?: string | null;
+  estadoSanitario?: string | null;
   startDate?: string;
   fechaInicio?: string;
   stageStartDate?: string | null;
@@ -99,25 +101,25 @@ const UI_TO_API_ORIGIN: Record<Plant["origin"], ApiPlantOrigin> = {
 };
 
 const API_TO_UI_STAGE: Partial<Record<ApiPlantStage, PlantStage>> = {
-  clone: "esqueje",
+  clone: "vegetativo",
   vegetative: "vegetativo",
   flowering: "floracion",
   harvest: "cosecha",
   drying: "secado",
   curing: "curado",
   released: "liberado",
-  discarded: "descartado",
+  discarded: "a_reparar",
 };
 
 const UI_TO_API_STAGE: Record<PlantStage, ApiPlantStage> = {
-  esqueje: "clone",
   vegetativo: "vegetative",
   floracion: "flowering",
   cosecha: "harvest",
   secado: "drying",
   curado: "curing",
   liberado: "released",
-  descartado: "discarded",
+  a_limpiar: "a_limpiar",
+  a_reparar: "a_reparar",
 };
 
 const API_TO_UI_STATUS: Partial<Record<ApiPlantStatus, PlantStatus>> = {
@@ -225,6 +227,7 @@ function mapApiPlant(plant: ApiPlant): Plant {
     origin: API_TO_UI_ORIGIN[origin] ?? (origin as Plant["origin"]),
     stage: API_TO_UI_STAGE[stage] ?? (stage as PlantStage),
     status: API_TO_UI_STATUS[status] ?? (status as PlantStatus),
+    sanitaryStatus: (plant.sanitaryStatus ?? plant.estadoSanitario ?? undefined) as Plant["sanitaryStatus"],
     startDate: dateOnly(plant.startDate ?? plant.fechaInicio) ?? "",
     stageStartDate: dateOnly(plant.stageStartDate ?? plant.fechaInicioEtapa),
     potCode: plant.potCode ?? plant.macetaCodigo ?? undefined,
@@ -247,6 +250,7 @@ function toApiPlantPayload(payload: CreatePlantPayload | UpdatePlantPayload) {
     origen: payload.origin,
     etapa: payload.stage,
     estado: payload.status,
+    estadoSanitario: payload.sanitaryStatus,
     fechaInicio: payload.startDate,
     fechaInicioEtapa: payload.stageStartDate,
     macetaCodigo: payload.potCode,

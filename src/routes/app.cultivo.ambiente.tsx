@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,13 +25,6 @@ export const Route = createFileRoute("/app/cultivo/ambiente")({
   head: () => ({ meta: [{ title: "Parametros ambientales · Cannabis Club Manager" }] }),
   component: EnvironmentalPage,
 });
-
-const VPD_STATUS_CLASS: Record<NonNullable<EnvironmentalLog["vpdStatus"]>, string> = {
-  bajo: "border-sky-200 bg-sky-500/10 text-sky-700",
-  optimo: "border-emerald-200 bg-emerald-500/10 text-emerald-700",
-  alto: "border-amber-200 bg-amber-500/10 text-amber-700",
-  critico: "border-red-200 bg-red-500/10 text-red-700",
-};
 
 type EnvironmentalForm = {
   roomId: string;
@@ -70,23 +63,27 @@ function EnvironmentalPage() {
   const [preview, setPreview] = useState<VPDPreview | null>(null);
   const [filters, setFilters] = useState({
     dateFrom: "",
-    dateTo: "",
     roomId: "all",
     bedId: "all",
-    vpdStatus: "all",
   });
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    void Promise.all([getGrowRooms(), getGrowBeds(), getEnvironmentalLogs(), getMeasurements()]).then(
-      ([nextRooms, nextBeds, nextLogs, nextMeasurements]) => {
+    void Promise.all([getGrowRooms(), getGrowBeds(), getMeasurements()]).then(
+      ([nextRooms, nextBeds, nextMeasurements]) => {
         setRooms(nextRooms);
         setBeds(nextBeds);
-        setLogs(nextLogs);
         setChemicalMeasurements(nextMeasurements.slice(0, 5));
         setForm((current) => ({ ...current, roomId: nextRooms[0]?.id ?? "" }));
       },
     );
   }, []);
+
+  useEffect(() => {
+    void refreshLogs(filters);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.dateFrom, filters.roomId, filters.bedId]);
 
   useEffect(() => {
     const airTempC = Number(form.airTempC);
@@ -117,33 +114,37 @@ function EnvironmentalPage() {
   async function refreshLogs(nextFilters = filters) {
     const serviceFilters: EnvironmentalLogFilters = {};
     if (nextFilters.dateFrom) serviceFilters.dateFrom = nextFilters.dateFrom;
-    if (nextFilters.dateTo) serviceFilters.dateTo = nextFilters.dateTo;
     if (nextFilters.roomId !== "all") serviceFilters.roomId = nextFilters.roomId;
     if (nextFilters.bedId !== "all") serviceFilters.bedId = nextFilters.bedId;
-    if (nextFilters.vpdStatus !== "all") {
-      serviceFilters.vpdStatus = nextFilters.vpdStatus as EnvironmentalLog["vpdStatus"];
-    }
 
     setLogs(await getEnvironmentalLogs(serviceFilters));
   }
 
   async function handleCreateLog() {
-    const newLog = await createEnvironmentalLog({
-      roomId: form.roomId,
-      bedId: form.bedId === "none" ? undefined : form.bedId,
-      batchId: form.batchId || undefined,
-      date: form.date,
-      time: form.time,
-      airTempC: Number(form.airTempC),
-      relativeHumidity: Number(form.relativeHumidity),
-      leafTempC: form.leafTempC ? Number(form.leafTempC) : undefined,
-      co2ppm: form.co2ppm ? Number(form.co2ppm) : undefined,
-      recordedByUserId: form.recordedByUserId,
-      notes: form.notes || undefined,
-    });
-
-    setLogs((current) => [newLog, ...current]);
-    setForm((current) => ({ ...current, notes: "" }));
+    try {
+      setSaving(true);
+      setMessage("");
+      const newLog = await createEnvironmentalLog({
+        roomId: form.roomId,
+        bedId: form.bedId === "none" ? undefined : form.bedId,
+        batchId: form.batchId || undefined,
+        date: form.date,
+        time: form.time,
+        airTempC: Number(form.airTempC),
+        relativeHumidity: Number(form.relativeHumidity),
+        leafTempC: form.leafTempC ? Number(form.leafTempC) : undefined,
+        co2ppm: form.co2ppm ? Number(form.co2ppm) : undefined,
+        recordedByUserId: form.recordedByUserId,
+        notes: form.notes || undefined,
+      });
+      setLogs((current) => [newLog, ...current]);
+      setForm((current) => ({ ...current, notes: "" }));
+      setMessage("Registro guardado correctamente.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudo guardar el registro.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function roomName(roomId: string): string {
@@ -178,7 +179,7 @@ function EnvironmentalPage() {
         </p>
       </header>
 
-      <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
+      <div className="space-y-4">
         <Card>
           <CardHeader>
             <CardTitle>Nuevo registro</CardTitle>
@@ -230,14 +231,7 @@ function EnvironmentalPage() {
                 <Input type="number" value={form.relativeHumidity} onChange={(event) => setForm({ ...form, relativeHumidity: event.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Temperatura hoja/canopia C</Label>
-                <Input type="number" value={form.leafTempC} onChange={(event) => setForm({ ...form, leafTempC: event.target.value })} />
-                <p className="text-xs text-muted-foreground">
-                  La temperatura de hoja/canopia mejora la precision del VPD. Si no se carga, el sistema puede usar una estimacion.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>CO2 ppm</Label>
+                <Label>CO2 ppm <span className="font-normal text-muted-foreground">(opcional)</span></Label>
                 <Input type="number" value={form.co2ppm} onChange={(event) => setForm({ ...form, co2ppm: event.target.value })} />
               </div>
               <div className="space-y-2 sm:col-span-2">
@@ -251,22 +245,18 @@ function EnvironmentalPage() {
             </div>
 
             <div className="rounded-md border bg-muted/40 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">VPD calculado</p>
-                  <p className="font-mono text-2xl font-semibold">{preview ? `${preview.calculatedVPD} kPa` : "-"}</p>
-                </div>
-                {preview ? (
-                  <Badge variant="outline" className={VPD_STATUS_CLASS[preview.vpdStatus]}>
-                    {preview.vpdStatus}
-                  </Badge>
-                ) : null}
-              </div>
+              <p className="text-xs text-muted-foreground">VPD calculado</p>
+              <p className="font-mono text-2xl font-semibold">{preview ? `${preview.calculatedVPD} kPa` : "-"}</p>
             </div>
 
-            <Button onClick={handleCreateLog} className="w-full gap-2" disabled={!form.roomId}>
+            {message ? (
+              <p className={`rounded-md border px-3 py-2 text-sm ${message.startsWith("Registro") ? "border-emerald-200 bg-emerald-500/10 text-emerald-700" : "border-destructive/30 bg-destructive/10 text-destructive"}`}>
+                {message}
+              </p>
+            ) : null}
+            <Button onClick={() => void handleCreateLog()} className="w-full gap-2" disabled={!form.roomId || saving}>
               <Plus className="h-4 w-4" />
-              Registrar parametro
+              {saving ? "Guardando..." : "Registrar parametro"}
             </Button>
           </CardContent>
         </Card>
@@ -277,16 +267,11 @@ function EnvironmentalPage() {
             <CardDescription>Filtros locales sobre registros mock.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-5">
+            <div className="grid gap-3 md:grid-cols-3">
               <Input
                 type="date"
                 value={filters.dateFrom}
                 onChange={(event) => setFilters({ ...filters, dateFrom: event.target.value })}
-              />
-              <Input
-                type="date"
-                value={filters.dateTo}
-                onChange={(event) => setFilters({ ...filters, dateTo: event.target.value })}
               />
               <Select value={filters.roomId} onValueChange={(roomId) => setFilters({ ...filters, roomId, bedId: "all" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -306,22 +291,7 @@ function EnvironmentalPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filters.vpdStatus} onValueChange={(vpdStatus) => setFilters({ ...filters, vpdStatus })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los VPD</SelectItem>
-                  <SelectItem value="bajo">Bajo</SelectItem>
-                  <SelectItem value="optimo">Optimo</SelectItem>
-                  <SelectItem value="alto">Alto</SelectItem>
-                  <SelectItem value="critico">Critico</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
-
-            <Button variant="outline" size="sm" onClick={() => void refreshLogs()} className="gap-2">
-              <Activity className="h-4 w-4" />
-              Aplicar filtros
-            </Button>
 
             <div className="rounded-md border p-3">
               <div className="mb-2 flex items-center justify-between gap-3">
@@ -344,9 +314,6 @@ function EnvironmentalPage() {
             </div>
 
             <div className="overflow-x-auto rounded-md border">
-              <p className="border-b px-3 py-2 text-xs text-muted-foreground">
-                La temperatura de hoja/canopia es opcional. Si no se mide, el sistema puede estimarla para calcular el VPD.
-              </p>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -358,8 +325,6 @@ function EnvironmentalPage() {
                     <TableHead>HR</TableHead>
                     <TableHead>Hoja</TableHead>
                     <TableHead>CO2</TableHead>
-                    <TableHead>VPD</TableHead>
-                    <TableHead>Estado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -380,14 +345,6 @@ function EnvironmentalPage() {
                         ) : null}
                       </TableCell>
                       <TableCell className="font-mono text-xs">{log.co2ppm ?? "-"} ppm</TableCell>
-                      <TableCell className="font-mono text-xs">{log.calculatedVPD ?? "-"} kPa</TableCell>
-                      <TableCell>
-                        {log.vpdStatus ? (
-                          <Badge variant="outline" className={VPD_STATUS_CLASS[log.vpdStatus]}>
-                            {log.vpdStatus}
-                          </Badge>
-                        ) : null}
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

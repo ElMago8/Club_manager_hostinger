@@ -86,6 +86,9 @@ export async function getGrowRooms(): Promise<GrowRoom[]> {
 }
 
 export async function getGrowRoomById(id: string): Promise<GrowRoom | null> {
+  if (!/^\d+$/.test(id)) {
+    return growRooms.find((room) => room.id === id) ?? null;
+  }
   return withMockFallback(
     async () => mapApiGrowRoom(await apiRequest<ApiGrowRoom>(`/cultivation/rooms/${id}`)),
     () => growRooms.find((room) => room.id === id) ?? null,

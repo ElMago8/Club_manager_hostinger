@@ -93,7 +93,7 @@ function GrowBedsPage() {
         </header>
 
         <Button asChild className="gap-2">
-          <Link to="/app/cultivo/camillas/nueva">
+          <Link to="/app/cultivo/camillas/nueva" search={{ edit: undefined }}>
             <Plus className="h-4 w-4" />
             Nueva camilla
           </Link>

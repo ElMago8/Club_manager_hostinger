@@ -30,6 +30,10 @@ interface ApiGrowBed {
   estado?: ApiBedStatus | GrowBed["status"];
   maxPlants: number;
   capacidadMaximaPlantas?: number;
+  mainBatchId?: string | null;
+  lotePrincipalId?: string | number | null;
+  responsibleUserId?: string | null;
+  responsableId?: string | number | null;
   notes?: string | null;
   descripcion?: string | null;
   _count?: {
@@ -94,6 +98,8 @@ function mapApiGrowBed(bed: ApiGrowBed): GrowBed {
     status: API_RAW_TO_UI_STATUS[bed.estado ?? bed.status] ?? API_TO_UI_STATUS[bed.status],
     maxPlants: bed.capacidadMaximaPlantas ?? bed.maxPlants,
     currentPlants: bed._count?.plants ?? bed._count?.plantas ?? 0,
+    mainBatchId: bed.mainBatchId ?? (bed.lotePrincipalId ? String(bed.lotePrincipalId) : undefined),
+    responsibleUserId: bed.responsibleUserId ?? (bed.responsableId ? String(bed.responsableId) : undefined),
     notes: bed.descripcion ?? bed.notes ?? undefined,
   };
 }
@@ -124,6 +130,9 @@ export async function getGrowBedsByRoom(roomId: string): Promise<GrowBed[]> {
 }
 
 export async function getGrowBedById(id: string): Promise<GrowBed | null> {
+  if (!/^\d+$/.test(id)) {
+    return growBeds.find((bed) => bed.id === id) ?? null;
+  }
   return withMockFallback(
     async () => mapApiGrowBed(await apiRequest<ApiGrowBed>(`/cultivation/beds/${id}`)),
     () => growBeds.find((bed) => bed.id === id) ?? null,

@@ -20,13 +20,14 @@ model SalaCultivo {
   sensores                 String?
   descripcion              String?
   creadoEn                 DateTime @default(now()) @map("creado_en")
-  actualizadoEn DateTime @updatedAt @map("actualizado_en")
+  actualizadoEn            DateTime @updatedAt @map("actualizado_en")
 
   camillas              Camilla[]
   madres                Madre[]
   lotesCultivo          LoteCultivo[]
   registrosAmbientales  RegistroAmbiental[]
   tareasCultivo         TareaCultivo[]
+  medicionesCultivo     MedicionCultivo[]
 
   @@map("salas_cultivo")
 }
@@ -42,10 +43,12 @@ model Camilla {
   creadoEn               DateTime @default(now()) @map("creado_en")
   actualizadoEn          DateTime @updatedAt @map("actualizado_en")
 
-  salaCultivo SalaCultivo @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
-  madres      Madre[]
-  plantas     Planta[]
-  tareasCultivo TareaCultivo[]
+  salaCultivo          SalaCultivo          @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  madres               Madre[]
+  plantas              Planta[]
+  tareasCultivo        TareaCultivo[]
+  registrosAmbientales RegistroAmbiental[]
+  medicionesCultivo    MedicionCultivo[]
 
   @@index([salaCultivoId])
   @@map("camillas")
@@ -95,10 +98,11 @@ model Madre {
   creadoEn                      DateTime  @default(now()) @map("creado_en")
   actualizadoEn                 DateTime  @updatedAt @map("actualizado_en")
 
-  genetica    Genetica    @relation(fields: [geneticaId], references: [id], onDelete: Restrict)
-  salaCultivo SalaCultivo @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
-  camilla     Camilla     @relation(fields: [camillaId], references: [id], onDelete: Restrict)
-  plantas     Planta[]
+  genetica          Genetica          @relation(fields: [geneticaId], references: [id], onDelete: Restrict)
+  salaCultivo       SalaCultivo       @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  camilla           Camilla           @relation(fields: [camillaId], references: [id], onDelete: Restrict)
+  plantas           Planta[]
+  medicionesCultivo MedicionCultivo[]
 
   @@index([geneticaId])
   @@index([salaCultivoId])
@@ -151,6 +155,7 @@ model Planta {
   macetaLitros     Float?    @map("maceta_litros")
   tipoMaceta       String?   @map("tipo_maceta")
   sustrato         String?
+  estadoSanitario  String?   @default("bueno") @map("estado_sanitario")
   observaciones    String?
   creadoEn         DateTime  @default(now()) @map("creado_en")
   actualizadoEn    DateTime  @updatedAt @map("actualizado_en")
@@ -175,6 +180,7 @@ model RegistroAmbiental {
   id             Int      @id @default(autoincrement())
   salaCultivoId  Int      @map("sala_cultivo_id")
   loteCultivoId  Int?     @map("lote_cultivo_id")
+  camillaId      Int?     @map("camilla_id")
   temperatura    Float
   humedad        Float
   vpd            Float?
@@ -183,11 +189,13 @@ model RegistroAmbiental {
   registradoEn   DateTime @default(now()) @map("registrado_en")
   creadoEn       DateTime @default(now()) @map("creado_en")
 
-  salaCultivo SalaCultivo @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  salaCultivo SalaCultivo  @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
   loteCultivo LoteCultivo? @relation(fields: [loteCultivoId], references: [id], onDelete: SetNull)
+  camilla     Camilla?     @relation(fields: [camillaId], references: [id], onDelete: SetNull)
 
   @@index([salaCultivoId])
   @@index([loteCultivoId])
+  @@index([camillaId])
   @@index([registradoEn])
   @@map("registros_ambientales")
 }
@@ -214,20 +222,36 @@ model Riego {
 }
 
 model MedicionCultivo {
-  id              Int      @id @default(autoincrement())
-  plantaId        Int      @map("planta_id")
-  alturaCm        Float?   @map("altura_cm")
-  diametroTalloMm Float?   @map("diametro_tallo_mm")
-  cantidadNodos   Int?     @map("cantidad_nodos")
-  estadoGeneral   String?  @map("estado_general")
-  observaciones   String?
-  fechaMedicion   DateTime @default(now()) @map("fecha_medicion")
-  creadoEn        DateTime @default(now()) @map("creado_en")
+  id             Int      @id @default(autoincrement())
+  fecha          DateTime @map("fecha")
+  hora           String   @map("hora")
+  tipo           String
+  salaCultivoId  Int      @map("sala_cultivo_id")
+  camillaId      Int?     @map("camilla_id")
+  plantaId       Int?     @map("planta_id")
+  madreId        Int?     @map("madre_id")
+  phLiquido      Float?   @map("ph_liquido")
+  ppmLiquido     Float?   @map("ppm_liquido")
+  phSustrato     Float?   @map("ph_sustrato")
+  ppmSustrato    Float?   @map("ppm_sustrato")
+  phDrenaje      Float?   @map("ph_drenaje")
+  ppmDrenaje     Float?   @map("ppm_drenaje")
+  estado         String   @default("normal")
+  responsable    String?
+  observaciones  String?
+  creadoEn       DateTime @default(now()) @map("creado_en")
+  actualizadoEn  DateTime @updatedAt @map("actualizado_en")
 
-  planta Planta @relation(fields: [plantaId], references: [id], onDelete: Cascade)
+  salaCultivo SalaCultivo @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  camilla     Camilla?    @relation(fields: [camillaId], references: [id], onDelete: SetNull)
+  planta      Planta?     @relation(fields: [plantaId], references: [id], onDelete: SetNull)
+  madre       Madre?      @relation(fields: [madreId], references: [id], onDelete: SetNull)
 
+  @@index([salaCultivoId])
+  @@index([camillaId])
   @@index([plantaId])
-  @@index([fechaMedicion])
+  @@index([madreId])
+  @@index([fecha])
   @@map("mediciones_cultivo")
 }
 
@@ -281,4 +305,82 @@ model Cosecha {
 
   @@index([loteCultivoId])
   @@map("cosechas")
+}
+
+// ─── Fase 2.1: Usuarios, Roles y Permisos ────────────────────────────────────
+
+model Usuario {
+  id             Int       @id @default(autoincrement())
+  codigoUsuario  String    @unique @map("codigo_usuario")
+  username       String    @unique
+  nombre         String
+  apellido       String?
+  email          String?
+  passwordHash   String    @map("password_hash")
+  estado         String    @default("activo")
+  ultimoLoginEn  DateTime? @map("ultimo_login_en")
+  creadoEn       DateTime  @default(now()) @map("creado_en")
+  actualizadoEn  DateTime  @updatedAt @map("actualizado_en")
+
+  roles UsuarioRol[]
+
+  @@map("usuarios")
+}
+
+model Rol {
+  id            Int       @id @default(autoincrement())
+  slug          String    @unique
+  nombre        String    @unique
+  descripcion   String?
+  estado        String    @default("activo")
+  creadoEn      DateTime  @default(now()) @map("creado_en")
+  actualizadoEn DateTime  @updatedAt @map("actualizado_en")
+
+  usuarios UsuarioRol[]
+  permisos RolPermiso[]
+
+  @@map("roles")
+}
+
+model Permiso {
+  id           Int      @id @default(autoincrement())
+  clavePermiso String   @unique @map("clave_permiso")
+  modulo       String
+  accion       String
+  descripcion  String?
+  creadoEn     DateTime @default(now()) @map("creado_en")
+
+  roles RolPermiso[]
+
+  @@map("permisos")
+}
+
+model UsuarioRol {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int      @map("usuario_id")
+  rolId     Int      @map("rol_id")
+  creadoEn  DateTime @default(now()) @map("creado_en")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  rol     Rol     @relation(fields: [rolId], references: [id], onDelete: Restrict)
+
+  @@unique([usuarioId, rolId])
+  @@index([usuarioId])
+  @@index([rolId])
+  @@map("usuario_roles")
+}
+
+model RolPermiso {
+  id        Int      @id @default(autoincrement())
+  rolId     Int      @map("rol_id")
+  permisoId Int      @map("permiso_id")
+  creadoEn  DateTime @default(now()) @map("creado_en")
+
+  rol     Rol     @relation(fields: [rolId], references: [id], onDelete: Cascade)
+  permiso Permiso @relation(fields: [permisoId], references: [id], onDelete: Cascade)
+
+  @@unique([rolId, permisoId])
+  @@index([rolId])
+  @@index([permisoId])
+  @@map("rol_permisos")
 }

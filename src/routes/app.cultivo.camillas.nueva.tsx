@@ -9,10 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { createGrowBed, getGrowBedById, updateGrowBed } from "@/services/growBedService";
 import { getGrowRooms } from "@/services/growRoomService";
-import { createMeasurement, getLocalMeasurementStatus } from "@/services/measurementService";
+import { createMeasurement, getLocalMeasurementStatus, getMeasurements } from "@/services/measurementService";
 import type { BedStatus, GrowRoom, MeasurementMethod } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/camillas/nueva")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    edit: typeof search.edit === "string" ? search.edit : undefined,
+  }),
   head: () => ({ meta: [{ title: "Nueva camilla - Cannabis Club Manager" }] }),
   component: NewGrowBedPage,
 });
@@ -59,52 +62,71 @@ function optionalNumber(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function optionalFieldValue(value: number | string | undefined | null) {
+  return value === undefined || value === null ? "" : String(value);
+}
+
 function NewGrowBedPage() {
   const navigate = useNavigate();
-  const [editId, setEditId] = useState<string | null>(null);
+  const { edit: editId } = Route.useSearch();
   const [rooms, setRooms] = useState<GrowRoom[]>([]);
   const [form, setForm] = useState<GrowBedForm>(initialForm);
+  const [loading, setLoading] = useState(Boolean(editId));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function loadRooms() {
-      const id = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("edit") : null;
-      setEditId(id);
       const nextRooms = await getGrowRooms();
       setRooms(nextRooms);
 
-      if (id) {
-        const bed = await getGrowBedById(id);
-        if (!bed) {
-          setError("Camilla no encontrada.");
-          return;
-        }
+      if (editId) {
+        try {
+          const bed = await getGrowBedById(editId);
 
-        setForm({
-          name: bed.name,
-          code: bed.code,
-          roomId: bed.roomId,
-          status: bed.status,
-          maxPlants: String(bed.maxPlants),
-          currentPlants: String(bed.currentPlants),
-          mainBatchId: bed.mainBatchId ?? "",
-          responsibleUserId: bed.responsibleUserId ?? "",
-          substratePH: "",
-          substratePPM: "",
-          liquidPH: "",
-          liquidPPM: "",
-          measurementMethod: "manual_meter",
-          notes: bed.notes ?? "",
-        });
+          if (!bed) {
+            setError("Camilla no encontrada.");
+            return;
+          }
+
+          let latestMeasurement: Awaited<ReturnType<typeof getMeasurements>>[number] | undefined;
+          try {
+            const measurements = await getMeasurements({ bedId: editId });
+            latestMeasurement = measurements[0];
+          } catch {
+            // mediciones opcionales — si fallan no bloquean la carga de la camilla
+          }
+
+          setForm({
+            name: bed.name,
+            code: bed.code,
+            roomId: bed.roomId,
+            status: bed.status,
+            maxPlants: String(bed.maxPlants),
+            currentPlants: String(bed.currentPlants),
+            mainBatchId: bed.mainBatchId ?? latestMeasurement?.batchId ?? "",
+            responsibleUserId: bed.responsibleUserId ?? latestMeasurement?.responsibleName ?? "",
+            substratePH: optionalFieldValue(latestMeasurement?.substratePH),
+            substratePPM: optionalFieldValue(latestMeasurement?.substratePPM),
+            liquidPH: optionalFieldValue(latestMeasurement?.liquidPH),
+            liquidPPM: optionalFieldValue(latestMeasurement?.liquidPPM),
+            measurementMethod: latestMeasurement?.measurementMethod ?? "manual_meter",
+            notes: bed.notes ?? "",
+          });
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "No se pudo cargar la camilla.");
+        } finally {
+          setLoading(false);
+        }
         return;
       }
 
       setForm((current) => ({ ...current, roomId: current.roomId || nextRooms[0]?.id || "" }));
+      setLoading(false);
     }
 
     void loadRooms();
-  }, []);
+  }, [editId]);
 
   const previewStatus = getLocalMeasurementStatus({
     substratePH: optionalNumber(form.substratePH),
@@ -169,7 +191,7 @@ function NewGrowBedPage() {
 
       const bed = editId ? await updateGrowBed(editId, payload) : await createGrowBed(payload);
 
-      if (!editId && hasInitialMeasurement) {
+      if (hasInitialMeasurement) {
         await createMeasurement({
           measurementType: "mixed",
           date: today,
@@ -214,6 +236,11 @@ function NewGrowBedPage() {
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
       ) : null}
 
+      {loading ? (
+        <Card>
+          <CardContent className="p-6 text-sm text-muted-foreground">Cargando datos de la camilla...</CardContent>
+        </Card>
+      ) : (
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
@@ -336,6 +363,7 @@ function NewGrowBedPage() {
           </CardContent>
         </Card>
       </form>
+      )}
     </div>
   );
 }

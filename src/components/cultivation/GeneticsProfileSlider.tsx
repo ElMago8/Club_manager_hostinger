@@ -52,7 +52,8 @@ export function GeneticsProfileSlider({
         <div className="rounded-full border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
           Balance genetico
         </div>
-        <div className="font-semibold text-violet-600 dark:text-violet-400">
+        <div className="flex items-center gap-2 font-semibold text-violet-600 dark:text-violet-400">
+          <Leaf className="h-4 w-4 rotate-180" />
           Indica {profile.indicaPercent}%
         </div>
       </div>

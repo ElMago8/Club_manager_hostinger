@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,7 +81,7 @@ const initialForm: MeasurementForm = {
   runoffEC: "",
   waterTempC: "",
   substrateTempC: "",
-  measurementMethod: "manual_meter",
+  measurementMethod: "gota",
   responsibleName: "Operador demo",
   notes: "",
 };
@@ -107,6 +107,14 @@ const TYPE_LABEL: Record<MeasurementType, string> = {
   mixed: "Mixta",
   corrective: "Correctiva",
   routine_check: "Control rutinario",
+};
+
+const METHOD_LABEL: Record<MeasurementMethod, string> = {
+  gota: "Gota",
+  sensor: "Sensor",
+  riego_continuo: "Riego continuo",
+  riego_manual: "Riego manual",
+  otro: "Otro",
 };
 
 function optionalNumber(value: string) {
@@ -154,16 +162,20 @@ function MeasurementsPage() {
   }
 
   useEffect(() => {
-    void Promise.all([getGrowRooms(), getGrowBeds(), getPlants(), getMotherPlants(), getMeasurements()]).then(
-      ([nextRooms, nextBeds, nextPlants, nextMothers, nextMeasurements]) => {
+    void Promise.all([getGrowRooms(), getGrowBeds(), getPlants(), getMotherPlants()]).then(
+      ([nextRooms, nextBeds, nextPlants, nextMothers]) => {
         setRooms(nextRooms);
         setBeds(nextBeds);
         setPlants(nextPlants);
         setMothers(nextMothers);
-        setMeasurements(nextMeasurements);
       },
     );
   }, []);
+
+  useEffect(() => {
+    void loadMeasurements(filters);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.dateFrom, filters.dateTo, filters.roomId, filters.bedId, filters.plantId, filters.motherPlantId, filters.measurementType, filters.status]);
 
   const summary = useMemo(() => {
     const latest = measurements.slice(0, 6);
@@ -316,7 +328,15 @@ function MeasurementsPage() {
               <div className="space-y-2"><Label>EC drenaje</Label><Input type="number" min={0} value={form.runoffEC} onChange={(event) => setForm({ ...form, runoffEC: event.target.value })} /></div>
               <div className="space-y-2"><Label>Temp. agua</Label><Input type="number" min={0} max={50} value={form.waterTempC} onChange={(event) => setForm({ ...form, waterTempC: event.target.value })} /></div>
               <div className="space-y-2"><Label>Temp. sustrato</Label><Input type="number" min={0} max={50} value={form.substrateTempC} onChange={(event) => setForm({ ...form, substrateTempC: event.target.value })} /></div>
-              <div className="space-y-2"><Label>Metodo</Label><Select value={form.measurementMethod} onValueChange={(measurementMethod) => setForm({ ...form, measurementMethod: measurementMethod as MeasurementMethod })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_meter">Medidor manual</SelectItem><SelectItem value="drops">Gotas</SelectItem><SelectItem value="lab">Laboratorio</SelectItem><SelectItem value="sensor">Sensor</SelectItem><SelectItem value="estimated">Estimado</SelectItem><SelectItem value="other">Otro</SelectItem></SelectContent></Select></div>
+              <div className="space-y-2">
+                <Label>Metodo</Label>
+                <Select value={form.measurementMethod} onValueChange={(measurementMethod) => setForm({ ...form, measurementMethod: measurementMethod as MeasurementMethod })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(METHOD_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2"><Label>Responsable</Label><Input value={form.responsibleName} onChange={(event) => setForm({ ...form, responsibleName: event.target.value })} /></div>
@@ -343,7 +363,6 @@ function MeasurementsPage() {
               <Select value={filters.bedId} onValueChange={(bedId) => setFilters({ ...filters, bedId })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas las camillas</SelectItem>{beds.map((bed) => <SelectItem key={bed.id} value={bed.id}>{bed.name}</SelectItem>)}</SelectContent></Select>
               <Select value={filters.measurementType} onValueChange={(measurementType) => setFilters({ ...filters, measurementType })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos los tipos</SelectItem>{Object.entries(TYPE_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
               <Select value={filters.status} onValueChange={(status) => setFilters({ ...filters, status })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos los estados</SelectItem>{Object.entries(STATUS_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
-              <Button variant="outline" className="gap-2" onClick={() => void loadMeasurements()}><Activity className="h-4 w-4" />Filtrar</Button>
             </div>
 
             <div className="overflow-x-auto rounded-md border">

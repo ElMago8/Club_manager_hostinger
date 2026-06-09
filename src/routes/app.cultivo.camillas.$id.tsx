@@ -59,25 +59,25 @@ const PLANT_STATUS_CLASS: Record<PlantStatus, string> = {
 };
 
 const PLANT_STAGE_CLASS: Record<PlantStage, string> = {
-  esqueje: "border-lime-200 bg-lime-500/15 text-lime-800 hover:bg-lime-500/20",
   vegetativo: "border-emerald-200 bg-emerald-500/15 text-emerald-800 hover:bg-emerald-500/20",
   floracion: "border-fuchsia-200 bg-fuchsia-500/15 text-fuchsia-800 hover:bg-fuchsia-500/20",
   cosecha: "border-amber-200 bg-amber-500/20 text-amber-900 hover:bg-amber-500/25",
   secado: "border-orange-200 bg-orange-500/20 text-orange-900 hover:bg-orange-500/25",
   curado: "border-violet-200 bg-violet-500/15 text-violet-800 hover:bg-violet-500/20",
   liberado: "border-sky-200 bg-sky-500/15 text-sky-800 hover:bg-sky-500/20",
-  descartado: "border-zinc-200 bg-zinc-500/15 text-zinc-700 hover:bg-zinc-500/20",
+  a_limpiar: "border-teal-200 bg-teal-500/15 text-teal-800 hover:bg-teal-500/20",
+  a_reparar: "border-rose-200 bg-rose-500/15 text-rose-800 hover:bg-rose-500/20",
 };
 
 const STAGE_LABEL: Record<PlantStage, string> = {
-  esqueje: "Esqueje",
   vegetativo: "Vegetativo",
   floracion: "Floracion",
   cosecha: "Cosecha",
   secado: "Secado",
   curado: "Curado",
   liberado: "Liberado",
-  descartado: "Descartado",
+  a_limpiar: "A Limpiar",
+  a_reparar: "A Reparar",
 };
 
 const PARAM_STATUS_CLASS: Record<MeasurementStatus, string> = {
@@ -533,14 +533,14 @@ function GrowBedDetailPage() {
               <Select value={bulkForm.stage} onValueChange={(stage) => setBulkForm({ ...bulkForm, stage: stage as PlantStage })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="esqueje">Esqueje</SelectItem>
                   <SelectItem value="vegetativo">Vegetativo</SelectItem>
                   <SelectItem value="floracion">Floracion</SelectItem>
                   <SelectItem value="cosecha">Cosecha</SelectItem>
                   <SelectItem value="secado">Secado</SelectItem>
                   <SelectItem value="curado">Curado</SelectItem>
                   <SelectItem value="liberado">Liberado</SelectItem>
-                  <SelectItem value="descartado">Descartado</SelectItem>
+                  <SelectItem value="a_limpiar">A Limpiar</SelectItem>
+                  <SelectItem value="a_reparar">A Reparar</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -618,14 +618,14 @@ function GrowBedDetailPage() {
                 <Select value={selectedPlant.stage} onValueChange={(stage) => setSelectedPlant({ ...selectedPlant, stage: stage as PlantStage })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="esqueje">Esqueje</SelectItem>
                     <SelectItem value="vegetativo">Vegetativo</SelectItem>
                     <SelectItem value="floracion">Floracion</SelectItem>
                     <SelectItem value="cosecha">Cosecha</SelectItem>
                     <SelectItem value="secado">Secado</SelectItem>
                     <SelectItem value="curado">Curado</SelectItem>
                     <SelectItem value="liberado">Liberado</SelectItem>
-                    <SelectItem value="descartado">Descartado</SelectItem>
+                    <SelectItem value="a_limpiar">A Limpiar</SelectItem>
+                    <SelectItem value="a_reparar">A Reparar</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

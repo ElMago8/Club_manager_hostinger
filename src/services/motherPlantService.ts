@@ -139,6 +139,10 @@ export async function getMotherPlants(): Promise<MotherPlantWithPlantCount[]> {
 }
 
 export async function getMotherPlantById(id: string): Promise<MotherPlantWithPlantCount | null> {
+  if (!/^\d+$/.test(id)) {
+    const motherPlant = motherPlants.find((item) => item.id === id);
+    return motherPlant ? withPlantCount(motherPlant) : null;
+  }
   return withMockFallback(
     async () => mapApiMotherPlant(await apiRequest<ApiMotherPlant>(`/cultivation/mothers/${id}`)),
     () => {

@@ -665,6 +665,7 @@ const plantaSchema = z.object({
   origen: z.string().trim().min(1),
   etapa: z.string().trim().min(1),
   estado: z.string().trim().min(1).default("activa"),
+  estadoSanitario: z.enum(["bueno", "preventivo", "observacion", "critico"]).default("bueno"),
   fechaInicio: z.coerce.date(),
   fechaInicioEtapa: optionalDate,
   macetaCodigo: optionalText,
@@ -697,13 +698,22 @@ const riegoSchema = z.object({
 });
 
 const medicionCultivoSchema = z.object({
-  plantaId: intId,
-  alturaCm: z.coerce.number().positive().optional(),
-  diametroTalloMm: z.coerce.number().positive().optional(),
-  cantidadNodos: z.coerce.number().int().min(0).optional(),
-  estadoGeneral: optionalText,
+  fecha: z.coerce.date(),
+  hora: z.string().trim().regex(/^\d{2}:\d{2}$/, "Formato HH:MM requerido."),
+  tipo: z.string().trim().min(1),
+  salaCultivoId: intId,
+  camillaId: intId.optional(),
+  plantaId: intId.optional(),
+  madreId: intId.optional(),
+  phLiquido: z.coerce.number().min(0).max(14).optional(),
+  ppmLiquido: z.coerce.number().min(0).optional(),
+  phSustrato: z.coerce.number().min(0).max(14).optional(),
+  ppmSustrato: z.coerce.number().min(0).optional(),
+  phDrenaje: z.coerce.number().min(0).max(14).optional(),
+  ppmDrenaje: z.coerce.number().min(0).optional(),
+  estado: z.string().trim().min(1).default("normal"),
+  responsable: optionalText,
   observaciones: optionalText,
-  fechaMedicion: z.coerce.date().default(() => new Date()),
 });
 
 const tareaCultivoSchema = z.object({
@@ -732,6 +742,242 @@ const cosechaSchema = z.object({
   observaciones: optionalText,
 });
 
+function cosechaRoutes() {
+  const router = Router();
+  const include = { loteCultivo: { include: { genetica: true, salaCultivo: true } } };
+
+  router.get("/", async (_req, res, next) => {
+    try {
+      res.json(await prisma.cosecha.findMany({ include, orderBy: { id: "desc" } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/", async (req, res, next) => {
+    try {
+      res.status(201).json(await prisma.cosecha.create({ data: cosechaSchema.parse(req.body), include }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id", async (req, res, next) => {
+    try {
+      const record = await prisma.cosecha.findUnique({ where: { id: parseId(req) }, include });
+      if (!record) throw new ApiError(404, "Cosecha no encontrada.");
+      res.json(record);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:id", async (req, res, next) => {
+    try {
+      res.json(await prisma.cosecha.update({ where: { id: parseId(req) }, data: cosechaSchema.partial().parse(req.body), include }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:id", async (req, res, next) => {
+    try {
+      res.json(await prisma.cosecha.delete({ where: { id: parseId(req) } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
+}
+
+function envLogSvp(tempC: number): number {
+  return 0.61078 * Math.exp((17.27 * tempC) / (tempC + 237.3));
+}
+
+function envLogCalcVPD(airTempC: number, relativeHumidity: number, leafTempC?: number): number {
+  const leaf = leafTempC ?? airTempC - 2.8;
+  return Number((envLogSvp(leaf) - envLogSvp(airTempC) * (relativeHumidity / 100)).toFixed(2));
+}
+
+function envLogVpdStatus(vpd: number): "low" | "optimal" | "high" | "critical" {
+  if (vpd < 0.8) return "low";
+  if (vpd <= 1.4) return "optimal";
+  if (vpd <= 1.8) return "high";
+  return "critical";
+}
+
+function envLogToApi(record: {
+  id: number;
+  salaCultivoId: number;
+  camillaId: number | null;
+  temperatura: number;
+  humedad: number;
+  vpd: number | null;
+  co2: number | null;
+  observaciones: string | null;
+  registradoEn: Date;
+}) {
+  const dt = new Date(record.registradoEn);
+  const date = dt.toISOString().slice(0, 10);
+  const time = `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
+  return {
+    id: String(record.id),
+    bedId: record.camillaId != null ? String(record.camillaId) : null,
+    batchId: null as null,
+    date,
+    time,
+    airTempC: record.temperatura,
+    relativeHumidity: record.humedad,
+    leafTempC: null as null,
+    co2ppm: record.co2 ?? null,
+    calculatedVPD: record.vpd ?? null,
+    vpdStatus: record.vpd != null ? envLogVpdStatus(record.vpd) : null,
+    notes: record.observaciones ?? null,
+    bed: { roomId: String(record.salaCultivoId) },
+  };
+}
+
+function registroAmbientalRoutes() {
+  const router = Router();
+
+  router.get("/", async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const records = await prisma.registroAmbiental.findMany({ orderBy: { id: "desc" } });
+      res.json(records.map(envLogToApi));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      const salaCultivoId = intId.parse(body.roomId);
+      const camillaId = body.bedId != null && body.bedId !== "" && body.bedId !== "none"
+        ? intId.parse(body.bedId)
+        : undefined;
+      const airTempC = Number(body.airTempC);
+      const relativeHumidity = Number(body.relativeHumidity);
+      const leafTempC = body.leafTempC != null && body.leafTempC !== "" ? Number(body.leafTempC) : undefined;
+      const vpd = envLogCalcVPD(airTempC, relativeHumidity, leafTempC);
+      const record = await prisma.registroAmbiental.create({
+        data: {
+          salaCultivoId,
+          camillaId,
+          temperatura: airTempC,
+          humedad: relativeHumidity,
+          vpd,
+          co2: body.co2ppm != null && body.co2ppm !== "" ? Math.round(Number(body.co2ppm)) : undefined,
+          observaciones: typeof body.notes === "string" && body.notes.trim() ? body.notes.trim() : undefined,
+          registradoEn: new Date(`${body.date}T${body.time}:00`),
+        },
+      });
+      res.status(201).json(envLogToApi(record));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const record = await prisma.registroAmbiental.findUnique({ where: { id: parseId(req) } });
+      if (!record) throw new ApiError(404, "Registro ambiental no encontrado.");
+      res.json(envLogToApi(record));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await prisma.registroAmbiental.delete({ where: { id: parseId(req) } });
+      res.json({ ok: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
+}
+
+function medicionRoutes() {
+  const router = Router();
+  const include = {
+    salaCultivo: { select: { id: true, nombre: true } },
+    camilla: { select: { id: true, nombre: true } },
+    planta: { select: { id: true, codigoPlanta: true, nombrePlanta: true } },
+    madre: { select: { id: true, codigoMadre: true, nombreMadre: true } },
+  };
+
+  router.get("/", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { salaCultivoId, camillaId, plantaId, madreId, estado, fechaDesde, fechaHasta } = req.query as Record<string, string | undefined>;
+      res.json(await prisma.medicionCultivo.findMany({
+        where: {
+          salaCultivoId: salaCultivoId ? Number(salaCultivoId) : undefined,
+          camillaId: camillaId ? Number(camillaId) : undefined,
+          plantaId: plantaId ? Number(plantaId) : undefined,
+          madreId: madreId ? Number(madreId) : undefined,
+          estado: estado ?? undefined,
+          fecha: {
+            gte: fechaDesde ? new Date(fechaDesde) : undefined,
+            lte: fechaHasta ? new Date(fechaHasta) : undefined,
+          },
+        },
+        include,
+        orderBy: [{ fecha: "desc" }, { hora: "desc" }],
+      }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.status(201).json(await prisma.medicionCultivo.create({
+        data: medicionCultivoSchema.parse(req.body),
+        include,
+      }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const record = await prisma.medicionCultivo.findUnique({ where: { id: parseId(req) }, include });
+      if (!record) throw new ApiError(404, "Medicion no encontrada.");
+      res.json(record);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await prisma.medicionCultivo.update({
+        where: { id: parseId(req) },
+        data: medicionCultivoSchema.partial().parse(req.body),
+        include,
+      }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await prisma.medicionCultivo.delete({ where: { id: parseId(req) } });
+      res.json({ ok: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
+}
+
 export const cultivationRoutes = Router();
 
 cultivationRoutes.use("/rooms", salaRoutes());
@@ -740,9 +986,22 @@ cultivationRoutes.use("/genetics", crudRoutes(prisma.genetica, geneticaSchema));
 cultivationRoutes.use("/mothers", madreRoutes());
 cultivationRoutes.use("/batches", crudRoutes(prisma.loteCultivo, loteCultivoSchema));
 cultivationRoutes.use("/plants", plantaRoutes());
-cultivationRoutes.use("/environmental-logs", crudRoutes(prisma.registroAmbiental, registroAmbientalSchema));
+cultivationRoutes.use("/environmental-logs", registroAmbientalRoutes());
+cultivationRoutes.post("/vpd/preview", (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const body = req.body as Record<string, unknown>;
+    const vpd = envLogCalcVPD(
+      Number(body.airTempC),
+      Number(body.relativeHumidity),
+      body.leafTempC != null && body.leafTempC !== "" ? Number(body.leafTempC) : undefined,
+    );
+    res.json({ calculatedVPD: vpd, vpdStatus: envLogVpdStatus(vpd) });
+  } catch (error) {
+    next(error);
+  }
+});
 cultivationRoutes.use("/irrigation-logs", crudRoutes(prisma.riego, riegoSchema));
-cultivationRoutes.use("/measurements", crudRoutes(prisma.medicionCultivo, medicionCultivoSchema));
+cultivationRoutes.use("/measurements", medicionRoutes());
 cultivationRoutes.use("/tasks", crudRoutes(prisma.tareaCultivo, tareaCultivoSchema));
 cultivationRoutes.use("/operational-tasks", crudRoutes(prisma.tareaCultivo, tareaCultivoSchema));
-cultivationRoutes.use("/harvests", crudRoutes(prisma.cosecha, cosechaSchema));
+cultivationRoutes.use("/harvests", cosechaRoutes());

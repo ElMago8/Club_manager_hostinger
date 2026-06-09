@@ -25,7 +25,6 @@ export function getVPDStatus(
   stage?: string,
 ): "bajo" | "optimo" | "alto" | "critico" {
   if (stage === "esqueje" || stage === "vegetativo") {
-    if (vpd < 0.6) return "critico";
     if (vpd < 0.8) return "bajo";
     if (vpd <= 1.1) return "optimo";
     if (vpd <= 1.4) return "alto";
@@ -33,14 +32,12 @@ export function getVPDStatus(
   }
 
   if (stage === "floracion") {
-    if (vpd < 0.8) return "critico";
     if (vpd < 1.0) return "bajo";
     if (vpd <= 1.6) return "optimo";
     if (vpd <= 1.9) return "alto";
     return "critico";
   }
 
-  if (vpd < 0.6) return "critico";
   if (vpd < 0.8) return "bajo";
   if (vpd <= 1.4) return "optimo";
   if (vpd <= 1.8) return "alto";

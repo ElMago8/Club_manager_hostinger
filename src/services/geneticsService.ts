@@ -128,13 +128,16 @@ export async function getGenetics(): Promise<Genetics[]> {
 }
 
 export async function getGeneticsById(id: string): Promise<Genetics> {
+  if (!/^\d+$/.test(id)) {
+    const item = genetics.find((genetic) => genetic.id === id);
+    if (!item) throw new Error("Genetica no encontrada.");
+    return item;
+  }
   return withMockFallback(
     async () => mapApiGenetics(await apiRequest<ApiGenetics>(`/cultivation/genetics/${id}`)),
     () => {
       const item = genetics.find((genetic) => genetic.id === id);
-      if (!item) {
-        throw new Error("Genetica no encontrada.");
-      }
+      if (!item) throw new Error("Genetica no encontrada.");
       return item;
     },
   );

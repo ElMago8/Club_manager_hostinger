@@ -130,12 +130,16 @@ function OperationalCalendarPage() {
   }
 
   useEffect(() => {
-    void Promise.all([getGrowBeds(), getPlants(), getOperationalTasks()]).then(([nextBeds, nextPlants, nextTasks]) => {
+    void Promise.all([getGrowBeds(), getPlants()]).then(([nextBeds, nextPlants]) => {
       setBeds(nextBeds);
       setPlants(nextPlants);
-      setTasks(nextTasks);
     });
   }, []);
+
+  useEffect(() => {
+    void loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.status, filters.priority, filters.taskType, filters.assignedToName, filters.dateFrom, filters.dateTo, filters.bedId, filters.plantId, filters.overdueOnly]);
 
   const cards = useMemo(() => {
     const today = "2026-05-29";
@@ -282,7 +286,6 @@ function OperationalCalendarPage() {
                 <span className="text-sm">Solo vencidas</span>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => void loadData()}>Aplicar filtros</Button>
 
             <div className="overflow-x-auto rounded-md border">
               <Table>

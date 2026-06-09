@@ -42,10 +42,6 @@ export async function withMockFallback<T>(
   try {
     return await apiCall();
   } catch (error) {
-    if (error instanceof ApiRequestError) {
-      throw error;
-    }
-
     if (import.meta.env.DEV) {
       console.warn("Cultivation API unavailable, using mock data.", error);
     }

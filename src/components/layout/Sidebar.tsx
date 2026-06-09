@@ -48,7 +48,6 @@ const NAV_ITEMS: NavItem[] = [
 
 const CULTIVO_SECTIONS: CultivoSection[] = [
   { label: "Cultivo general", href: "/app/cultivo" },
-  { label: "Resumen", href: "/app/cultivo/resumen" },
   { label: "Salas", href: "/app/cultivo/salas" },
   { label: "Camillas", href: "/app/cultivo/camillas" },
   { label: "Plantas", href: "/app/cultivo/plantas" },
@@ -58,6 +57,7 @@ const CULTIVO_SECTIONS: CultivoSection[] = [
   { label: "Parametros ambientales", href: "/app/cultivo/ambiente" },
   { label: "Mediciones pH / PPM", href: "/app/cultivo/mediciones" },
   { label: "Tabla VPD", href: "/app/cultivo/vpd" },
+  { label: "Cosechas", href: "/app/cultivo/cosechas" },
 ] as const;
 
 interface SidebarProps {
@@ -132,7 +132,9 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                           onClick={onNavigate}
                           className={cn(
                             "block rounded-md px-3 py-1.5 text-xs transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                            location.pathname === section.href || location.pathname.startsWith(`${section.href}/`)
+                            (section.href === "/app/cultivo"
+                              ? location.pathname === section.href
+                              : location.pathname === section.href || location.pathname.startsWith(`${section.href}/`))
                               ? "bg-sidebar-accent/70 text-sidebar-foreground"
                               : "text-sidebar-foreground/70",
                           )}

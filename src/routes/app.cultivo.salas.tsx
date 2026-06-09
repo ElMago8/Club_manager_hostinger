@@ -70,7 +70,7 @@ function GrowRoomsPage() {
           </p>
         </div>
         <Button asChild className="gap-2">
-          <Link to="/app/cultivo/salas/nueva">
+          <Link to="/app/cultivo/salas/nueva" search={{ edit: undefined }}>
             <Plus className="h-4 w-4" />
             Nueva sala
           </Link>
