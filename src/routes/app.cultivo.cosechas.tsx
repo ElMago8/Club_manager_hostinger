@@ -102,7 +102,7 @@ function HarvestsPage() {
               <p className="text-sm text-muted-foreground">Registro y seguimiento de cosechas por lote.</p>
             </div>
             <Button asChild>
-              <Link to="/app/cultivo/cosechas/nueva">
+              <Link to="/app/cultivo/cosechas/nueva" search={{ edit: undefined }}>
                 <Plus className="mr-2 h-4 w-4" />
                 Nueva cosecha
               </Link>
@@ -185,7 +185,7 @@ function HarvestsPage() {
                   <Wheat className="h-8 w-8 opacity-40" />
                   <p className="text-sm">No hay cosechas registradas.</p>
                   <Button variant="outline" size="sm" asChild>
-                    <Link to="/app/cultivo/cosechas/nueva">Registrar primera cosecha</Link>
+                    <Link to="/app/cultivo/cosechas/nueva" search={{ edit: undefined }}>Registrar primera cosecha</Link>
                   </Button>
                 </div>
               ) : (

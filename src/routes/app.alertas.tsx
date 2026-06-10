@@ -147,10 +147,12 @@ function AlertasPage() {
     const stockBajo = items.filter((i) => i.currentStock > 0 && i.currentStock <= i.reorderPoint).length;
     const members = demoStore.getMembers();
     const credenciales = members.filter((m) => {
+      if (!m.reprocannExpirationDate) return false;
       const d = daysUntil(m.reprocannExpirationDate);
       return d >= 0 && d <= 30;
     }).length;
     const docMedicos = members.filter((m) => {
+      if (!m.medicalDocumentExpirationDate) return false;
       const d = daysUntil(m.medicalDocumentExpirationDate);
       return d >= 0 && d <= 30;
     }).length;

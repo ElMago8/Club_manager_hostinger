@@ -52,7 +52,7 @@ const initialForm: GrowBedForm = {
   substratePPM: "",
   liquidPH: "",
   liquidPPM: "",
-  measurementMethod: "manual_meter",
+  measurementMethod: "otro",
   notes: "",
 };
 
@@ -110,7 +110,7 @@ function NewGrowBedPage() {
             substratePPM: optionalFieldValue(latestMeasurement?.substratePPM),
             liquidPH: optionalFieldValue(latestMeasurement?.liquidPH),
             liquidPPM: optionalFieldValue(latestMeasurement?.liquidPPM),
-            measurementMethod: latestMeasurement?.measurementMethod ?? "manual_meter",
+            measurementMethod: latestMeasurement?.measurementMethod ?? "otro",
             notes: bed.notes ?? "",
           });
         } catch (err) {
@@ -180,6 +180,7 @@ function NewGrowBedPage() {
       const payload = {
         name: form.name.trim(),
         code: form.code.trim(),
+        tipo: "camilla" as const,
         roomId: form.roomId,
         status: form.status,
         maxPlants,

@@ -44,6 +44,7 @@ export function ClubKpiGrid({ members, items, movements, alerts }: Props) {
   const todaysMovements = movements.filter((m) => new Date(m.createdAt).getTime() >= dayStart).length;
   const openAlerts = alerts.filter((a) => !a.isRead).length;
   const expiringCredentials = members.filter((m) => {
+    if (!m.reprocannExpirationDate) return false;
     const t = new Date(m.reprocannExpirationDate).getTime();
     return t > Date.now() && t <= in30Days;
   }).length;

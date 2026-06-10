@@ -171,7 +171,7 @@ export async function updateGrowRoom(id: string, payload: UpdateGrowRoomPayload)
         irrigationSystem: payload.irrigationSystem ?? room.technicalConfig.irrigationSystem,
         hasAirConditioning: payload.hasAirConditioning ?? room.technicalConfig.hasAirConditioning,
         hasDehumidifier: payload.hasDehumidifier ?? room.technicalConfig.hasDehumidifier,
-        installedSensors: payload.installedSensors ?? room.technicalConfig.installedSensors,
+        installedSensors: (payload.installedSensors ?? room.technicalConfig.installedSensors) as GrowRoomTechnicalConfig["installedSensors"],
       };
 
       return room;

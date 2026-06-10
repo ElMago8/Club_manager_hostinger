@@ -20,13 +20,17 @@ export function ClubUpcomingExpirations({ members }: Props) {
   const rows: UpcomingExpiration[] = [];
 
   for (const m of members) {
-    const r = new Date(m.reprocannExpirationDate).getTime();
-    if (r > now && r <= horizon) {
-      rows.push({ member: m, kind: "Reprocann", date: m.reprocannExpirationDate, daysLeft: differenceInDays(r, now) });
+    if (m.reprocannExpirationDate) {
+      const r = new Date(m.reprocannExpirationDate).getTime();
+      if (r > now && r <= horizon) {
+        rows.push({ member: m, kind: "Reprocann", date: m.reprocannExpirationDate, daysLeft: differenceInDays(r, now) });
+      }
     }
-    const d = new Date(m.medicalDocumentExpirationDate).getTime();
-    if (d > now && d <= horizon) {
-      rows.push({ member: m, kind: "Documento médico", date: m.medicalDocumentExpirationDate, daysLeft: differenceInDays(d, now) });
+    if (m.medicalDocumentExpirationDate) {
+      const d = new Date(m.medicalDocumentExpirationDate).getTime();
+      if (d > now && d <= horizon) {
+        rows.push({ member: m, kind: "Documento médico", date: m.medicalDocumentExpirationDate, daysLeft: differenceInDays(d, now) });
+      }
     }
   }
 
