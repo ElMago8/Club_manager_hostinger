@@ -190,6 +190,184 @@ async function main() {
     });
   }
   console.log("  ✓ 4 usuarios de prueba creados/actualizados");
+
+  // 5. Socios de prueba
+  const hoy = new Date();
+  const fecha = (offsetDays: number) => new Date(hoy.getTime() + offsetDays * 86_400_000);
+
+  const SOCIOS_SEED = [
+    {
+      codigoSocio: "SOC-0001",
+      nombre: "Juan",
+      apellido: "Pérez",
+      dni: "30111222",
+      fechaNacimiento: new Date("1988-05-10"),
+      telefono: "1123456789",
+      email: "juan.perez@club-demo.local",
+      localidad: "CABA",
+      provincia: "Buenos Aires",
+      estado: "activo",
+      cupoMensualGramos: 40,
+      observaciones: "Socio fundador.",
+    },
+    {
+      codigoSocio: "SOC-0002",
+      nombre: "María",
+      apellido: "Gómez",
+      dni: "28555777",
+      fechaNacimiento: new Date("1992-11-20"),
+      telefono: "1134567890",
+      email: "maria.gomez@club-demo.local",
+      localidad: "Rosario",
+      provincia: "Santa Fe",
+      estado: "activo",
+      cupoMensualGramos: 30,
+    },
+    {
+      codigoSocio: "SOC-0003",
+      nombre: "Carlos",
+      apellido: "Rodríguez",
+      dni: "33777888",
+      fechaNacimiento: new Date("1985-03-15"),
+      telefono: "2994567890",
+      email: "carlos.rodriguez@club-demo.local",
+      localidad: "Mar del Plata",
+      provincia: "Buenos Aires",
+      estado: "pendiente",
+      cupoMensualGramos: 25,
+      observaciones: "Documentación en trámite.",
+    },
+    {
+      codigoSocio: "SOC-0004",
+      nombre: "Ana",
+      apellido: "Martínez",
+      dni: "25999888",
+      fechaNacimiento: new Date("1980-07-22"),
+      telefono: "3514567890",
+      email: "ana.martinez@club-demo.local",
+      localidad: "Córdoba",
+      provincia: "Córdoba",
+      estado: "suspendido",
+      cupoMensualGramos: 20,
+      observaciones: "Suspendido por falta de documentación vigente.",
+    },
+  ];
+
+  for (const s of SOCIOS_SEED) {
+    await prisma.socio.upsert({
+      where: { codigoSocio: s.codigoSocio },
+      update: {
+        nombre: s.nombre,
+        apellido: s.apellido,
+        email: s.email,
+        telefono: s.telefono,
+        localidad: s.localidad,
+        provincia: s.provincia,
+        estado: s.estado,
+        cupoMensualGramos: s.cupoMensualGramos,
+        observaciones: s.observaciones ?? null,
+      },
+      create: s,
+    });
+  }
+  console.log("  ✓ 4 socios de prueba creados/actualizados");
+
+  // 6. Documentos de prueba (upsert por socio + tipo único para cada socio)
+  const soc1 = await prisma.socio.findUnique({ where: { codigoSocio: "SOC-0001" } });
+  const soc2 = await prisma.socio.findUnique({ where: { codigoSocio: "SOC-0002" } });
+  const soc3 = await prisma.socio.findUnique({ where: { codigoSocio: "SOC-0003" } });
+  const soc4 = await prisma.socio.findUnique({ where: { codigoSocio: "SOC-0004" } });
+
+  const DOCS_SEED: Array<{
+    socioId: number;
+    tipoDocumento: string;
+    numeroDocumento?: string;
+    fechaVencimiento?: Date;
+    estado: string;
+  }> = [
+    // SOC-0001 — credencial + REPROCANN + cert. médico vigentes
+    {
+      socioId: soc1!.id,
+      tipoDocumento: "credencial",
+      numeroDocumento: "CRED-0001",
+      estado: "vigente",
+    },
+    {
+      socioId: soc1!.id,
+      tipoDocumento: "reprocann",
+      numeroDocumento: "REP-001-2025",
+      fechaVencimiento: fecha(180),
+      estado: "vigente",
+    },
+    {
+      socioId: soc1!.id,
+      tipoDocumento: "certificado_medico",
+      numeroDocumento: "CM-001",
+      fechaVencimiento: fecha(210),
+      estado: "vigente",
+    },
+    // SOC-0002 — credencial + REPROCANN por vencer
+    {
+      socioId: soc2!.id,
+      tipoDocumento: "credencial",
+      numeroDocumento: "CRED-0002",
+      estado: "vigente",
+    },
+    {
+      socioId: soc2!.id,
+      tipoDocumento: "reprocann",
+      numeroDocumento: "REP-002-2025",
+      fechaVencimiento: fecha(20),
+      estado: "por_vencer",
+    },
+    {
+      socioId: soc2!.id,
+      tipoDocumento: "certificado_medico",
+      fechaVencimiento: fecha(90),
+      estado: "vigente",
+    },
+    // SOC-0003 — documentos pendientes
+    {
+      socioId: soc3!.id,
+      tipoDocumento: "reprocann",
+      estado: "pendiente",
+    },
+    {
+      socioId: soc3!.id,
+      tipoDocumento: "certificado_medico",
+      estado: "pendiente",
+    },
+    // SOC-0004 — REPROCANN y cert. médico vencidos
+    {
+      socioId: soc4!.id,
+      tipoDocumento: "reprocann",
+      numeroDocumento: "REP-004-2024",
+      fechaVencimiento: fecha(-60),
+      estado: "vencido",
+    },
+    {
+      socioId: soc4!.id,
+      tipoDocumento: "certificado_medico",
+      fechaVencimiento: fecha(-10),
+      estado: "vencido",
+    },
+  ];
+
+  for (const doc of DOCS_SEED) {
+    const existing = await prisma.documentoSocio.findFirst({
+      where: { socioId: doc.socioId, tipoDocumento: doc.tipoDocumento },
+    });
+    if (!existing) {
+      await prisma.documentoSocio.create({ data: doc });
+    } else {
+      await prisma.documentoSocio.update({
+        where: { id: existing.id },
+        data: { fechaVencimiento: doc.fechaVencimiento, estado: doc.estado, numeroDocumento: doc.numeroDocumento },
+      });
+    }
+  }
+  console.log("  ✓ Documentos de prueba creados/actualizados");
+
   console.log("");
   console.log("✅ Seed completado.");
   console.log("   RECORDATORIO: Cambiar contraseñas antes de producción.");

@@ -13,7 +13,7 @@ import {
 import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import tickerLogo from "@/assets/ticker-transparent.png";
+import tickerLogo from "@/assets/Logo_CCM.png";
 
 interface NavItem {
   label: string;
@@ -50,12 +50,13 @@ const CULTIVO_SECTIONS: CultivoSection[] = [
   { label: "Cultivo general", href: "/app/cultivo" },
   { label: "Salas", href: "/app/cultivo/salas" },
   { label: "Camillas", href: "/app/cultivo/camillas" },
+  { label: "Clonador", href: "/app/cultivo/clonador" },
   { label: "Plantas", href: "/app/cultivo/plantas" },
   { label: "Geneticas", href: "/app/cultivo/geneticas" },
   { label: "Madres", href: "/app/cultivo/madres" },
   { label: "Calendario operativo", href: "/app/cultivo/calendario" },
   { label: "Parametros ambientales", href: "/app/cultivo/ambiente" },
-  { label: "Mediciones pH / PPM", href: "/app/cultivo/mediciones" },
+  { label: "Mediciones PH / PPM", href: "/app/cultivo/mediciones" },
   { label: "Tabla VPD", href: "/app/cultivo/vpd" },
   { label: "Cosechas", href: "/app/cultivo/cosechas" },
 ] as const;
@@ -83,7 +84,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           src={tickerLogo}
           alt=""
           aria-hidden="true"
-          className="h-5 w-5 shrink-0 object-contain"
+          className="h-[52px] w-[52px] shrink-0 object-contain"
         />
         <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
           Cannabis Club Manager

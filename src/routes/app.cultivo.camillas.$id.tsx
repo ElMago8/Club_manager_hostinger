@@ -142,6 +142,7 @@ function GrowBedDetailPage() {
   const [quickNotes, setQuickNotes] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
+  const [gridStage, setGridStage] = useState<PlantStage | null>(null);
 
   async function loadData() {
     const nextBed = await getGrowBedById(id);
@@ -398,13 +399,13 @@ function GrowBedDetailPage() {
         </CardHeader>
         <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
           {[
-            ["Ultimo pH sustrato", latestMeasurement?.substratePH],
+            ["Ultimo PH sustrato", latestMeasurement?.substratePH],
             ["Ultimo PPM sustrato", latestMeasurement?.substratePPM],
             ["Ultimo EC sustrato", latestMeasurement?.substrateEC],
-            ["Ultimo pH liquido", latestMeasurement?.liquidPH],
+            ["Ultimo PH liquido", latestMeasurement?.liquidPH],
             ["Ultimo PPM liquido", latestMeasurement?.liquidPPM],
             ["Ultimo EC liquido", latestMeasurement?.liquidEC],
-            ["Ultimo pH drenaje", latestMeasurement?.runoffPH],
+            ["Ultimo PH drenaje", latestMeasurement?.runoffPH],
             ["Ultimo PPM drenaje", latestMeasurement?.runoffPPM],
           ].map(([label, value]) => (
             <div key={label} className="rounded-md border p-3">
@@ -437,21 +438,29 @@ function GrowBedDetailPage() {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
             {(Object.keys(STAGE_LABEL) as PlantStage[]).map((stage) => (
-              <span
+              <button
                 key={stage}
+                type="button"
+                onClick={() => setGridStage((prev) => (prev === stage ? null : stage))}
                 className={[
-                  "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
+                  "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
                   PLANT_STAGE_CLASS[stage],
+                  gridStage === stage
+                    ? "ring-2 ring-offset-1 ring-current scale-105 shadow-sm"
+                    : gridStage !== null
+                      ? "opacity-40"
+                      : "",
                 ].join(" ")}
               >
                 {STAGE_LABEL[stage]}
-              </span>
+              </button>
             ))}
           </div>
           <div className="grid grid-cols-5 gap-2 sm:grid-cols-8 md:grid-cols-10 xl:grid-cols-12">
             {Array.from({ length: Math.min(bed.maxPlants, 100) }, (_, index) => {
               const position = index + 1;
               const plant = plantsByPosition.get(position);
+              const displayStage = gridStage ?? plant?.stage;
               return (
                 <button
                   key={position}
@@ -464,14 +473,16 @@ function GrowBedDetailPage() {
                   }}
                   className={[
                     "aspect-square rounded-md border p-1 text-left transition-colors",
-                    plant ? PLANT_STAGE_CLASS[plant.stage] : "border-dashed bg-muted/30 text-muted-foreground hover:bg-muted/50",
+                    displayStage
+                      ? PLANT_STAGE_CLASS[displayStage]
+                      : "border-dashed bg-muted/30 text-muted-foreground hover:bg-muted/50",
                   ].join(" ")}
                 >
                   <span className="block font-mono text-[10px] leading-none">#{position}</span>
                   <span className="mt-1 block truncate text-[11px] font-medium">
                     {plant ? shortCode(plant.internalCode) : "vacio"}
                   </span>
-                  {plant ? <span className="block truncate text-[10px]">{STAGE_LABEL[plant.stage]}</span> : null}
+                  {plant ? <span className="block truncate text-[10px]">{STAGE_LABEL[displayStage ?? plant.stage]}</span> : null}
                   {plant ? <span className="block truncate text-[10px]">{plant.potCode ?? (plant.potSizeLiters ? `${plant.potSizeLiters} L` : plant.status)}</span> : null}
                 </button>
               );

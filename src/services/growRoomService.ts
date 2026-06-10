@@ -12,6 +12,8 @@ type CreateGrowRoomPayload = {
   hasAirConditioning: boolean;
   hasDehumidifier: boolean;
   installedSensors: string[];
+  cultivationType?: string;
+  growMedium?: string;
   notes?: string;
 };
 
@@ -29,6 +31,8 @@ interface ApiGrowRoom {
   tieneDeshumidificador?: boolean;
   sensores?: string | null;
   descripcion?: string | null;
+  entornoCultivo?: string | null;
+  tipoCultivo?: string | null;
 }
 
 const defaultTechnicalConfig: GrowRoomTechnicalConfig = {
@@ -42,7 +46,7 @@ const defaultTechnicalConfig: GrowRoomTechnicalConfig = {
 
 function mapApiGrowRoom(room: ApiGrowRoom): GrowRoom {
   const installedSensors = room.sensores
-    ? room.sensores.split(",").map((sensor) => sensor.trim()).filter(Boolean)
+    ? room.sensores.split(",").map((sensor) => sensor.trim().toLowerCase()).filter(Boolean)
     : [];
 
   return {
@@ -59,6 +63,8 @@ function mapApiGrowRoom(room: ApiGrowRoom): GrowRoom {
       hasDehumidifier: room.tieneDeshumidificador ?? false,
       installedSensors: installedSensors as GrowRoomTechnicalConfig["installedSensors"],
     },
+    cultivationType: room.entornoCultivo ?? undefined,
+    growMedium: room.tipoCultivo ?? undefined,
     notes: room.descripcion ?? undefined,
   };
 }
@@ -75,6 +81,8 @@ function toApiGrowRoomPayload(payload: CreateGrowRoomPayload) {
     tieneDeshumidificador: payload.hasDehumidifier,
     sensores: payload.installedSensors.map((sensor) => sensor.trim()).filter(Boolean).join(","),
     descripcion: payload.notes,
+    entornoCultivo: payload.cultivationType ?? null,
+    tipoCultivo: payload.growMedium ?? null,
   };
 }
 

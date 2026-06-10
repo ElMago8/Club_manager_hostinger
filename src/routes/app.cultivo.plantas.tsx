@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useSortable } from "@/hooks/useSortable";
+import { SortHead } from "@/components/ui/sort-head";
 import { getGenetics } from "@/services/geneticsService";
 import { getGrowBeds } from "@/services/growBedService";
 import { getGrowRooms } from "@/services/growRoomService";
@@ -123,6 +125,15 @@ function PlantsPage() {
     return mothers.find((mother) => mother.id === id)?.code ?? id;
   }
 
+  const flatPlants = useMemo(() => plants.map((p) => ({
+    ...p,
+    _roomName:    roomName(p.roomId),
+    _bedName:     bedName(p.bedId),
+    _motherCode:  motherCode(p.motherPlantId),
+  })), [plants, rooms, beds, mothers]);
+
+  const { sorted, col: sCol, dir: sDir, toggle: sort } = useSortable(flatPlants);
+
   if (location.pathname !== "/app/cultivo/plantas") {
     return <Outlet />;
   }
@@ -217,22 +228,22 @@ function PlantsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Codigo interno</TableHead>
-                  <TableHead>Nombre planta</TableHead>
-                  <TableHead>Genetica</TableHead>
-                  <TableHead>Lote</TableHead>
-                  <TableHead>Sala</TableHead>
-                  <TableHead>Camilla</TableHead>
-                  <TableHead>Posicion</TableHead>
-                  <TableHead>Madre</TableHead>
-                  <TableHead>Etapa</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <SortHead label="Codigo interno" sortKey="internalCode" col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Nombre planta"  sortKey="plantName"    col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Genetica"       sortKey="geneticsName" col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Lote"           sortKey="batchId"      col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Sala"           sortKey="_roomName"    col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Camilla"        sortKey="_bedName"     col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Posicion"       sortKey="bedPosition"  col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Madre"          sortKey="_motherCode"  col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Etapa"          sortKey="stage"        col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Estado"         sortKey="status"       col={sCol} dir={sDir} onSort={sort} />
                   <TableHead>Estado sanitario</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {plants.map((plant) => (
+                {sorted.map((plant) => (
                   <TableRow key={plant.id}>
                     <TableCell className="font-mono text-xs font-medium">{plant.internalCode}</TableCell>
                     <TableCell>{plant.plantName ?? "-"}</TableCell>
@@ -256,22 +267,20 @@ function PlantsPage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-center gap-1 whitespace-nowrap">
-                      <Button asChild variant="ghost" size="sm" className="gap-1 text-emerald-700 hover:text-emerald-800">
-                        <Link to="/app/cultivo/plantas/nueva" search={{ edit: plant.id }}>
-                          <Pencil className="h-4 w-4" />
-                          Editar
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteTarget(plant)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Eliminar
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link to="/app/cultivo/plantas/nueva" search={{ edit: plant.id }}>
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTarget(plant)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

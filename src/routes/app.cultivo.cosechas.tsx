@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useSortable } from "@/hooks/useSortable";
+import { SortHead } from "@/components/ui/sort-head";
 import { deleteHarvest, getHarvests } from "@/services/harvestService";
 import type { Harvest, HarvestStatus } from "@/types/cultivation";
 
@@ -30,7 +32,7 @@ const STATUS_LABEL: Record<HarvestStatus, string> = {
   en_secado:         "En secado",
   seca:              "Seca",
   en_curado:         "En curado",
-  lista_para_stock:  "Lista para stock",
+  lista_para_stock:  "Stock",
   descartada:        "Descartada",
 };
 
@@ -68,6 +70,8 @@ function HarvestsPage() {
     return harvests.filter((h) => h.status === statusFilter);
   }, [harvests, statusFilter]);
 
+  const { sorted, col: sCol, dir: sDir, toggle: sort } = useSortable(filtered);
+
   const totalDryGrams = harvests.reduce((sum, h) => sum + (h.dryWeightGrams ?? 0), 0);
 
   async function handleDelete() {
@@ -91,7 +95,7 @@ function HarvestsPage() {
     <>
       <Outlet />
       {!isSubRoute && (
-        <div className="space-y-6">
+        <div className="mx-auto max-w-[1400px] space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <h1 className="text-2xl font-semibold tracking-tight">Cosechas</h1>
@@ -163,7 +167,7 @@ function HarvestsPage() {
                 <SelectItem value="en_secado">En secado</SelectItem>
                 <SelectItem value="seca">Seca</SelectItem>
                 <SelectItem value="en_curado">En curado</SelectItem>
-                <SelectItem value="lista_para_stock">Lista para stock</SelectItem>
+                <SelectItem value="lista_para_stock">Stock</SelectItem>
                 <SelectItem value="descartada">Descartada</SelectItem>
               </SelectContent>
             </Select>
@@ -189,21 +193,21 @@ function HarvestsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Código</TableHead>
-                        <TableHead>Lote</TableHead>
-                        <TableHead>Genética</TableHead>
-                        <TableHead>Sala</TableHead>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead className="text-right">Peso húmedo</TableHead>
-                        <TableHead className="text-right">Peso seco</TableHead>
+                        <SortHead label="Código"       sortKey="code"            col={sCol} dir={sDir} onSort={sort} />
+                        <SortHead label="Lote"         sortKey="batchCode"       col={sCol} dir={sDir} onSort={sort} />
+                        <SortHead label="Genética"     sortKey="geneticsName"    col={sCol} dir={sDir} onSort={sort} />
+                        <SortHead label="Sala"         sortKey="roomName"        col={sCol} dir={sDir} onSort={sort} />
+                        <SortHead label="Fecha"        sortKey="harvestDate"     col={sCol} dir={sDir} onSort={sort} />
+                        <SortHead label="Peso húmedo"  sortKey="wetWeightGrams"  col={sCol} dir={sDir} onSort={sort} className="text-right" />
+                        <SortHead label="Peso seco"    sortKey="dryWeightGrams"  col={sCol} dir={sDir} onSort={sort} className="text-right" />
                         <TableHead className="text-right">Merma</TableHead>
                         <TableHead className="text-right">Rendimiento</TableHead>
-                        <TableHead>Estado</TableHead>
+                        <SortHead label="Estado"       sortKey="status"          col={sCol} dir={sDir} onSort={sort} />
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.map((h) => (
+                      {sorted.map((h) => (
                         <TableRow key={h.id}>
                           <TableCell className="font-mono font-medium">{h.code}</TableCell>
                           <TableCell>{h.batchCode ?? "—"}</TableCell>
@@ -222,7 +226,6 @@ function HarvestsPage() {
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
                               <Button variant="ghost" size="icon" asChild>
-                                {/* @ts-expect-error TanStack Router no tiene edit en el schema de search */}
                                 <Link to="/app/cultivo/cosechas/nueva" search={{ edit: h.id }}>
                                   <Pencil className="h-4 w-4" />
                                 </Link>

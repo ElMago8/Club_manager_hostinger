@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useDemo } from "@/hooks/useDemo";
 import { ShieldCheck, ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import tickerLogo from "@/assets/ticker-transparent.png";
+import tickerLogo from "@/assets/Logo_CCM.png";
 
 export const Route = createFileRoute("/")({
   component: AccessPage,
@@ -42,7 +42,7 @@ function AccessPage() {
             src={tickerLogo}
             alt=""
             aria-hidden="true"
-            className="h-5 w-5 shrink-0 object-contain"
+            className="h-[52px] w-[52px] shrink-0 object-contain"
           />
           <span className="text-sm font-semibold tracking-tight">Cannabis Club Manager</span>
         </div>

@@ -359,6 +359,7 @@ function plantaRoutes() {
       res.json(await prisma.planta.findMany({
         where: {
           camillaId: filters.bedId ? Number(filters.bedId) : undefined,
+          clonadorId: filters.clonadorId ? Number(filters.clonadorId) : undefined,
           geneticaId: filters.geneticsId ? Number(filters.geneticsId) : undefined,
           loteCultivoId: filters.batchId ? Number(filters.batchId) : undefined,
           madreId: filters.motherPlantId ? Number(filters.motherPlantId) : undefined,
@@ -598,6 +599,8 @@ const salaCultivoSchema = z.object({
   tieneDeshumidificador: z.coerce.boolean().default(false),
   sensores: optionalText,
   descripcion: optionalText,
+  entornoCultivo: optionalText,
+  tipoCultivo: optionalText,
 });
 
 const camillaSchema = z.object({
@@ -703,6 +706,7 @@ const medicionCultivoSchema = z.object({
   tipo: z.string().trim().min(1),
   salaCultivoId: intId,
   camillaId: intId.optional(),
+  clonadorId: intId.optional(),
   plantaId: intId.optional(),
   madreId: intId.optional(),
   phLiquido: z.coerce.number().min(0).max(14).optional(),
@@ -712,6 +716,7 @@ const medicionCultivoSchema = z.object({
   phDrenaje: z.coerce.number().min(0).max(14).optional(),
   ppmDrenaje: z.coerce.number().min(0).optional(),
   estado: z.string().trim().min(1).default("normal"),
+  metodo: optionalText,
   responsable: optionalText,
   observaciones: optionalText,
 });
@@ -738,6 +743,8 @@ const cosechaSchema = z.object({
   pesoHumedoGramos: z.coerce.number().min(0).optional(),
   pesoSecoGramos: z.coerce.number().min(0).optional(),
   pesoMermaGramos: z.coerce.number().min(0).optional(),
+  entornoCultivo: optionalText,
+  tipoCultivo: optionalText,
   estado: z.string().trim().min(1).default("registrada"),
   observaciones: optionalText,
 });
@@ -906,20 +913,23 @@ function medicionRoutes() {
   const include = {
     salaCultivo: { select: { id: true, nombre: true } },
     camilla: { select: { id: true, nombre: true } },
+    clonador: { select: { id: true, nombre: true } },
     planta: { select: { id: true, codigoPlanta: true, nombrePlanta: true } },
     madre: { select: { id: true, codigoMadre: true, nombreMadre: true } },
   };
 
   router.get("/", async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { salaCultivoId, camillaId, plantaId, madreId, estado, fechaDesde, fechaHasta } = req.query as Record<string, string | undefined>;
+      const { salaCultivoId, camillaId, clonadorId, plantaId, madreId, estado, tipo, fechaDesde, fechaHasta } = req.query as Record<string, string | undefined>;
       res.json(await prisma.medicionCultivo.findMany({
         where: {
           salaCultivoId: salaCultivoId ? Number(salaCultivoId) : undefined,
           camillaId: camillaId ? Number(camillaId) : undefined,
+          clonadorId: clonadorId ? Number(clonadorId) : undefined,
           plantaId: plantaId ? Number(plantaId) : undefined,
           madreId: madreId ? Number(madreId) : undefined,
           estado: estado ?? undefined,
+          tipo: tipo ?? undefined,
           fecha: {
             gte: fechaDesde ? new Date(fechaDesde) : undefined,
             lte: fechaHasta ? new Date(fechaHasta) : undefined,
@@ -978,6 +988,134 @@ function medicionRoutes() {
   return router;
 }
 
+function clonadorRoutes() {
+  const router = Router();
+
+  const clonadorSchema = z.object({
+    codigoClonador: z.string().trim().min(1),
+    salaCultivoId: intId,
+    nombre: z.string().trim().min(1),
+    estado: z.string().trim().min(1).default("activa"),
+    capacidadMaximaEsquejes: z.coerce.number().int().min(0).max(60),
+    responsable: optionalText,
+    descripcion: optionalText,
+  });
+
+  const include = {
+    _count: { select: { esquejes: { where: { estado: { notIn: ["descartada", "discarded"] } } } } },
+  };
+
+  router.get("/", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await prisma.clonador.findMany({ include, orderBy: { id: "desc" } }));
+    } catch (error) { next(error); }
+  });
+
+  router.post("/", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = clonadorSchema.parse(req.body);
+      res.status(201).json(await prisma.clonador.create({ data, include }));
+    } catch (error) { next(error); }
+  });
+
+  router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const record = await prisma.clonador.findUnique({ where: { id: parseId(req) }, include });
+      if (!record) throw new ApiError(404, "Clonador no encontrado.");
+      res.json(record);
+    } catch (error) { next(error); }
+  });
+
+  router.put("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = clonadorSchema.partial().parse(req.body);
+      res.json(await prisma.clonador.update({ where: { id: parseId(req) }, data, include }));
+    } catch (error) { next(error); }
+  });
+
+  router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = parseId(req);
+      const count = await prisma.planta.count({ where: { clonadorId: id, estado: { notIn: ["descartada", "discarded"] } } });
+      if (count > 0) throw new ApiError(409, `El clonador tiene ${count} esqueje(s) activo(s) y no puede eliminarse.`);
+      await prisma.clonador.delete({ where: { id } });
+      res.json({ ok: true });
+    } catch (error) { next(error); }
+  });
+
+  router.get("/:id/occupancy", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = parseId(req);
+      const [clonador, activeCount] = await Promise.all([
+        prisma.clonador.findUnique({ where: { id }, select: { capacidadMaximaEsquejes: true } }),
+        prisma.planta.count({ where: { clonadorId: id, estado: { notIn: ["descartada", "discarded"] } } }),
+      ]);
+      if (!clonador) throw new ApiError(404, "Clonador no encontrado.");
+      const max = clonador.capacidadMaximaEsquejes;
+      res.json({
+        maxPlants: max,
+        occupied: activeCount,
+        available: Math.max(max - activeCount, 0),
+        occupancyPercentage: max > 0 ? Math.round((activeCount / max) * 100) : 0,
+      });
+    } catch (error) { next(error); }
+  });
+
+  router.patch("/:id/capacity", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = parseId(req);
+      const { capacity } = z.object({ capacity: z.coerce.number().int().min(0).max(60) }).parse(req.body);
+      res.json(await prisma.clonador.update({ where: { id }, data: { capacidadMaximaEsquejes: capacity }, include }));
+    } catch (error) { next(error); }
+  });
+
+  router.post("/:id/send-to-camilla", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const clonadorId = parseId(req);
+      const { plantIds, targetCamillaId } = z.object({
+        plantIds: z.array(intId).min(1),
+        targetCamillaId: intId,
+      }).parse(req.body);
+
+      const camilla = await prisma.camilla.findUnique({
+        where: { id: targetCamillaId },
+        include: { _count: { select: { plantas: { where: { estado: { notIn: ["descartada", "discarded"] } } } } } },
+      });
+      if (!camilla) throw new ApiError(404, "Camilla destino no encontrada.");
+
+      const freeSlots = camilla.capacidadMaximaPlantas - camilla._count.plantas;
+      if (plantIds.length > freeSlots) throw new ApiError(409, `La camilla destino solo tiene ${freeSlots} lugar(es) libre(s).`);
+
+      const occupied = await prisma.planta.findMany({
+        where: { camillaId: targetCamillaId, estado: { notIn: ["descartada", "discarded"] } },
+        select: { posicionCamilla: true },
+      });
+      const occupiedSet = new Set(occupied.map((p) => p.posicionCamilla).filter(Boolean) as number[]);
+      let nextPos = 1;
+      const assignments: Array<{ plantId: number; position: number }> = [];
+      for (const plantId of plantIds) {
+        while (occupiedSet.has(nextPos)) nextPos++;
+        assignments.push({ plantId, position: nextPos });
+        occupiedSet.add(nextPos);
+        nextPos++;
+      }
+
+      await Promise.all(
+        assignments.map(({ plantId, position }) =>
+          prisma.planta.update({
+            where: { id: plantId },
+            data: { camillaId: targetCamillaId, posicionCamilla: position, clonadorId: null, posicionClonador: null },
+          }),
+        ),
+      );
+
+      res.json({ moved: plantIds.length });
+    } catch (error) { next(error); }
+  });
+
+  return router;
+}
+
 export const cultivationRoutes = Router();
 
 cultivationRoutes.use("/rooms", salaRoutes());
@@ -1005,3 +1143,4 @@ cultivationRoutes.use("/measurements", medicionRoutes());
 cultivationRoutes.use("/tasks", crudRoutes(prisma.tareaCultivo, tareaCultivoSchema));
 cultivationRoutes.use("/operational-tasks", crudRoutes(prisma.tareaCultivo, tareaCultivoSchema));
 cultivationRoutes.use("/harvests", cosechaRoutes());
+cultivationRoutes.use("/clonadores", clonadorRoutes());

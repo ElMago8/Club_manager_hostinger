@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useSortable } from "@/hooks/useSortable";
+import { SortHead } from "@/components/ui/sort-head";
 import { getGrowBeds } from "@/services/growBedService";
 import { getGrowRooms } from "@/services/growRoomService";
-import { getMeasurements } from "@/services/measurementService";
 import {
   calculateVPDPreview,
   createEnvironmentalLog,
@@ -19,7 +20,7 @@ import {
   type EnvironmentalLogFilters,
   type VPDPreview,
 } from "@/services/environmentalService";
-import type { CultivationMeasurement, EnvironmentalLog, GrowBed, GrowRoom } from "@/types/cultivation";
+import type { EnvironmentalLog, GrowBed, GrowRoom } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/ambiente")({
   head: () => ({ meta: [{ title: "Parametros ambientales · Cannabis Club Manager" }] }),
@@ -58,7 +59,6 @@ function EnvironmentalPage() {
   const [rooms, setRooms] = useState<GrowRoom[]>([]);
   const [beds, setBeds] = useState<GrowBed[]>([]);
   const [logs, setLogs] = useState<EnvironmentalLog[]>([]);
-  const [chemicalMeasurements, setChemicalMeasurements] = useState<CultivationMeasurement[]>([]);
   const [form, setForm] = useState<EnvironmentalForm>(initialForm);
   const [preview, setPreview] = useState<VPDPreview | null>(null);
   const [filters, setFilters] = useState({
@@ -70,14 +70,11 @@ function EnvironmentalPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    void Promise.all([getGrowRooms(), getGrowBeds(), getMeasurements()]).then(
-      ([nextRooms, nextBeds, nextMeasurements]) => {
-        setRooms(nextRooms);
-        setBeds(nextBeds);
-        setChemicalMeasurements(nextMeasurements.slice(0, 5));
-        setForm((current) => ({ ...current, roomId: nextRooms[0]?.id ?? "" }));
-      },
-    );
+    void Promise.all([getGrowRooms(), getGrowBeds()]).then(([nextRooms, nextBeds]) => {
+      setRooms(nextRooms);
+      setBeds(nextBeds);
+      setForm((current) => ({ ...current, roomId: nextRooms[0]?.id ?? "" }));
+    });
   }, []);
 
   useEffect(() => {
@@ -155,6 +152,14 @@ function EnvironmentalPage() {
     if (!bedId) return "-";
     return beds.find((bed) => bed.id === bedId)?.name ?? bedId;
   }
+
+  const flatLogs = useMemo(() => logs.map((l) => ({
+    ...l,
+    _roomName: rooms.find((r) => r.id === l.roomId)?.name ?? l.roomId,
+    _bedName:  l.bedId ? (beds.find((b) => b.id === l.bedId)?.name ?? "-") : "-",
+  })), [logs, rooms, beds]);
+
+  const { sorted, col: sCol, dir: sDir, toggle: sort } = useSortable(flatLogs);
 
   function leafTemperatureDisplay(log: EnvironmentalLog) {
     if (typeof log.leafTempC === "number") {
@@ -293,42 +298,22 @@ function EnvironmentalPage() {
               </Select>
             </div>
 
-            <div className="rounded-md border p-3">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="text-sm font-medium">Parametros quimicos relacionados</p>
-                <span className="text-xs text-muted-foreground">Ultimas mediciones</span>
-              </div>
-              <div className="grid gap-2 md:grid-cols-2">
-                {chemicalMeasurements.map((item) => (
-                  <div key={item.id} className="rounded-md bg-muted/40 px-3 py-2 text-xs">
-                    <div className="flex justify-between gap-2">
-                      <span className="font-mono">{item.date} {item.time}</span>
-                      <Badge variant="outline">{item.status}</Badge>
-                    </div>
-                    <p className="mt-1 text-muted-foreground">
-                      pH liq. {item.liquidPH ?? "-"} - PPM liq. {item.liquidPPM ?? "-"} - pH sust. {item.substratePH ?? "-"} - PPM sust. {item.substratePPM ?? "-"}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div className="overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Hora</TableHead>
-                    <TableHead>Sala</TableHead>
-                    <TableHead>Camilla</TableHead>
-                    <TableHead>Temp.</TableHead>
-                    <TableHead>HR</TableHead>
-                    <TableHead>Hoja</TableHead>
-                    <TableHead>CO2</TableHead>
+                    <SortHead label="Fecha"   sortKey="date"             col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Hora"    sortKey="time"             col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Sala"    sortKey="_roomName"        col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Camilla" sortKey="_bedName"         col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Temp."   sortKey="airTempC"         col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="HR"      sortKey="relativeHumidity" col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Hoja"    sortKey="leafTempC"        col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="CO2"     sortKey="co2ppm"           col={sCol} dir={sDir} onSort={sort} />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log) => (
+                  {sorted.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell>{log.date}</TableCell>
                       <TableCell>{log.time}</TableCell>

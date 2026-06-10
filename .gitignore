@@ -22,3 +22,5 @@ test-results/
 
 .DS_Store
 Thumbs.db
+
+server/uploads/

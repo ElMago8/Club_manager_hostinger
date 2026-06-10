@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Pencil, Plus, Snowflake, Trash2, Wind } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useSortable } from "@/hooks/useSortable";
+import { SortHead } from "@/components/ui/sort-head";
 import { deleteGrowRoom, getGrowRooms } from "@/services/growRoomService";
-import type { GrowRoom, RoomStatus } from "@/types/cultivation";
+import type { GrowRoom, RoomStatus, SensorType } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/salas")({
   head: () => ({ meta: [{ title: "Salas de cultivo · Cannabis Club Manager" }] }),
@@ -29,6 +31,28 @@ const STATUS_CLASS: Record<RoomStatus, string> = {
   fuera_de_uso: "border-muted bg-muted text-muted-foreground",
 };
 
+const SENSOR_LABEL: Record<SensorType, string> = {
+  temperatura: "Temperatura",
+  humedad: "Humedad",
+  co2: "CO₂",
+  vpd: "VPD",
+  temperatura_hoja: "Temp. hoja",
+  ph: "PH",
+  ec: "EC",
+  otro: "Otro",
+};
+
+const SENSOR_CLASS: Record<SensorType, string> = {
+  temperatura: "border-red-200 bg-red-500/10 text-red-700",
+  humedad: "border-sky-200 bg-sky-500/10 text-sky-700",
+  co2: "border-emerald-200 bg-emerald-500/10 text-emerald-700",
+  vpd: "border-violet-200 bg-violet-500/10 text-violet-700",
+  temperatura_hoja: "border-orange-200 bg-orange-500/10 text-orange-700",
+  ph: "border-yellow-200 bg-yellow-500/10 text-yellow-700",
+  ec: "border-cyan-200 bg-cyan-500/10 text-cyan-700",
+  otro: "border-muted bg-muted text-muted-foreground",
+};
+
 function yesNo(value: boolean): string {
   return value ? "Si" : "No";
 }
@@ -42,6 +66,14 @@ function GrowRoomsPage() {
   useEffect(() => {
     void getGrowRooms().then(setRooms);
   }, []);
+
+  const flatRooms = useMemo(() => rooms.map((r) => ({
+    ...r,
+    _powerWatts: r.technicalConfig.installedPowerWatts,
+    _irrigation: r.technicalConfig.irrigationSystem,
+  })), [rooms]);
+
+  const { sorted, col: sCol, dir: sDir, toggle: sort } = useSortable(flatRooms);
 
   if (location.pathname !== "/app/cultivo/salas") {
     return <Outlet />;
@@ -113,12 +145,12 @@ function GrowRoomsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Codigo</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Potencia</TableHead>
-                  <TableHead>Riego</TableHead>
+                  <SortHead label="Nombre"         sortKey="name"        col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Codigo"         sortKey="code"        col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Tipo"           sortKey="type"        col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Estado"         sortKey="status"      col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Potencia"       sortKey="_powerWatts" col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Riego"          sortKey="_irrigation" col={sCol} dir={sDir} onSort={sort} />
                   <TableHead>A/C</TableHead>
                   <TableHead>Deshumidificador</TableHead>
                   <TableHead>Sensores</TableHead>
@@ -126,7 +158,7 @@ function GrowRoomsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rooms.map((room) => (
+                {sorted.map((room) => (
                   <TableRow key={room.id}>
                     <TableCell className="font-medium">{room.name}</TableCell>
                     <TableCell className="font-mono text-xs">{room.code}</TableCell>
@@ -155,29 +187,27 @@ function GrowRoomsPage() {
                     <TableCell className="max-w-[240px]">
                       <div className="flex flex-wrap justify-center gap-1">
                         {room.technicalConfig.installedSensors.map((sensor) => (
-                          <Badge key={sensor} variant="secondary" className="capitalize">
-                            {sensor.replace("_", " ")}
+                          <Badge key={sensor} variant="outline" className={SENSOR_CLASS[sensor]}>
+                            {SENSOR_LABEL[sensor]}
                           </Badge>
                         ))}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex justify-center gap-1 whitespace-nowrap">
-                      <Button asChild variant="ghost" size="sm" className="gap-1 text-emerald-700 hover:text-emerald-800">
-                        <Link to="/app/cultivo/salas/nueva" search={{ edit: room.id }}>
-                          <Pencil className="h-4 w-4" />
-                          Editar
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteTarget(room)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Eliminar
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link to="/app/cultivo/salas/nueva" search={{ edit: room.id }}>
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTarget(room)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

@@ -94,6 +94,8 @@ export interface GrowRoom {
   capacity?: number;
   responsibleUserId?: string;
   technicalConfig: GrowRoomTechnicalConfig;
+  cultivationType?: string;
+  growMedium?: string;
   notes?: string;
 }
 
@@ -101,6 +103,7 @@ export interface GrowBed {
   id: string;
   name: string;
   code: string;
+  tipo: "camilla" | "clonador";
   roomId: string;
   status: BedStatus;
   maxPlants: number;
@@ -213,6 +216,7 @@ export interface CultivationMeasurement {
   time: string;
   roomId?: string;
   bedId?: string;
+  clonadorId?: string;
   plantId?: string;
   motherPlantId?: string;
   batchId?: string;
@@ -277,6 +281,8 @@ export interface Harvest {
   wetWeightGrams?: number;
   dryWeightGrams?: number;
   shrinkageGrams?: number;
+  cultivationType?: string;
+  growMedium?: string;
   status: HarvestStatus;
   notes?: string;
 }

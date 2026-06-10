@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Check, Minus, Pencil, Plus, Trash2 } from "lucide-react";
+import { useSortable } from "@/hooks/useSortable";
+import { SortHead } from "@/components/ui/sort-head";
 import { useDemo } from "@/hooks/useDemo";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { Badge } from "@/components/ui/badge";
@@ -99,6 +101,8 @@ function UsuariosPage() {
     return demoStore.getAppUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demoStore, version]);
+
+  const { sorted, col: sCol, dir: sDir, toggle: sort } = useSortable(users);
 
   const stats = useMemo(() => {
     const active = users.filter((u) => u.status === "active");
@@ -199,16 +203,16 @@ function UsuariosPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Último acceso</TableHead>
+                <SortHead label="Nombre"        sortKey="name"          col={sCol} dir={sDir} onSort={sort} />
+                <SortHead label="Email"         sortKey="email"         col={sCol} dir={sDir} onSort={sort} />
+                <SortHead label="Rol"           sortKey="role"          col={sCol} dir={sDir} onSort={sort} />
+                <SortHead label="Estado"        sortKey="status"        col={sCol} dir={sDir} onSort={sort} />
+                <SortHead label="Último acceso" sortKey="lastAccessAt"  col={sCol} dir={sDir} onSort={sort} />
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((u) => (
+              {sorted.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.name}</TableCell>
                   <TableCell className="text-muted-foreground">{u.email}</TableCell>
@@ -240,21 +244,18 @@ function UsuariosPage() {
                     <div className="flex justify-end gap-1">
                       <Button
                         variant="ghost"
-                        size="sm"
-                        className="gap-1 text-emerald-700 hover:text-emerald-800"
+                        size="icon"
                         onClick={() => openEdit(u)}
                       >
                         <Pencil className="h-4 w-4" />
-                        Editar
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        className="gap-1 text-destructive hover:text-destructive"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
                         onClick={() => setDeleteTarget(u)}
                       >
                         <Trash2 className="h-4 w-4" />
-                        Eliminar
                       </Button>
                     </div>
                   </TableCell>

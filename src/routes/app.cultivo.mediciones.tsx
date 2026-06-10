@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useSortable } from "@/hooks/useSortable";
+import { SortHead } from "@/components/ui/sort-head";
 import { getGrowBeds } from "@/services/growBedService";
 import { getGrowRooms } from "@/services/growRoomService";
 import { getMotherPlants } from "@/services/motherPlantService";
@@ -17,7 +19,6 @@ import {
   createMeasurement,
   getLocalMeasurementStatus,
   getMeasurements,
-  getMeasurementSummary,
   type MeasurementFilters,
 } from "@/services/measurementService";
 import type {
@@ -32,7 +33,7 @@ import type {
 } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/mediciones")({
-  head: () => ({ meta: [{ title: "Mediciones pH / PPM - Cannabis Club Manager" }] }),
+  head: () => ({ meta: [{ title: "Mediciones PH / PPM - Cannabis Club Manager" }] }),
   component: MeasurementsPage,
 });
 
@@ -61,10 +62,12 @@ type MeasurementForm = {
   notes: string;
 };
 
+const today = new Date().toISOString().slice(0, 10);
+
 const initialForm: MeasurementForm = {
   measurementType: "mixed",
-  date: "2026-05-30",
-  time: "09:00",
+  date: today,
+  time: new Date().toTimeString().slice(0, 5),
   roomId: "none",
   bedId: "none",
   plantId: "none",
@@ -177,6 +180,14 @@ function MeasurementsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.dateFrom, filters.dateTo, filters.roomId, filters.bedId, filters.plantId, filters.motherPlantId, filters.measurementType, filters.status]);
 
+  const flatMeasurements = useMemo(() => measurements.map((m) => ({
+    ...m,
+    _roomName: rooms.find((r) => r.id === m.roomId)?.name ?? m.roomId ?? "-",
+    _bedName:  beds.find((b) => b.id === m.bedId)?.name  ?? "-",
+  })), [measurements, rooms, beds]);
+
+  const { sorted, col: sCol, dir: sDir, toggle: sort } = useSortable(flatMeasurements);
+
   const summary = useMemo(() => {
     const latest = measurements.slice(0, 6);
     return {
@@ -223,6 +234,11 @@ function MeasurementsPage() {
       return;
     }
 
+    if (form.roomId === "none") {
+      setMessage("Selecciona una sala.");
+      return;
+    }
+
     const payload = {
       measurementType: form.measurementType,
       date: form.date,
@@ -255,21 +271,17 @@ function MeasurementsPage() {
     setMessage(`Medicion guardada con estado ${STATUS_LABEL[created.status]}.`);
   }
 
-  useEffect(() => {
-    void getMeasurementSummary().catch(() => undefined);
-  }, []);
-
   return (
     <div className="mx-auto max-w-[1500px] space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Mediciones pH / PPM</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Mediciones PH / PPM</h1>
         <p className="text-sm text-muted-foreground">Control quimico de liquidos, sustrato y drenaje.</p>
       </header>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         {[
-          ["Ultimo pH liquido", summary.latestLiquidPH ?? "-"],
-          ["Ultimo pH sustrato", summary.latestSubstratePH ?? "-"],
+          ["Ultimo PH liquido", summary.latestLiquidPH ?? "-"],
+          ["Ultimo PH sustrato", summary.latestSubstratePH ?? "-"],
           ["Ultimo PPM liquido", summary.latestLiquidPPM ?? "-"],
           ["Ultimo PPM sustrato", summary.latestSubstratePPM ?? "-"],
           ["Mediciones en alerta", summary.alertsCount],
@@ -317,13 +329,13 @@ function MeasurementsPage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-2"><Label>pH sustrato</Label><Input type="number" min={0} max={14} value={form.substratePH} onChange={(event) => setForm({ ...form, substratePH: event.target.value })} /></div>
+              <div className="space-y-2"><Label>PH sustrato</Label><Input type="number" min={0} max={14} value={form.substratePH} onChange={(event) => setForm({ ...form, substratePH: event.target.value })} /></div>
               <div className="space-y-2"><Label>PPM sustrato</Label><Input type="number" min={0} value={form.substratePPM} onChange={(event) => setForm({ ...form, substratePPM: event.target.value })} /></div>
               <div className="space-y-2"><Label>EC sustrato</Label><Input type="number" min={0} value={form.substrateEC} onChange={(event) => setForm({ ...form, substrateEC: event.target.value })} /></div>
-              <div className="space-y-2"><Label>pH liquido</Label><Input type="number" min={0} max={14} value={form.liquidPH} onChange={(event) => setForm({ ...form, liquidPH: event.target.value })} /></div>
+              <div className="space-y-2"><Label>PH liquido</Label><Input type="number" min={0} max={14} value={form.liquidPH} onChange={(event) => setForm({ ...form, liquidPH: event.target.value })} /></div>
               <div className="space-y-2"><Label>PPM liquido</Label><Input type="number" min={0} value={form.liquidPPM} onChange={(event) => setForm({ ...form, liquidPPM: event.target.value })} /></div>
               <div className="space-y-2"><Label>EC liquido</Label><Input type="number" min={0} value={form.liquidEC} onChange={(event) => setForm({ ...form, liquidEC: event.target.value })} /></div>
-              <div className="space-y-2"><Label>pH drenaje</Label><Input type="number" min={0} max={14} value={form.runoffPH} onChange={(event) => setForm({ ...form, runoffPH: event.target.value })} /></div>
+              <div className="space-y-2"><Label>PH drenaje</Label><Input type="number" min={0} max={14} value={form.runoffPH} onChange={(event) => setForm({ ...form, runoffPH: event.target.value })} /></div>
               <div className="space-y-2"><Label>PPM drenaje</Label><Input type="number" min={0} value={form.runoffPPM} onChange={(event) => setForm({ ...form, runoffPPM: event.target.value })} /></div>
               <div className="space-y-2"><Label>EC drenaje</Label><Input type="number" min={0} value={form.runoffEC} onChange={(event) => setForm({ ...form, runoffEC: event.target.value })} /></div>
               <div className="space-y-2"><Label>Temp. agua</Label><Input type="number" min={0} max={50} value={form.waterTempC} onChange={(event) => setForm({ ...form, waterTempC: event.target.value })} /></div>
@@ -356,24 +368,50 @@ function MeasurementsPage() {
             <CardDescription>Mediciones por sala, camilla, planta, madre y lote.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-7">
-              <Input type="date" value={filters.dateFrom} onChange={(event) => setFilters({ ...filters, dateFrom: event.target.value })} />
-              <Input type="date" value={filters.dateTo} onChange={(event) => setFilters({ ...filters, dateTo: event.target.value })} />
-              <Select value={filters.roomId} onValueChange={(roomId) => setFilters({ ...filters, roomId })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas las salas</SelectItem>{rooms.map((room) => <SelectItem key={room.id} value={room.id}>{room.name}</SelectItem>)}</SelectContent></Select>
-              <Select value={filters.bedId} onValueChange={(bedId) => setFilters({ ...filters, bedId })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas las camillas</SelectItem>{beds.map((bed) => <SelectItem key={bed.id} value={bed.id}>{bed.name}</SelectItem>)}</SelectContent></Select>
-              <Select value={filters.measurementType} onValueChange={(measurementType) => setFilters({ ...filters, measurementType })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos los tipos</SelectItem>{Object.entries(TYPE_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
-              <Select value={filters.status} onValueChange={(status) => setFilters({ ...filters, status })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos los estados</SelectItem>{Object.entries(STATUS_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
+            <div className="flex flex-wrap gap-2">
+              <Input type="date" className="h-8 w-36 text-xs" value={filters.dateFrom} onChange={(event) => setFilters({ ...filters, dateFrom: event.target.value })} />
+              <Input type="date" className="h-8 w-36 text-xs" value={filters.dateTo} onChange={(event) => setFilters({ ...filters, dateTo: event.target.value })} />
+              <Select value={filters.roomId} onValueChange={(roomId) => setFilters({ ...filters, roomId })}>
+                <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="all">Todas las salas</SelectItem>{rooms.map((room) => <SelectItem key={room.id} value={room.id}>{room.name}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={filters.bedId} onValueChange={(bedId) => setFilters({ ...filters, bedId })}>
+                <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="all">Todas las camillas</SelectItem>{beds.map((bed) => <SelectItem key={bed.id} value={bed.id}>{bed.name}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={filters.measurementType} onValueChange={(measurementType) => setFilters({ ...filters, measurementType })}>
+                <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="all">Todos los tipos</SelectItem>{Object.entries(TYPE_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={filters.status} onValueChange={(status) => setFilters({ ...filters, status })}>
+                <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="all">Todos los estados</SelectItem>{Object.entries(STATUS_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
 
             <div className="overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fecha</TableHead><TableHead>Hora</TableHead><TableHead>Tipo</TableHead><TableHead>Sala</TableHead><TableHead>Camilla</TableHead><TableHead>Planta/Madre</TableHead><TableHead>pH liq.</TableHead><TableHead>PPM liq.</TableHead><TableHead>pH sust.</TableHead><TableHead>PPM sust.</TableHead><TableHead>pH dren.</TableHead><TableHead>PPM dren.</TableHead><TableHead>Estado</TableHead><TableHead>Responsable</TableHead><TableHead>Acciones</TableHead>
+                    <SortHead label="Fecha"       sortKey="date"            col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Hora"        sortKey="time"            col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Tipo"        sortKey="measurementType" col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Sala"        sortKey="_roomName"       col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Camilla"     sortKey="_bedName"        col={sCol} dir={sDir} onSort={sort} />
+                    <TableHead>Planta/Madre</TableHead>
+                    <SortHead label="PH liq."    sortKey="liquidPH"        col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="PPM liq."   sortKey="liquidPPM"       col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="PH sust."   sortKey="substratePH"     col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="PPM sust."  sortKey="substratePPM"    col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="PH dren."   sortKey="runoffPH"        col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="PPM dren."  sortKey="runoffPPM"       col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Estado"      sortKey="status"          col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Responsable" sortKey="responsibleName" col={sCol} dir={sDir} onSort={sort} />
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {measurements.map((item) => (
+                  {sorted.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>{item.date}</TableCell>
                       <TableCell>{item.time}</TableCell>

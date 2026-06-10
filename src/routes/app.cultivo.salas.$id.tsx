@@ -186,8 +186,8 @@ function GrowRoomDetailPage() {
         </CardHeader>
         <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-6">
           {[
-            ["Promedio pH liquido", measurementSummary?.averageLiquidPH ?? "-"],
-            ["Promedio pH sustrato", measurementSummary?.averageSubstratePH ?? "-"],
+            ["Promedio PH liquido", measurementSummary?.averageLiquidPH ?? "-"],
+            ["Promedio PH sustrato", measurementSummary?.averageSubstratePH ?? "-"],
             ["Promedio PPM liquido", measurementSummary?.averageLiquidPPM ?? "-"],
             ["Promedio PPM sustrato", measurementSummary?.averageSubstratePPM ?? "-"],
             ["Alertas", measurementSummary?.alertsCount ?? 0],
@@ -322,10 +322,10 @@ function GrowRoomDetailPage() {
 
           <div className="grid gap-4 md:grid-cols-4">
             {[
-              ["targetLiquidPHMin", "pH liquido min"],
-              ["targetLiquidPHMax", "pH liquido max"],
-              ["targetSubstratePHMin", "pH sustrato min"],
-              ["targetSubstratePHMax", "pH sustrato max"],
+              ["targetLiquidPHMin", "PH liquido min"],
+              ["targetLiquidPHMax", "PH liquido max"],
+              ["targetSubstratePHMin", "PH sustrato min"],
+              ["targetSubstratePHMax", "PH sustrato max"],
               ["targetLiquidPPMMin", "PPM liquido min"],
               ["targetLiquidPPMMax", "PPM liquido max"],
               ["targetSubstratePPMMin", "PPM sustrato min"],

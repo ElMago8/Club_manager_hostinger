@@ -2,6 +2,7 @@ import { cultivationMeasurements } from "@/data/cultivationMockData";
 import { apiRequest, withMockFallback } from "@/services/cultivationApi";
 import type {
   CultivationMeasurement,
+  MeasurementMethod,
   MeasurementRelatedModule,
   MeasurementStatus,
   MeasurementSummary,
@@ -11,6 +12,7 @@ import type {
 export interface MeasurementFilters {
   roomId?: string;
   bedId?: string;
+  clonadorId?: string;
   plantId?: string;
   motherPlantId?: string;
   batchId?: string;
@@ -25,20 +27,34 @@ export type CreateMeasurementPayload = Omit<CultivationMeasurement, "id" | "stat
   status?: MeasurementStatus;
 };
 
+interface ApiMedicion {
+  id: number;
+  fecha: string;
+  hora: string;
+  tipo: string;
+  salaCultivoId: number;
+  camillaId: number | null;
+  clonadorId?: number | null;
+  plantaId: number | null;
+  madreId: number | null;
+  phLiquido: number | null;
+  ppmLiquido: number | null;
+  phSustrato: number | null;
+  ppmSustrato: number | null;
+  phDrenaje: number | null;
+  ppmDrenaje: number | null;
+  estado: string;
+  metodo: string | null;
+  responsable: string | null;
+  observaciones: string | null;
+}
+
 const STATUS_WEIGHT: Record<MeasurementStatus, number> = {
   normal: 0,
   observation: 1,
   alert: 2,
   critical: 3,
 };
-
-function queryString(filters: MeasurementFilters = {}) {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value) params.set(key, value);
-  });
-  return params.toString();
-}
 
 function classifyPh(value: number | undefined, normalMin: number, normalMax: number, obsMin: number, obsMax: number, alertMin: number, alertMax: number): MeasurementStatus {
   if (value === undefined) return "normal";
@@ -66,17 +82,77 @@ export function getLocalMeasurementStatus(measurement: Partial<CultivationMeasur
   return statuses.reduce((worst, status) => (STATUS_WEIGHT[status] > STATUS_WEIGHT[worst] ? status : worst), "normal");
 }
 
-function normalizeMeasurement(item: CultivationMeasurement): CultivationMeasurement {
+function mapApiMedicion(item: ApiMedicion): CultivationMeasurement {
+  const date = new Date(item.fecha).toISOString().slice(0, 10);
+  const status = (["normal", "observation", "alert", "critical"].includes(item.estado)
+    ? item.estado
+    : "normal") as MeasurementStatus;
+
+  const relatedModule: MeasurementRelatedModule =
+    item.madreId != null ? "mother"
+    : item.plantaId != null ? "plant"
+    : item.camillaId != null ? "bed"
+    : "general";
+
   return {
-    ...item,
-    date: item.date.slice(0, 10),
-    roomId: item.roomId ?? undefined,
-    bedId: item.bedId ?? undefined,
-    plantId: item.plantId ?? undefined,
-    motherPlantId: item.motherPlantId ?? undefined,
-    batchId: item.batchId ?? undefined,
-    notes: item.notes ?? undefined,
+    id: String(item.id),
+    measurementType: (item.tipo as MeasurementType) ?? "mixed",
+    date,
+    time: item.hora,
+    roomId: String(item.salaCultivoId),
+    bedId: item.camillaId != null ? String(item.camillaId) : undefined,
+    clonadorId: item.clonadorId != null ? String(item.clonadorId) : undefined,
+    plantId: item.plantaId != null ? String(item.plantaId) : undefined,
+    motherPlantId: item.madreId != null ? String(item.madreId) : undefined,
+    relatedModule,
+    liquidPH: item.phLiquido ?? undefined,
+    liquidPPM: item.ppmLiquido ?? undefined,
+    substratePH: item.phSustrato ?? undefined,
+    substratePPM: item.ppmSustrato ?? undefined,
+    runoffPH: item.phDrenaje ?? undefined,
+    runoffPPM: item.ppmDrenaje ?? undefined,
+    measurementMethod: (item.metodo as MeasurementMethod) ?? undefined,
+    responsibleName: item.responsable ?? undefined,
+    notes: item.observaciones ?? undefined,
+    status,
   };
+}
+
+function toApiPayload(payload: CreateMeasurementPayload) {
+  const estado = payload.status ?? getLocalMeasurementStatus(payload);
+  return {
+    fecha: payload.date,
+    hora: payload.time,
+    tipo: payload.measurementType,
+    salaCultivoId: Number(payload.roomId),
+    camillaId: payload.bedId ? Number(payload.bedId) : undefined,
+    plantaId: payload.plantId ? Number(payload.plantId) : undefined,
+    madreId: payload.motherPlantId ? Number(payload.motherPlantId) : undefined,
+    phLiquido: payload.liquidPH,
+    ppmLiquido: payload.liquidPPM,
+    phSustrato: payload.substratePH,
+    ppmSustrato: payload.substratePPM,
+    phDrenaje: payload.runoffPH,
+    ppmDrenaje: payload.runoffPPM,
+    estado,
+    metodo: payload.measurementMethod,
+    responsable: payload.responsibleName,
+    observaciones: payload.notes,
+  };
+}
+
+function buildQueryParams(filters: MeasurementFilters): string {
+  const params = new URLSearchParams();
+  if (filters.roomId) params.set("salaCultivoId", filters.roomId);
+  if (filters.bedId) params.set("camillaId", filters.bedId);
+  if (filters.clonadorId) params.set("clonadorId", filters.clonadorId);
+  if (filters.plantId) params.set("plantaId", filters.plantId);
+  if (filters.motherPlantId) params.set("madreId", filters.motherPlantId);
+  if (filters.status) params.set("estado", filters.status);
+  if (filters.measurementType) params.set("tipo", filters.measurementType);
+  if (filters.dateFrom) params.set("fechaDesde", filters.dateFrom);
+  if (filters.dateTo) params.set("fechaHasta", filters.dateTo);
+  return params.toString();
 }
 
 function filterMockMeasurements(filters: MeasurementFilters) {
@@ -118,17 +194,32 @@ function mockSummary(filters: MeasurementFilters): MeasurementSummary {
 }
 
 export async function getMeasurements(filters: MeasurementFilters = {}): Promise<CultivationMeasurement[]> {
-  const qs = queryString(filters);
+  const qs = buildQueryParams(filters);
   return withMockFallback(
-    async () => (await apiRequest<CultivationMeasurement[]>(`/cultivation/measurements${qs ? `?${qs}` : ""}`)).map(normalizeMeasurement),
+    async () =>
+      (await apiRequest<ApiMedicion[]>(`/cultivation/measurements${qs ? `?${qs}` : ""}`)).map(mapApiMedicion),
     () => filterMockMeasurements(filters),
   );
 }
 
 export async function getMeasurementSummary(filters: MeasurementFilters = {}): Promise<MeasurementSummary> {
-  const qs = queryString(filters);
   return withMockFallback(
-    async () => apiRequest<MeasurementSummary>(`/cultivation/measurements/summary${qs ? `?${qs}` : ""}`),
+    async () => {
+      const measurements = (await apiRequest<ApiMedicion[]>("/cultivation/measurements")).map(mapApiMedicion);
+      const filtered = filters.roomId
+        ? measurements.filter((item) => item.roomId === filters.roomId)
+        : measurements;
+      return {
+        latestMeasurements: filtered.slice(0, 6),
+        outOfRangeMeasurements: filtered.filter((item) => item.status === "alert" || item.status === "critical").slice(0, 10),
+        averageLiquidPH: average(filtered.map((item) => item.liquidPH)),
+        averageSubstratePH: average(filtered.map((item) => item.substratePH)),
+        averageLiquidPPM: average(filtered.map((item) => item.liquidPPM)),
+        averageSubstratePPM: average(filtered.map((item) => item.substratePPM)),
+        alertsCount: filtered.filter((item) => item.status === "alert").length,
+        criticalCount: filtered.filter((item) => item.status === "critical").length,
+      };
+    },
     () => mockSummary(filters),
   );
 }
@@ -136,10 +227,10 @@ export async function getMeasurementSummary(filters: MeasurementFilters = {}): P
 export async function createMeasurement(payload: CreateMeasurementPayload): Promise<CultivationMeasurement> {
   return withMockFallback(
     async () =>
-      normalizeMeasurement(
-        await apiRequest<CultivationMeasurement>("/cultivation/measurements", {
+      mapApiMedicion(
+        await apiRequest<ApiMedicion>("/cultivation/measurements", {
           method: "POST",
-          body: JSON.stringify(payload),
+          body: JSON.stringify(toApiPayload(payload)),
         }),
       ),
     () => {

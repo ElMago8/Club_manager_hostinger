@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useSortable } from "@/hooks/useSortable";
+import { SortHead } from "@/components/ui/sort-head";
 import { getGrowBeds } from "@/services/growBedService";
 import { getGrowRooms } from "@/services/growRoomService";
 import { getMeasurements } from "@/services/measurementService";
@@ -73,6 +75,13 @@ function GrowBedsPage() {
   function roomName(id: string): string {
     return rooms.find((room) => room.id === id)?.name ?? id;
   }
+
+  const flatBeds = useMemo(() => filteredBeds.map((b) => ({
+    ...b,
+    _roomName: roomName(b.roomId),
+  })), [filteredBeds, rooms]);
+
+  const { sorted, col: sCol, dir: sDir, toggle: sort } = useSortable(flatBeds);
 
   function latestBedMeasurement(bedId: string) {
     return measurements.find((item) => item.bedId === bedId);
@@ -155,24 +164,24 @@ function GrowBedsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Codigo</TableHead>
-                  <TableHead>Sala</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Capacidad maxima</TableHead>
-                  <TableHead>Plantas actuales</TableHead>
-                  <TableHead>pH sustrato</TableHead>
+                  <SortHead label="Nombre"           sortKey="name"              col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Codigo"           sortKey="code"              col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Sala"             sortKey="_roomName"         col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Estado"           sortKey="status"            col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Capacidad maxima" sortKey="maxPlants"         col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Plantas actuales" sortKey="currentPlants"     col={sCol} dir={sDir} onSort={sort} />
+                  <TableHead>PH sustrato</TableHead>
                   <TableHead>PPM sustrato</TableHead>
-                  <TableHead>pH liquido</TableHead>
+                  <TableHead>PH liquido</TableHead>
                   <TableHead>PPM liquido</TableHead>
                   <TableHead>Estado parametros</TableHead>
-                  <TableHead>Lote principal</TableHead>
-                  <TableHead>Responsable</TableHead>
+                  <SortHead label="Lote principal"   sortKey="mainBatchId"       col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Responsable"      sortKey="responsibleUserId" col={sCol} dir={sDir} onSort={sort} />
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredBeds.map((bed) => {
+                {sorted.map((bed) => {
                   const latest = latestBedMeasurement(bed.id);
                   return (
                     <TableRow key={bed.id}>

@@ -14,7 +14,7 @@ import type { BedStatus, GrowRoom, MeasurementMethod } from "@/types/cultivation
 
 export const Route = createFileRoute("/app/cultivo/camillas/nueva")({
   validateSearch: (search: Record<string, unknown>) => ({
-    edit: typeof search.edit === "string" ? search.edit : undefined,
+    edit: search.edit != null ? String(search.edit) : undefined,
   }),
   head: () => ({ meta: [{ title: "Nueva camilla - Cannabis Club Manager" }] }),
   component: NewGrowBedPage,
@@ -323,7 +323,7 @@ function NewGrowBedPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="substratePH">pH sustrato</Label>
+              <Label htmlFor="substratePH">PH sustrato</Label>
               <Input id="substratePH" type="number" min="0" max="14" step="0.01" value={form.substratePH} onChange={(event) => setForm({ ...form, substratePH: event.target.value })} placeholder="Opcional" />
             </div>
 
@@ -333,7 +333,7 @@ function NewGrowBedPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="liquidPH">pH liquido</Label>
+              <Label htmlFor="liquidPH">PH liquido</Label>
               <Input id="liquidPH" type="number" min="0" max="14" step="0.01" value={form.liquidPH} onChange={(event) => setForm({ ...form, liquidPH: event.target.value })} placeholder="Opcional" />
             </div>
 

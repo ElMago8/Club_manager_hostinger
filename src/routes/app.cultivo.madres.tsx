@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { getGenetics } from "@/services/geneticsService";
 import { getGrowBeds } from "@/services/growBedService";
 import { getGrowRooms } from "@/services/growRoomService";
+import { useSortable } from "@/hooks/useSortable";
+import { SortHead } from "@/components/ui/sort-head";
 import { createMotherPlant, deleteMotherPlant, getMotherPlants, updateMotherPlant, type MotherPlantWithPlantCount } from "@/services/motherPlantService";
 import type { Genetics, GrowBed, GrowRoom, MotherPlant } from "@/types/cultivation";
 
@@ -108,6 +110,14 @@ function MotherPlantsPage() {
   function bedsByRoom(roomId?: string): GrowBed[] {
     return roomId ? beds.filter((bed) => bed.roomId === roomId) : beds;
   }
+
+  const flatMothers = useMemo(() => mothers.map((m) => ({
+    ...m,
+    _roomName: roomName(m.roomId),
+    _bedName:  bedName(m.bedId),
+  })), [mothers, rooms, beds]);
+
+  const { sorted, col: sCol, dir: sDir, toggle: sort } = useSortable(flatMothers);
 
   function updateGeneticsSelection(geneticsId: string) {
     const selected = genetics.find((item) => item.id === geneticsId);
@@ -320,23 +330,23 @@ function MotherPlantsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Codigo</TableHead>
-                    <TableHead>Nombre madre</TableHead>
-                    <TableHead>Genetica</TableHead>
-                    <TableHead>Sala</TableHead>
-                    <TableHead>Camilla</TableHead>
-                    <TableHead>Estado</TableHead>
+                    <SortHead label="Codigo"              sortKey="code"             col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Nombre madre"        sortKey="name"             col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Genetica"            sortKey="geneticsName"     col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Sala"                sortKey="_roomName"        col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Camilla"             sortKey="_bedName"         col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Estado"              sortKey="status"           col={sCol} dir={sDir} onSort={sort} />
                     <TableHead>Estado sanitario</TableHead>
-                    <TableHead>Fecha inicio</TableHead>
-                    <TableHead>Fecha ultimo corte</TableHead>
-                    <TableHead>Esquejes disponibles</TableHead>
-                    <TableHead>Origen</TableHead>
+                    <SortHead label="Fecha inicio"        sortKey="startDate"        col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Fecha ultimo corte"  sortKey="lastCutDate"      col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Esquejes disp."      sortKey="availableClones"  col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Origen"              sortKey="origin"           col={sCol} dir={sDir} onSort={sort} />
                     <TableHead>Observaciones</TableHead>
                     <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mothers.map((item) => (
+                  {sorted.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-mono text-xs font-medium">{item.code}</TableCell>
                       <TableCell>{item.name ?? "-"}</TableCell>
@@ -361,25 +371,22 @@ function MotherPlantsPage() {
                         <ExpandableTextCell title={`Observaciones de ${item.code}`} text={item.notes} className="max-w-[220px]" />
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-center gap-1 whitespace-nowrap">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1 text-emerald-700 hover:text-emerald-800"
-                          onClick={() => startEdit(item)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                          Editar
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteTarget(item)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Eliminar
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => startEdit(item)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget(item)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

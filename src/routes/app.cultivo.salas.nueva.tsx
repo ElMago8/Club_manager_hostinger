@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Save, Warehouse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,9 +11,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { createGrowRoom, getGrowRoomById, updateGrowRoom } from "@/services/growRoomService";
 import type { RoomStatus, RoomType } from "@/types/cultivation";
 
+const PRESET_ENTORNOS = ["indoor", "outdoor", "invernadero"] as const;
+const PRESET_MEDIOS   = ["sustrato", "fibra_de_coco", "lana_de_roca", "hidroponia", "aeroponia"] as const;
+
 export const Route = createFileRoute("/app/cultivo/salas/nueva")({
   validateSearch: (search: Record<string, unknown>) => ({
-    edit: typeof search.edit === "string" ? search.edit : undefined,
+    edit: search.edit != null ? String(search.edit) : undefined,
   }),
   head: () => ({ meta: [{ title: "Nueva sala - Cannabis Club Manager" }] }),
   component: NewGrowRoomPage,
@@ -28,6 +32,8 @@ type GrowRoomForm = {
   hasAirConditioning: "si" | "no";
   hasDehumidifier: "si" | "no";
   sensors: string;
+  cultivationType: string;
+  growMedium: string;
   notes: string;
 };
 
@@ -41,6 +47,8 @@ const initialForm: GrowRoomForm = {
   hasAirConditioning: "no",
   hasDehumidifier: "no",
   sensors: "",
+  cultivationType: "",
+  growMedium: "",
   notes: "",
 };
 
@@ -51,6 +59,12 @@ function NewGrowRoomPage() {
   const [loading, setLoading] = useState(Boolean(editId));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [customTypeOpen, setCustomTypeOpen] = useState(false);
+  const [customTypeInput, setCustomTypeInput] = useState("");
+  const customTypeRef = useRef<HTMLInputElement>(null);
+  const [customMediumOpen, setCustomMediumOpen] = useState(false);
+  const [customMediumInput, setCustomMediumInput] = useState("");
+  const customMediumRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!editId) {
@@ -78,6 +92,8 @@ function NewGrowRoomPage() {
           hasAirConditioning: room.technicalConfig.hasAirConditioning ? "si" : "no",
           hasDehumidifier: room.technicalConfig.hasDehumidifier ? "si" : "no",
           sensors: room.technicalConfig.installedSensors.join(", "),
+          cultivationType: room.cultivationType ?? "",
+          growMedium: room.growMedium ?? "",
           notes: room.notes ?? "",
         });
       } finally {
@@ -120,6 +136,8 @@ function NewGrowRoomPage() {
         hasAirConditioning: form.hasAirConditioning === "si",
         hasDehumidifier: form.hasDehumidifier === "si",
         installedSensors: form.sensors.split(",").map((sensor) => sensor.trim()).filter(Boolean),
+        cultivationType: form.cultivationType.trim() || undefined,
+        growMedium: form.growMedium.trim() || undefined,
         notes: form.notes.trim() || undefined,
       };
 
@@ -287,6 +305,48 @@ function NewGrowRoomPage() {
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label>Entorno de cultivo</Label>
+              <Select
+                value={PRESET_ENTORNOS.includes(form.cultivationType as typeof PRESET_ENTORNOS[number]) ? form.cultivationType : form.cultivationType ? "otro" : ""}
+                onValueChange={(v) => { if (v === "otro") { setCustomTypeInput(""); setCustomTypeOpen(true); } else setForm({ ...form, cultivationType: v }); }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar entorno">
+                    {form.cultivationType && !PRESET_ENTORNOS.includes(form.cultivationType as typeof PRESET_ENTORNOS[number]) ? form.cultivationType : undefined}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="indoor">Indoor</SelectItem>
+                  <SelectItem value="outdoor">Outdoor</SelectItem>
+                  <SelectItem value="invernadero">Invernadero</SelectItem>
+                  <SelectItem value="otro">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tipo de cultivo</Label>
+              <Select
+                value={PRESET_MEDIOS.includes(form.growMedium as typeof PRESET_MEDIOS[number]) ? form.growMedium : form.growMedium ? "otro" : ""}
+                onValueChange={(v) => { if (v === "otro") { setCustomMediumInput(""); setCustomMediumOpen(true); } else setForm({ ...form, growMedium: v }); }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar tipo">
+                    {form.growMedium && !PRESET_MEDIOS.includes(form.growMedium as typeof PRESET_MEDIOS[number]) ? form.growMedium : undefined}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sustrato">Sustrato</SelectItem>
+                  <SelectItem value="fibra_de_coco">Fibra de coco</SelectItem>
+                  <SelectItem value="lana_de_roca">Lana de roca</SelectItem>
+                  <SelectItem value="hidroponia">Hidroponia</SelectItem>
+                  <SelectItem value="aeroponia">Aeroponia</SelectItem>
+                  <SelectItem value="otro">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="sensors">Sensores</Label>
               <Input
@@ -317,6 +377,42 @@ function NewGrowRoomPage() {
         </Card>
       </form>
       )}
+
+      {/* Modal entorno personalizado */}
+      <Dialog open={customTypeOpen} onOpenChange={(open) => { if (!open && !form.cultivationType) setForm((f) => ({ ...f, cultivationType: "" })); setCustomTypeOpen(open); }}>
+        <DialogContent className="sm:max-w-[380px]">
+          <DialogHeader><DialogTitle>Entorno de cultivo personalizado</DialogTitle></DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="customType">Describí el entorno de cultivo</Label>
+            <Input id="customType" ref={customTypeRef} autoFocus value={customTypeInput}
+              onChange={(e) => setCustomTypeInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (customTypeInput.trim()) { setForm((f) => ({ ...f, cultivationType: customTypeInput.trim() })); setCustomTypeOpen(false); } } }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCustomTypeOpen(false)}>Cancelar</Button>
+            <Button disabled={!customTypeInput.trim()} onClick={() => { setForm((f) => ({ ...f, cultivationType: customTypeInput.trim() })); setCustomTypeOpen(false); }}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal tipo de cultivo personalizado */}
+      <Dialog open={customMediumOpen} onOpenChange={(open) => { if (!open && !form.growMedium) setForm((f) => ({ ...f, growMedium: "" })); setCustomMediumOpen(open); }}>
+        <DialogContent className="sm:max-w-[380px]">
+          <DialogHeader><DialogTitle>Tipo de cultivo personalizado</DialogTitle></DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="customMedium">Describí el tipo de cultivo</Label>
+            <Input id="customMedium" ref={customMediumRef} autoFocus value={customMediumInput}
+              onChange={(e) => setCustomMediumInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (customMediumInput.trim()) { setForm((f) => ({ ...f, growMedium: customMediumInput.trim() })); setCustomMediumOpen(false); } } }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCustomMediumOpen(false)}>Cancelar</Button>
+            <Button disabled={!customMediumInput.trim()} onClick={() => { setForm((f) => ({ ...f, growMedium: customMediumInput.trim() })); setCustomMediumOpen(false); }}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

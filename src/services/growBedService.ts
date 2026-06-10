@@ -24,6 +24,7 @@ interface ApiGrowBed {
   nombre?: string;
   code?: string;
   codigoCamilla?: string;
+  tipo?: string | null;
   roomId?: string | null;
   salaCultivoId?: number | null;
   status: ApiBedStatus;
@@ -94,6 +95,7 @@ function mapApiGrowBed(bed: ApiGrowBed): GrowBed {
     id: String(bed.id),
     name: bed.nombre ?? bed.name ?? "",
     code: bed.codigoCamilla ?? bed.code ?? "",
+    tipo: (bed.tipo === "clonador" ? "clonador" : "camilla") as GrowBed["tipo"],
     roomId: bed.roomId ?? (bed.salaCultivoId ? String(bed.salaCultivoId) : "room-sin-asignar"),
     status: API_RAW_TO_UI_STATUS[bed.estado ?? bed.status] ?? API_TO_UI_STATUS[bed.status],
     maxPlants: bed.capacidadMaximaPlantas ?? bed.maxPlants,
@@ -108,6 +110,7 @@ function toApiGrowBedPayload(payload: CreateGrowBedPayload | UpdateGrowBedPayloa
   return {
     nombre: payload.name,
     codigoCamilla: payload.code,
+    tipo: payload.tipo,
     salaCultivoId: payload.roomId ? Number(payload.roomId) : undefined,
     estado: payload.status,
     capacidadMaximaPlantas: payload.maxPlants,
@@ -238,4 +241,113 @@ export async function updateGrowBedCapacity(id: string, maxPlants: number): Prom
       ),
     () => updateGrowBed(id, { maxPlants }),
   );
+}
+
+interface ApiClonador {
+  id: number;
+  codigoClonador: string;
+  salaCultivoId: number;
+  nombre: string;
+  estado: string;
+  capacidadMaximaEsquejes: number;
+  responsable: string | null;
+  descripcion: string | null;
+  _count: { esquejes: number };
+}
+
+function mapApiClonador(c: ApiClonador): GrowBed {
+  return {
+    id: String(c.id),
+    code: c.codigoClonador,
+    name: c.nombre,
+    tipo: "clonador",
+    roomId: String(c.salaCultivoId),
+    status: c.estado as GrowBed["status"],
+    maxPlants: c.capacidadMaximaEsquejes,
+    currentPlants: c._count.esquejes,
+    responsibleUserId: c.responsable ?? undefined,
+    notes: c.descripcion ?? undefined,
+  };
+}
+
+export async function getClonadores(): Promise<GrowBed[]> {
+  return withMockFallback(
+    async () => (await apiRequest<ApiClonador[]>("/cultivation/clonadores")).map(mapApiClonador),
+    () => growBeds.filter((b) => b.tipo === "clonador"),
+  );
+}
+
+export async function getCamillasOnly(): Promise<GrowBed[]> {
+  return withMockFallback(
+    async () => (await apiRequest<ApiGrowBed[]>("/cultivation/beds")).map(mapApiGrowBed),
+    () => growBeds.filter((b) => b.tipo !== "clonador"),
+  );
+}
+
+export async function getClonadorById(id: string): Promise<GrowBed | null> {
+  try {
+    return mapApiClonador(await apiRequest<ApiClonador>(`/cultivation/clonadores/${id}`));
+  } catch { return null; }
+}
+
+export async function createClonador(payload: Omit<CreateGrowBedPayload, "tipo">): Promise<GrowBed> {
+  return mapApiClonador(
+    await apiRequest<ApiClonador>("/cultivation/clonadores", {
+      method: "POST",
+      body: JSON.stringify({
+        codigoClonador: payload.code,
+        salaCultivoId: Number(payload.roomId),
+        nombre: payload.name,
+        estado: payload.status,
+        capacidadMaximaEsquejes: payload.maxPlants,
+        responsable: payload.responsibleUserId ?? null,
+        descripcion: payload.notes ?? null,
+      }),
+    }),
+  );
+}
+
+export async function updateClonador(id: string, payload: Partial<Omit<UpdateGrowBedPayload, "tipo">>): Promise<GrowBed> {
+  return mapApiClonador(
+    await apiRequest<ApiClonador>(`/cultivation/clonadores/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        ...(payload.code !== undefined && { codigoClonador: payload.code }),
+        ...(payload.roomId !== undefined && { salaCultivoId: Number(payload.roomId) }),
+        ...(payload.name !== undefined && { nombre: payload.name }),
+        ...(payload.status !== undefined && { estado: payload.status }),
+        ...(payload.maxPlants !== undefined && { capacidadMaximaEsquejes: payload.maxPlants }),
+        ...(payload.responsibleUserId !== undefined && { responsable: payload.responsibleUserId }),
+        ...(payload.notes !== undefined && { descripcion: payload.notes }),
+      }),
+    }),
+  );
+}
+
+export async function deleteClonador(id: string): Promise<void> {
+  await apiRequest(`/cultivation/clonadores/${id}`, { method: "DELETE" });
+}
+
+export async function getClonadorOccupancy(id: string): Promise<GrowBedOccupancy> {
+  return apiRequest<GrowBedOccupancy>(`/cultivation/clonadores/${id}/occupancy`);
+}
+
+export async function updateClonadorCapacity(id: string, capacity: number): Promise<GrowBed> {
+  return mapApiClonador(
+    await apiRequest<ApiClonador>(`/cultivation/clonadores/${id}/capacity`, {
+      method: "PATCH",
+      body: JSON.stringify({ capacity }),
+    }),
+  );
+}
+
+export interface SendToGrowBedResult {
+  moved: number;
+}
+
+export async function sendToGrowBed(clonadorId: string, plantIds: string[], targetCamillaId: string): Promise<SendToGrowBedResult> {
+  return apiRequest<SendToGrowBedResult>(`/cultivation/clonadores/${clonadorId}/send-to-camilla`, {
+    method: "POST",
+    body: JSON.stringify({ plantIds: plantIds.map(Number), targetCamillaId: Number(targetCamillaId) }),
+  });
 }

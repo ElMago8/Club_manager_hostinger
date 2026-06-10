@@ -15,7 +15,7 @@ import type { Genetics, GrowBed, MotherPlant, PlantOrigin, PlantStage, PlantStat
 
 export const Route = createFileRoute("/app/cultivo/plantas/nueva")({
   validateSearch: (search: Record<string, unknown>) => ({
-    edit: typeof search.edit === "string" ? search.edit : undefined,
+    edit: search.edit != null ? String(search.edit) : undefined,
   }),
   head: () => ({ meta: [{ title: "Nueva planta - Cannabis Club Manager" }] }),
   component: NewPlantPage,
@@ -28,15 +28,36 @@ function hasAvailablePlantSlot(bed: GrowBed): boolean {
   return bed.currentPlants < bed.maxPlants;
 }
 
+type PlantForm = {
+  internalCode: string;
+  plantName: string;
+  bedId: string;
+  bedPosition: string;
+  batchId: string;
+  geneticsId: string;
+  motherPlantId: string;
+  origin: PlantOrigin;
+  stage: PlantStage;
+  status: PlantStatus;
+  sanitaryStatus: "bueno" | "preventivo" | "observacion" | "critico";
+  startDate: string;
+  stageStartDate: string;
+  potSizeLiters: string;
+  potType: string;
+  substrate: string;
+  notes: string;
+};
+
 function NewPlantPage() {
   const navigate = useNavigate();
   const { edit: editId } = Route.useSearch();
   const [beds, setBeds] = useState<GrowBed[]>([]);
   const [genetics, setGenetics] = useState<Genetics[]>([]);
   const [mothers, setMothers] = useState<MotherPlant[]>([]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<PlantForm>({
     internalCode: "",
     plantName: "",
     bedId: "",
@@ -44,10 +65,10 @@ function NewPlantPage() {
     batchId: "",
     geneticsId: "none",
     motherPlantId: "none",
-    origin: "esqueje" as PlantOrigin,
-    stage: "vegetativo" as PlantStage,
-    status: "normal" as PlantStatus,
-    sanitaryStatus: "bueno" as "bueno" | "preventivo" | "observacion" | "critico",
+    origin: "esqueje",
+    stage: "vegetativo",
+    status: "normal",
+    sanitaryStatus: "bueno",
     startDate: today,
     stageStartDate: today,
     potSizeLiters: "",
@@ -57,40 +78,55 @@ function NewPlantPage() {
   });
 
   useEffect(() => {
+    setLoading(true);
     async function loadOptions() {
-      const [nextBeds, nextGenetics, nextMothers] = await Promise.all([
-        getGrowBeds(),
-        getGenetics(),
-        getMotherPlants(),
-      ]);
+      try {
+        const [nextBeds, nextGenetics, nextMothers] = await Promise.all([
+          getGrowBeds(),
+          getGenetics(),
+          getMotherPlants(),
+        ]);
 
-      setBeds(nextBeds);
-      setGenetics(nextGenetics);
-      setMothers(nextMothers);
+        setBeds(nextBeds);
+        setGenetics(nextGenetics);
+        setMothers(nextMothers);
 
-      const plantToEdit = editId ? await getPlantById(editId) : null;
-      const firstBed = nextBeds.find(hasAvailablePlantSlot);
-
-      setForm((current) => ({
-        ...current,
-        internalCode: plantToEdit?.internalCode ?? current.internalCode,
-        plantName: plantToEdit?.plantName ?? current.plantName,
-        bedId: plantToEdit?.bedId ?? firstBed?.id ?? "",
-        bedPosition: plantToEdit ? String(plantToEdit.bedPosition) : current.bedPosition,
-        batchId: plantToEdit?.batchId ?? current.batchId,
-        geneticsId: plantToEdit?.geneticsId ?? (current.geneticsId === "none" ? nextGenetics[0]?.id ?? "none" : current.geneticsId),
-        motherPlantId: plantToEdit?.motherPlantId ?? current.motherPlantId,
-        origin: plantToEdit?.origin ?? current.origin,
-        stage: plantToEdit?.stage ?? current.stage,
-        status: plantToEdit?.status ?? current.status,
-        sanitaryStatus: plantToEdit?.sanitaryStatus ?? current.sanitaryStatus,
-        startDate: plantToEdit?.startDate ?? current.startDate,
-        stageStartDate: plantToEdit?.stageStartDate ?? plantToEdit?.startDate ?? current.stageStartDate,
-        potSizeLiters: plantToEdit?.potSizeLiters ? String(plantToEdit.potSizeLiters) : current.potSizeLiters,
-        potType: plantToEdit?.potType ?? current.potType,
-        substrate: plantToEdit?.substrate ?? current.substrate,
-        notes: plantToEdit?.notes ?? current.notes,
-      }));
+        if (editId) {
+          const plant = await getPlantById(editId);
+          if (!plant) {
+            setError("Planta no encontrada.");
+            return;
+          }
+          setForm({
+            internalCode: plant.internalCode,
+            plantName: plant.plantName ?? "",
+            bedId: plant.bedId,
+            bedPosition: String(plant.bedPosition),
+            batchId: plant.batchId ?? "",
+            geneticsId: plant.geneticsId ?? "none",
+            motherPlantId: plant.motherPlantId ?? "none",
+            origin: plant.origin,
+            stage: plant.stage,
+            status: plant.status,
+            sanitaryStatus: plant.sanitaryStatus ?? "bueno",
+            startDate: plant.startDate,
+            stageStartDate: plant.stageStartDate ?? plant.startDate,
+            potSizeLiters: plant.potSizeLiters ? String(plant.potSizeLiters) : "",
+            potType: plant.potType ?? "",
+            substrate: plant.substrate ?? "",
+            notes: plant.notes ?? "",
+          });
+        } else {
+          const firstBed = nextBeds.find(hasAvailablePlantSlot);
+          setForm((current) => ({
+            ...current,
+            bedId: firstBed?.id ?? "",
+            geneticsId: nextGenetics[0]?.id ?? "none",
+          }));
+        }
+      } finally {
+        setLoading(false);
+      }
     }
 
     void loadOptions();
@@ -199,6 +235,11 @@ function NewPlantPage() {
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
       ) : null}
 
+      {loading ? (
+        <Card>
+          <CardContent className="p-6 text-sm text-muted-foreground">Cargando datos de la planta...</CardContent>
+        </Card>
+      ) : (
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
@@ -227,9 +268,9 @@ function NewPlantPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Camilla</Label>
+              <Label>Destino</Label>
               <Select value={form.bedId} onValueChange={(bedId) => setForm({ ...form, bedId })}>
-                <SelectTrigger><SelectValue placeholder="Selecciona camilla" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecciona destino" /></SelectTrigger>
                 <SelectContent>
                   {beds.map((bed) => {
                     const isCurrentBed = editId && bed.id === form.bedId;
@@ -443,6 +484,7 @@ function NewPlantPage() {
           </CardContent>
         </Card>
       </form>
+      )}
     </div>
   );
 }

@@ -36,6 +36,7 @@ import { Route as AppCultivoMedicionesRouteImport } from './routes/app.cultivo.m
 import { Route as AppCultivoMadresRouteImport } from './routes/app.cultivo.madres'
 import { Route as AppCultivoGeneticasRouteImport } from './routes/app.cultivo.geneticas'
 import { Route as AppCultivoCosechasRouteImport } from './routes/app.cultivo.cosechas'
+import { Route as AppCultivoClonadorRouteImport } from './routes/app.cultivo.clonador'
 import { Route as AppCultivoCamillasRouteImport } from './routes/app.cultivo.camillas'
 import { Route as AppCultivoCalendarioRouteImport } from './routes/app.cultivo.calendario'
 import { Route as AppCultivoAmbienteRouteImport } from './routes/app.cultivo.ambiente'
@@ -45,6 +46,8 @@ import { Route as AppCultivoPlantasNuevaRouteImport } from './routes/app.cultivo
 import { Route as AppCultivoGeneticasNuevaRouteImport } from './routes/app.cultivo.geneticas.nueva'
 import { Route as AppCultivoGeneticasIdRouteImport } from './routes/app.cultivo.geneticas.$id'
 import { Route as AppCultivoCosechasNuevaRouteImport } from './routes/app.cultivo.cosechas.nueva'
+import { Route as AppCultivoClonadorNuevaRouteImport } from './routes/app.cultivo.clonador.nueva'
+import { Route as AppCultivoClonadorIdRouteImport } from './routes/app.cultivo.clonador.$id'
 import { Route as AppCultivoCamillasNuevaRouteImport } from './routes/app.cultivo.camillas.nueva'
 import { Route as AppCultivoCamillasIdRouteImport } from './routes/app.cultivo.camillas.$id'
 
@@ -183,6 +186,11 @@ const AppCultivoCosechasRoute = AppCultivoCosechasRouteImport.update({
   path: '/cosechas',
   getParentRoute: () => AppCultivoRoute,
 } as any)
+const AppCultivoClonadorRoute = AppCultivoClonadorRouteImport.update({
+  id: '/clonador',
+  path: '/clonador',
+  getParentRoute: () => AppCultivoRoute,
+} as any)
 const AppCultivoCamillasRoute = AppCultivoCamillasRouteImport.update({
   id: '/camillas',
   path: '/camillas',
@@ -229,6 +237,16 @@ const AppCultivoCosechasNuevaRoute = AppCultivoCosechasNuevaRouteImport.update({
   path: '/nueva',
   getParentRoute: () => AppCultivoCosechasRoute,
 } as any)
+const AppCultivoClonadorNuevaRoute = AppCultivoClonadorNuevaRouteImport.update({
+  id: '/nueva',
+  path: '/nueva',
+  getParentRoute: () => AppCultivoClonadorRoute,
+} as any)
+const AppCultivoClonadorIdRoute = AppCultivoClonadorIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppCultivoClonadorRoute,
+} as any)
 const AppCultivoCamillasNuevaRoute = AppCultivoCamillasNuevaRouteImport.update({
   id: '/nueva',
   path: '/nueva',
@@ -263,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/app/cultivo/ambiente': typeof AppCultivoAmbienteRoute
   '/app/cultivo/calendario': typeof AppCultivoCalendarioRoute
   '/app/cultivo/camillas': typeof AppCultivoCamillasRouteWithChildren
+  '/app/cultivo/clonador': typeof AppCultivoClonadorRouteWithChildren
   '/app/cultivo/cosechas': typeof AppCultivoCosechasRouteWithChildren
   '/app/cultivo/geneticas': typeof AppCultivoGeneticasRouteWithChildren
   '/app/cultivo/madres': typeof AppCultivoMadresRoute
@@ -273,6 +292,8 @@ export interface FileRoutesByFullPath {
   '/app/cultivo/vpd': typeof AppCultivoVpdRoute
   '/app/cultivo/camillas/$id': typeof AppCultivoCamillasIdRoute
   '/app/cultivo/camillas/nueva': typeof AppCultivoCamillasNuevaRoute
+  '/app/cultivo/clonador/$id': typeof AppCultivoClonadorIdRoute
+  '/app/cultivo/clonador/nueva': typeof AppCultivoClonadorNuevaRoute
   '/app/cultivo/cosechas/nueva': typeof AppCultivoCosechasNuevaRoute
   '/app/cultivo/geneticas/$id': typeof AppCultivoGeneticasIdRoute
   '/app/cultivo/geneticas/nueva': typeof AppCultivoGeneticasNuevaRoute
@@ -302,6 +323,7 @@ export interface FileRoutesByTo {
   '/app/cultivo/ambiente': typeof AppCultivoAmbienteRoute
   '/app/cultivo/calendario': typeof AppCultivoCalendarioRoute
   '/app/cultivo/camillas': typeof AppCultivoCamillasRouteWithChildren
+  '/app/cultivo/clonador': typeof AppCultivoClonadorRouteWithChildren
   '/app/cultivo/cosechas': typeof AppCultivoCosechasRouteWithChildren
   '/app/cultivo/geneticas': typeof AppCultivoGeneticasRouteWithChildren
   '/app/cultivo/madres': typeof AppCultivoMadresRoute
@@ -312,6 +334,8 @@ export interface FileRoutesByTo {
   '/app/cultivo/vpd': typeof AppCultivoVpdRoute
   '/app/cultivo/camillas/$id': typeof AppCultivoCamillasIdRoute
   '/app/cultivo/camillas/nueva': typeof AppCultivoCamillasNuevaRoute
+  '/app/cultivo/clonador/$id': typeof AppCultivoClonadorIdRoute
+  '/app/cultivo/clonador/nueva': typeof AppCultivoClonadorNuevaRoute
   '/app/cultivo/cosechas/nueva': typeof AppCultivoCosechasNuevaRoute
   '/app/cultivo/geneticas/$id': typeof AppCultivoGeneticasIdRoute
   '/app/cultivo/geneticas/nueva': typeof AppCultivoGeneticasNuevaRoute
@@ -343,6 +367,7 @@ export interface FileRoutesById {
   '/app/cultivo/ambiente': typeof AppCultivoAmbienteRoute
   '/app/cultivo/calendario': typeof AppCultivoCalendarioRoute
   '/app/cultivo/camillas': typeof AppCultivoCamillasRouteWithChildren
+  '/app/cultivo/clonador': typeof AppCultivoClonadorRouteWithChildren
   '/app/cultivo/cosechas': typeof AppCultivoCosechasRouteWithChildren
   '/app/cultivo/geneticas': typeof AppCultivoGeneticasRouteWithChildren
   '/app/cultivo/madres': typeof AppCultivoMadresRoute
@@ -353,6 +378,8 @@ export interface FileRoutesById {
   '/app/cultivo/vpd': typeof AppCultivoVpdRoute
   '/app/cultivo/camillas/$id': typeof AppCultivoCamillasIdRoute
   '/app/cultivo/camillas/nueva': typeof AppCultivoCamillasNuevaRoute
+  '/app/cultivo/clonador/$id': typeof AppCultivoClonadorIdRoute
+  '/app/cultivo/clonador/nueva': typeof AppCultivoClonadorNuevaRoute
   '/app/cultivo/cosechas/nueva': typeof AppCultivoCosechasNuevaRoute
   '/app/cultivo/geneticas/$id': typeof AppCultivoGeneticasIdRoute
   '/app/cultivo/geneticas/nueva': typeof AppCultivoGeneticasNuevaRoute
@@ -385,6 +412,7 @@ export interface FileRouteTypes {
     | '/app/cultivo/ambiente'
     | '/app/cultivo/calendario'
     | '/app/cultivo/camillas'
+    | '/app/cultivo/clonador'
     | '/app/cultivo/cosechas'
     | '/app/cultivo/geneticas'
     | '/app/cultivo/madres'
@@ -395,6 +423,8 @@ export interface FileRouteTypes {
     | '/app/cultivo/vpd'
     | '/app/cultivo/camillas/$id'
     | '/app/cultivo/camillas/nueva'
+    | '/app/cultivo/clonador/$id'
+    | '/app/cultivo/clonador/nueva'
     | '/app/cultivo/cosechas/nueva'
     | '/app/cultivo/geneticas/$id'
     | '/app/cultivo/geneticas/nueva'
@@ -424,6 +454,7 @@ export interface FileRouteTypes {
     | '/app/cultivo/ambiente'
     | '/app/cultivo/calendario'
     | '/app/cultivo/camillas'
+    | '/app/cultivo/clonador'
     | '/app/cultivo/cosechas'
     | '/app/cultivo/geneticas'
     | '/app/cultivo/madres'
@@ -434,6 +465,8 @@ export interface FileRouteTypes {
     | '/app/cultivo/vpd'
     | '/app/cultivo/camillas/$id'
     | '/app/cultivo/camillas/nueva'
+    | '/app/cultivo/clonador/$id'
+    | '/app/cultivo/clonador/nueva'
     | '/app/cultivo/cosechas/nueva'
     | '/app/cultivo/geneticas/$id'
     | '/app/cultivo/geneticas/nueva'
@@ -464,6 +497,7 @@ export interface FileRouteTypes {
     | '/app/cultivo/ambiente'
     | '/app/cultivo/calendario'
     | '/app/cultivo/camillas'
+    | '/app/cultivo/clonador'
     | '/app/cultivo/cosechas'
     | '/app/cultivo/geneticas'
     | '/app/cultivo/madres'
@@ -474,6 +508,8 @@ export interface FileRouteTypes {
     | '/app/cultivo/vpd'
     | '/app/cultivo/camillas/$id'
     | '/app/cultivo/camillas/nueva'
+    | '/app/cultivo/clonador/$id'
+    | '/app/cultivo/clonador/nueva'
     | '/app/cultivo/cosechas/nueva'
     | '/app/cultivo/geneticas/$id'
     | '/app/cultivo/geneticas/nueva'
@@ -678,6 +714,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCultivoCosechasRouteImport
       parentRoute: typeof AppCultivoRoute
     }
+    '/app/cultivo/clonador': {
+      id: '/app/cultivo/clonador'
+      path: '/clonador'
+      fullPath: '/app/cultivo/clonador'
+      preLoaderRoute: typeof AppCultivoClonadorRouteImport
+      parentRoute: typeof AppCultivoRoute
+    }
     '/app/cultivo/camillas': {
       id: '/app/cultivo/camillas'
       path: '/camillas'
@@ -741,6 +784,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCultivoCosechasNuevaRouteImport
       parentRoute: typeof AppCultivoCosechasRoute
     }
+    '/app/cultivo/clonador/nueva': {
+      id: '/app/cultivo/clonador/nueva'
+      path: '/nueva'
+      fullPath: '/app/cultivo/clonador/nueva'
+      preLoaderRoute: typeof AppCultivoClonadorNuevaRouteImport
+      parentRoute: typeof AppCultivoClonadorRoute
+    }
+    '/app/cultivo/clonador/$id': {
+      id: '/app/cultivo/clonador/$id'
+      path: '/$id'
+      fullPath: '/app/cultivo/clonador/$id'
+      preLoaderRoute: typeof AppCultivoClonadorIdRouteImport
+      parentRoute: typeof AppCultivoClonadorRoute
+    }
     '/app/cultivo/camillas/nueva': {
       id: '/app/cultivo/camillas/nueva'
       path: '/nueva'
@@ -770,6 +827,19 @@ const AppCultivoCamillasRouteChildren: AppCultivoCamillasRouteChildren = {
 
 const AppCultivoCamillasRouteWithChildren =
   AppCultivoCamillasRoute._addFileChildren(AppCultivoCamillasRouteChildren)
+
+interface AppCultivoClonadorRouteChildren {
+  AppCultivoClonadorIdRoute: typeof AppCultivoClonadorIdRoute
+  AppCultivoClonadorNuevaRoute: typeof AppCultivoClonadorNuevaRoute
+}
+
+const AppCultivoClonadorRouteChildren: AppCultivoClonadorRouteChildren = {
+  AppCultivoClonadorIdRoute: AppCultivoClonadorIdRoute,
+  AppCultivoClonadorNuevaRoute: AppCultivoClonadorNuevaRoute,
+}
+
+const AppCultivoClonadorRouteWithChildren =
+  AppCultivoClonadorRoute._addFileChildren(AppCultivoClonadorRouteChildren)
 
 interface AppCultivoCosechasRouteChildren {
   AppCultivoCosechasNuevaRoute: typeof AppCultivoCosechasNuevaRoute
@@ -824,6 +894,7 @@ interface AppCultivoRouteChildren {
   AppCultivoAmbienteRoute: typeof AppCultivoAmbienteRoute
   AppCultivoCalendarioRoute: typeof AppCultivoCalendarioRoute
   AppCultivoCamillasRoute: typeof AppCultivoCamillasRouteWithChildren
+  AppCultivoClonadorRoute: typeof AppCultivoClonadorRouteWithChildren
   AppCultivoCosechasRoute: typeof AppCultivoCosechasRouteWithChildren
   AppCultivoGeneticasRoute: typeof AppCultivoGeneticasRouteWithChildren
   AppCultivoMadresRoute: typeof AppCultivoMadresRoute
@@ -838,6 +909,7 @@ const AppCultivoRouteChildren: AppCultivoRouteChildren = {
   AppCultivoAmbienteRoute: AppCultivoAmbienteRoute,
   AppCultivoCalendarioRoute: AppCultivoCalendarioRoute,
   AppCultivoCamillasRoute: AppCultivoCamillasRouteWithChildren,
+  AppCultivoClonadorRoute: AppCultivoClonadorRouteWithChildren,
   AppCultivoCosechasRoute: AppCultivoCosechasRouteWithChildren,
   AppCultivoGeneticasRoute: AppCultivoGeneticasRouteWithChildren,
   AppCultivoMadresRoute: AppCultivoMadresRoute,

@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useSortable } from "@/hooks/useSortable";
+import { SortHead } from "@/components/ui/sort-head";
 import { deleteGenetics, getGenetics } from "@/services/geneticsService";
 import type { Genetics } from "@/types/cultivation";
 
@@ -30,6 +32,8 @@ function GeneticsPage() {
 
     void loadData();
   }, []);
+
+  const { sorted, col: sCol, dir: sDir, toggle: sort } = useSortable(genetics);
 
   if (location.pathname !== "/app/cultivo/geneticas") {
     return <Outlet />;
@@ -76,21 +80,21 @@ function GeneticsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Breeder</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>THC %</TableHead>
-                    <TableHead>Sativa %</TableHead>
-                    <TableHead>Indica %</TableHead>
-                    <TableHead>Sabor</TableHead>
-                    <TableHead>Efecto</TableHead>
-                    <TableHead>Aroma</TableHead>
+                    <SortHead label="Nombre"   sortKey="name"          col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Breeder"  sortKey="breeder"       col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Tipo"     sortKey="type"          col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="THC %"    sortKey="thcPercent"    col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Sativa %" sortKey="sativaPercent" col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Indica %" sortKey="indicaPercent" col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Sabor"    sortKey="taste"         col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Efecto"   sortKey="effect"        col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Aroma"    sortKey="aroma"         col={sCol} dir={sDir} onSort={sort} />
                     <TableHead>Observaciones</TableHead>
                     <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {genetics.map((item) => (
+                  {sorted.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">
                         <Link to="/app/cultivo/geneticas/$id" params={{ id: item.id }} className="hover:underline">
@@ -123,21 +127,19 @@ function GeneticsPage() {
                         <ExpandableTextCell title={`Observaciones de ${item.name}`} text={item.notes} className="max-w-[180px]" />
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-center gap-1 whitespace-nowrap">
-                          <Button asChild variant="ghost" size="sm" className="gap-1 text-emerald-700 hover:text-emerald-800">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" asChild>
                             <Link to="/app/cultivo/geneticas/$id" params={{ id: item.id }}>
                               <Pencil className="h-4 w-4" />
-                              Editar
                             </Link>
                           </Button>
                           <Button
                             variant="ghost"
-                            size="sm"
-                            className="gap-1 text-destructive hover:text-destructive"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
                             onClick={() => setDeleteTarget(item)}
                           >
                             <Trash2 className="h-4 w-4" />
-                            Eliminar
                           </Button>
                         </div>
                       </TableCell>

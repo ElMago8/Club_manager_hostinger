@@ -205,23 +205,47 @@ export type Movement = StockMovement;
 export type Alert = Notification;
 
 export type MemberStatus = "active" | "pending" | "suspended" | "inactive";
+export type DocumentType = "credencial" | "dni_frente" | "dni_dorso" | "reprocann" | "certificado_medico" | "autorizacion" | "otro";
+export type DocumentStatus = "vigente" | "por_vencer" | "vencido" | "pendiente" | "inactivo";
+
+export interface MemberDocument {
+  id: string;
+  socioId: string;
+  tipoDocumento: DocumentType;
+  numeroDocumento?: string;
+  fechaEmision?: string;
+  fechaVencimiento?: string;
+  estado: DocumentStatus;
+  archivoUrl?: string;
+  nombreArchivo?: string;
+  mimeType?: string;
+  tamanioBytes?: number;
+  subidoEn?: string;
+  observaciones?: string;
+  creadoEn: string;
+}
 
 export interface Member {
   id: string;
   firstName: string;
   lastName: string;
   fullName: string;
-  dni: string;
+  dni?: string;
   credentialCode: string;
   status: MemberStatus;
   monthlyQuotaGrams: number;
   currentMonthUsageGrams: number;
   registrationDate: string;
-  reprocannExpirationDate: string;
-  medicalDocumentExpirationDate: string;
-  phone: string;
-  email: string;
-  notes: string;
+  reprocannExpirationDate?: string;
+  medicalDocumentExpirationDate?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  localidad?: string;
+  provincia?: string;
+  birthDate?: string;
+  notes?: string;
+  documents?: MemberDocument[];
 }
 
 export type AuditLevel = "informativo" | "medio" | "critico";
