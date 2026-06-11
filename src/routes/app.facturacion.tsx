@@ -163,6 +163,18 @@ function memberLabel(member: BillingMember) {
   return `${member.codigoSocio} · ${member.nombreCompleto}${member.dni ? ` · DNI ${member.dni}` : ""}`;
 }
 
+function formatCondicionIva(value: string) {
+  const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (normalized === "consumidor_final" || normalized.includes("consumidor")) return "Cons F";
+
+  const labels: Record<string, string> = {
+    monotributista: "Mono",
+    responsable_inscripto: "Resp Ins",
+    exento: "Exento",
+  };
+  return labels[normalized] ?? value;
+}
+
 function compareValues(a: unknown, b: unknown) {
   if (typeof a === "number" && typeof b === "number") return a - b;
   return String(a ?? "").localeCompare(String(b ?? ""), "es", { numeric: true, sensitivity: "base" });
@@ -175,7 +187,7 @@ function invoiceSortValue(invoice: BillingInvoice, key: InvoiceSortKey) {
   if (key === "socio") return invoice.socio?.nombreCompleto ?? invoice.razonSocial ?? "";
   if (key === "codigoSocio") return invoice.socio?.codigoSocio ?? "";
   if (key === "documento") return invoice.cuitDni ?? "";
-  if (key === "condicionIva") return invoice.condicionIva;
+  if (key === "condicionIva") return formatCondicionIva(invoice.condicionIva);
   if (key === "concepto") return invoice.concepto;
   if (key === "total") return invoice.total;
   if (key === "estadoArca") return ARCA_LABEL[invoice.estadoArca];
@@ -224,8 +236,8 @@ function FacturacionPage() {
   const [saving, setSaving] = useState(false);
   const [sortKey, setSortKey] = useState<InvoiceSortKey>("fecha");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [showFacturado, setShowFacturado] = useState(true);
-  const [showPendiente, setShowPendiente] = useState(true);
+  const [showFacturado, setShowFacturado] = useState(false);
+  const [showPendiente, setShowPendiente] = useState(false);
   const [fechaInput, setFechaInput] = useState(formatDateForInput(today));
   const [newForm, setNewForm] = useState<NewForm>({
     socioId: "",
@@ -386,8 +398,8 @@ function FacturacionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-6 pb-10">
-      <div className="rounded-xl border bg-card px-6 py-5 shadow-sm">
+    <div className="mx-auto max-w-[1400px] space-y-4 pb-8">
+      <div className="rounded-xl border bg-card px-4 py-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
             <Badge variant="outline" className="gap-1.5 border-amber-300 bg-amber-500/10 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
@@ -414,7 +426,7 @@ function FacturacionPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <SummaryCard title="Comprobantes del mes" value={String(stats.count)} description={`${stats.socios} socios facturados`} icon={<FileText className="h-4 w-4" />} />
         <SummaryCard
           title="Facturado del mes"
@@ -436,14 +448,14 @@ function FacturacionPage() {
 
       <Card>
         <CardContent className="pt-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative min-w-[220px] flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[200px] flex-1">
               <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input className="pl-8" placeholder="Buscar por socio, codigo, DNI, comprobante o CAE" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Filter className="h-3.5 w-3.5" /> Filtrar:</div>
             <Select value={filterPeriodo} onValueChange={(v) => setFilterPeriodo(v as Periodo)}>
-              <SelectTrigger className="w-[150px]"><Calendar className="mr-1.5 h-3.5 w-3.5" /><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[135px]"><Calendar className="mr-1.5 h-3.5 w-3.5" /><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="mes">Este mes</SelectItem>
                 <SelectItem value="30dias">Ultimos 30 dias</SelectItem>
@@ -452,21 +464,21 @@ function FacturacionPage() {
               </SelectContent>
             </Select>
             <Select value={filterArca} onValueChange={(v) => setFilterArca(v as typeof filterArca)}>
-              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[135px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">ARCA · Todos</SelectItem>
                 {Object.entries(ARCA_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterCobro} onValueChange={(v) => setFilterCobro(v as typeof filterCobro)}>
-              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[135px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Cobro · Todos</SelectItem>
                 {Object.entries(COBRO_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterTipo} onValueChange={(v) => setFilterTipo(v as typeof filterTipo)}>
-              <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Tipo · Todos</SelectItem>
                 {Object.entries(TYPE_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
@@ -498,7 +510,7 @@ function FacturacionPage() {
                   <InvoiceSortHead label="Total" sortKey="total" activeKey={sortKey} dir={sortDir} onSort={handleSort} className="text-right" />
                   <InvoiceSortHead label="Estado ARCA" sortKey="estadoArca" activeKey={sortKey} dir={sortDir} onSort={handleSort} className="text-center" />
                   <InvoiceSortHead label="Estado cobro" sortKey="estadoCobro" activeKey={sortKey} dir={sortDir} onSort={handleSort} className="text-center" />
-                  <TableHead className="text-center">Acciones</TableHead>
+                  <TableHead className="h-9 px-2 text-center text-xs">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -508,20 +520,20 @@ function FacturacionPage() {
                   <TableRow><TableCell colSpan={12} className="py-12 text-center text-sm text-muted-foreground">No hay comprobantes que coincidan con los filtros aplicados.</TableCell></TableRow>
                 ) : sorted.map((c) => (
                   <TableRow key={c.id}>
-                    <TableCell className="whitespace-nowrap text-sm">{c.fechaEmision}</TableCell>
-                    <TableCell className="whitespace-nowrap text-sm">{TYPE_LABEL[c.tipoComprobante]}</TableCell>
-                    <TableCell className="font-mono text-xs">{c.numeroComprobante ?? c.codigoComprobante}</TableCell>
-                    <TableCell><span className="text-sm font-medium">{c.socio?.nombreCompleto ?? c.razonSocial ?? "-"}</span></TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{c.socio?.codigoSocio ?? "-"}</TableCell>
-                    <TableCell className="font-mono text-xs">{c.cuitDni ?? "-"}</TableCell>
-                    <TableCell className="text-xs">{c.condicionIva}</TableCell>
-                    <TableCell className="max-w-[220px] truncate text-sm">{c.concepto}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right text-sm font-medium">
+                    <TableCell className="whitespace-nowrap px-2 py-2 text-xs">{c.fechaEmision}</TableCell>
+                    <TableCell className="whitespace-nowrap px-2 py-2 text-xs">{TYPE_LABEL[c.tipoComprobante]}</TableCell>
+                    <TableCell className="px-2 py-2 font-mono text-xs">{c.numeroComprobante ?? c.codigoComprobante}</TableCell>
+                    <TableCell className="px-2 py-2"><span className="text-xs font-medium">{c.socio?.nombreCompleto ?? c.razonSocial ?? "-"}</span></TableCell>
+                    <TableCell className="px-2 py-2 text-xs text-muted-foreground">{c.socio?.codigoSocio ?? "-"}</TableCell>
+                    <TableCell className="px-2 py-2 font-mono text-xs">{c.cuitDni ?? "-"}</TableCell>
+                    <TableCell className="px-2 py-2 text-xs">{formatCondicionIva(c.condicionIva)}</TableCell>
+                    <TableCell className="max-w-[180px] truncate px-2 py-2 text-xs">{c.concepto}</TableCell>
+                    <TableCell className="whitespace-nowrap px-2 py-2 text-right text-xs font-medium">
                       <span className={c.total < 0 ? "text-red-600 dark:text-red-400" : ""}>{formatCurrency(c.total)}</span>
                     </TableCell>
-                    <TableCell className="text-center"><Badge variant="outline" className={`text-xs ${ARCA_CLASS[c.estadoArca]}`}>{ARCA_LABEL[c.estadoArca]}</Badge></TableCell>
-                    <TableCell className="text-center"><Badge variant="outline" className={`text-xs ${COBRO_CLASS[c.estadoCobro]}`}>{COBRO_LABEL[c.estadoCobro]}</Badge></TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="px-2 py-2 text-center"><Badge variant="outline" className={`px-2 text-[11px] ${ARCA_CLASS[c.estadoArca]}`}>{ARCA_LABEL[c.estadoArca]}</Badge></TableCell>
+                    <TableCell className="px-2 py-2 text-center"><Badge variant="outline" className={`px-2 text-[11px] ${COBRO_CLASS[c.estadoCobro]}`}>{COBRO_LABEL[c.estadoCobro]}</Badge></TableCell>
+                    <TableCell className="px-2 py-2 text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -665,7 +677,7 @@ function InvoiceSortHead({
   const Icon = active ? (dir === "asc" ? ChevronUp : ChevronDown) : ChevronsUpDown;
 
   return (
-    <TableHead className={`select-none ${className}`}>
+    <TableHead className={`h-9 select-none px-2 text-xs ${className}`}>
       <button type="button" className={`inline-flex w-full items-center gap-1.5 ${justify}`} onClick={() => onSort(sortKey)}>
         <span>{label}</span>
         <Icon className={`h-3.5 w-3.5 ${active ? "text-primary" : "text-muted-foreground/70"}`} />
