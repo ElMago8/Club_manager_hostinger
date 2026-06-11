@@ -21,6 +21,7 @@ import { Route as AppPurchaseOrdersRouteImport } from './routes/app.purchase-ord
 import { Route as AppMovementsRouteImport } from './routes/app.movements'
 import { Route as AppLocationsRouteImport } from './routes/app.locations'
 import { Route as AppHelpRouteImport } from './routes/app.help'
+import { Route as AppFacturacionRouteImport } from './routes/app.facturacion'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppCultivoRouteImport } from './routes/app.cultivo'
 import { Route as AppCatalogRouteImport } from './routes/app.catalog'
@@ -109,6 +110,11 @@ const AppLocationsRoute = AppLocationsRouteImport.update({
 const AppHelpRoute = AppHelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFacturacionRoute = AppFacturacionRouteImport.update({
+  id: '/facturacion',
+  path: '/facturacion',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -268,6 +274,7 @@ export interface FileRoutesByFullPath {
   '/app/catalog': typeof AppCatalogRoute
   '/app/cultivo': typeof AppCultivoRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/facturacion': typeof AppFacturacionRoute
   '/app/help': typeof AppHelpRoute
   '/app/locations': typeof AppLocationsRoute
   '/app/movements': typeof AppMovementsRoute
@@ -310,6 +317,7 @@ export interface FileRoutesByTo {
   '/app/catalog': typeof AppCatalogRoute
   '/app/cultivo': typeof AppCultivoRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/facturacion': typeof AppFacturacionRoute
   '/app/help': typeof AppHelpRoute
   '/app/locations': typeof AppLocationsRoute
   '/app/movements': typeof AppMovementsRoute
@@ -354,6 +362,7 @@ export interface FileRoutesById {
   '/app/catalog': typeof AppCatalogRoute
   '/app/cultivo': typeof AppCultivoRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/facturacion': typeof AppFacturacionRoute
   '/app/help': typeof AppHelpRoute
   '/app/locations': typeof AppLocationsRoute
   '/app/movements': typeof AppMovementsRoute
@@ -399,6 +408,7 @@ export interface FileRouteTypes {
     | '/app/catalog'
     | '/app/cultivo'
     | '/app/dashboard'
+    | '/app/facturacion'
     | '/app/help'
     | '/app/locations'
     | '/app/movements'
@@ -441,6 +451,7 @@ export interface FileRouteTypes {
     | '/app/catalog'
     | '/app/cultivo'
     | '/app/dashboard'
+    | '/app/facturacion'
     | '/app/help'
     | '/app/locations'
     | '/app/movements'
@@ -484,6 +495,7 @@ export interface FileRouteTypes {
     | '/app/catalog'
     | '/app/cultivo'
     | '/app/dashboard'
+    | '/app/facturacion'
     | '/app/help'
     | '/app/locations'
     | '/app/movements'
@@ -607,6 +619,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/app/help'
       preLoaderRoute: typeof AppHelpRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/facturacion': {
+      id: '/app/facturacion'
+      path: '/facturacion'
+      fullPath: '/app/facturacion'
+      preLoaderRoute: typeof AppFacturacionRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/dashboard': {
@@ -932,6 +951,7 @@ interface AppRouteChildren {
   AppCatalogRoute: typeof AppCatalogRoute
   AppCultivoRoute: typeof AppCultivoRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
+  AppFacturacionRoute: typeof AppFacturacionRoute
   AppHelpRoute: typeof AppHelpRoute
   AppLocationsRoute: typeof AppLocationsRoute
   AppMovementsRoute: typeof AppMovementsRoute
@@ -952,6 +972,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCatalogRoute: AppCatalogRoute,
   AppCultivoRoute: AppCultivoRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
+  AppFacturacionRoute: AppFacturacionRoute,
   AppHelpRoute: AppHelpRoute,
   AppLocationsRoute: AppLocationsRoute,
   AppMovementsRoute: AppMovementsRoute,

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { Eye, Plus } from "lucide-react";
+import { Eye, MoreVertical, Plus } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,24 +160,24 @@ function GrowBedsPage() {
           <CardTitle>Listado de camillas</CardTitle>
           <CardDescription>Datos conectados al backend local de cultivo.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto rounded-md border [&_td]:text-center [&_th]:text-center">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto rounded-b-md border-t [&_td]:text-center [&_th]:text-center [&_td]:px-2 [&_th]:px-2 [&_td]:py-2 [&_th]:py-2">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <SortHead label="Nombre"           sortKey="name"              col={sCol} dir={sDir} onSort={sort} />
-                  <SortHead label="Codigo"           sortKey="code"              col={sCol} dir={sDir} onSort={sort} />
-                  <SortHead label="Sala"             sortKey="_roomName"         col={sCol} dir={sDir} onSort={sort} />
-                  <SortHead label="Estado"           sortKey="status"            col={sCol} dir={sDir} onSort={sort} />
-                  <SortHead label="Capacidad maxima" sortKey="maxPlants"         col={sCol} dir={sDir} onSort={sort} />
-                  <SortHead label="Plantas actuales" sortKey="currentPlants"     col={sCol} dir={sDir} onSort={sort} />
-                  <TableHead>PH sustrato</TableHead>
-                  <TableHead>PPM sustrato</TableHead>
-                  <TableHead>PH liquido</TableHead>
-                  <TableHead>PPM liquido</TableHead>
-                  <TableHead>Estado parametros</TableHead>
-                  <SortHead label="Lote principal"   sortKey="mainBatchId"       col={sCol} dir={sDir} onSort={sort} />
-                  <SortHead label="Responsable"      sortKey="responsibleUserId" col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Nombre"    sortKey="name"              col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Codigo"    sortKey="code"              col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Sala"      sortKey="_roomName"         col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Estado"    sortKey="status"            col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label={<span className="flex flex-col items-center leading-tight"><span>Capacidad</span><span>máxima</span></span>} sortKey="maxPlants"         col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label={<span className="flex flex-col items-center leading-tight"><span>Plantas</span><span>actuales</span></span>} sortKey="currentPlants"     col={sCol} dir={sDir} onSort={sort} />
+                  <TableHead><span className="flex flex-col items-center leading-tight"><span>PH</span><span>sustrato</span></span></TableHead>
+                  <TableHead><span className="flex flex-col items-center leading-tight"><span>PPM</span><span>sustrato</span></span></TableHead>
+                  <TableHead><span className="flex flex-col items-center leading-tight"><span>PH</span><span>líquido</span></span></TableHead>
+                  <TableHead><span className="flex flex-col items-center leading-tight"><span>PPM</span><span>líquido</span></span></TableHead>
+                  <TableHead><span className="flex flex-col items-center leading-tight"><span>Estado</span><span>parámetros</span></span></TableHead>
+                  <SortHead label={<span className="flex flex-col items-center leading-tight"><span>Lote</span><span>principal</span></span>} sortKey="mainBatchId"       col={sCol} dir={sDir} onSort={sort} />
+                  <SortHead label="Responsable" sortKey="responsibleUserId" col={sCol} dir={sDir} onSort={sort} />
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -205,14 +206,21 @@ function GrowBedsPage() {
                       <TableCell className="font-mono text-xs">{bed.mainBatchId ?? "-"}</TableCell>
                       <TableCell>{bed.responsibleUserId ?? "Sin asignar"}</TableCell>
                       <TableCell>
-                        <div className="flex justify-center gap-1 whitespace-nowrap">
-                          <Button asChild variant="ghost" size="sm" className="gap-1">
-                            <Link to="/app/cultivo/camillas/$id" params={{ id: bed.id }}>
-                              <Eye className="h-4 w-4" />
-                            Ver
-                            </Link>
-                          </Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link to="/app/cultivo/camillas/$id" params={{ id: bed.id }}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Ver detalles
+                              </Link>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );

@@ -11,6 +11,7 @@ interface ApiHarvest {
   codigoCosecha?: string;
   batchId?: string;
   loteCultivoId?: number | null;
+  salaCultivoId?: number | null;
   status?: HarvestStatus;
   estado?: HarvestStatus;
   harvestDate?: string;
@@ -21,16 +22,15 @@ interface ApiHarvest {
   pesoSecoGramos?: number | null;
   shrinkageGrams?: number | null;
   pesoMermaGramos?: number | null;
-  cultivationType?: string | null;
-  entornoCultivo?: string | null;
-  growMedium?: string | null;
-  tipoCultivo?: string | null;
+  secadoInicioEn?: string | null;
+  curadoInicioEn?: string | null;
   notes?: string | null;
   observaciones?: string | null;
+  salaCultivo?: { nombre: string; entornoCultivo?: string | null; tipoCultivo?: string | null } | null;
   loteCultivo?: {
     codigoLote?: string;
     genetica?: { nombre: string } | null;
-    salaCultivo?: { nombre: string } | null;
+    salaCultivo?: { nombre: string; entornoCultivo?: string | null; tipoCultivo?: string | null } | null;
   } | null;
 }
 
@@ -41,14 +41,17 @@ function mapApiHarvest(item: ApiHarvest): Harvest {
     batchId: item.loteCultivoId ? String(item.loteCultivoId) : (item.batchId ?? ""),
     batchCode: item.loteCultivo?.codigoLote,
     geneticsName: item.loteCultivo?.genetica?.nombre,
-    roomName: item.loteCultivo?.salaCultivo?.nombre,
+    roomId: item.salaCultivoId ? String(item.salaCultivoId) : undefined,
+    roomName: item.salaCultivo?.nombre ?? item.loteCultivo?.salaCultivo?.nombre,
     harvestDate: (item.fechaCosecha ?? item.harvestDate ?? "").slice(0, 10),
     wetWeightGrams: item.pesoHumedoGramos ?? item.wetWeightGrams ?? undefined,
     dryWeightGrams: item.pesoSecoGramos ?? item.dryWeightGrams ?? undefined,
     shrinkageGrams: item.pesoMermaGramos ?? item.shrinkageGrams ?? undefined,
-    cultivationType: item.entornoCultivo ?? item.cultivationType ?? undefined,
-    growMedium: item.tipoCultivo ?? item.growMedium ?? undefined,
+    cultivationType: item.salaCultivo?.entornoCultivo ?? item.loteCultivo?.salaCultivo?.entornoCultivo ?? undefined,
+    growMedium: item.salaCultivo?.tipoCultivo ?? item.loteCultivo?.salaCultivo?.tipoCultivo ?? undefined,
     status: item.estado ?? item.status ?? "registrada",
+    secadoInicioEn: item.secadoInicioEn ?? undefined,
+    curadoInicioEn: item.curadoInicioEn ?? undefined,
     notes: item.observaciones ?? item.notes ?? undefined,
   };
 }
@@ -57,13 +60,14 @@ function toApiPayload(payload: CreateHarvestPayload | UpdateHarvestPayload) {
   return {
     codigoCosecha: payload.code,
     loteCultivoId: payload.batchId ? Number(payload.batchId) : undefined,
-    entornoCultivo: payload.cultivationType ?? null,
-    tipoCultivo: payload.growMedium ?? null,
+    salaCultivoId: payload.roomId ? Number(payload.roomId) : null,
     estado: payload.status,
     fechaCosecha: payload.harvestDate,
     pesoHumedoGramos: payload.wetWeightGrams ?? null,
     pesoSecoGramos: payload.dryWeightGrams ?? null,
     pesoMermaGramos: payload.shrinkageGrams ?? null,
+    secadoInicioEn: payload.secadoInicioEn ?? undefined,
+    curadoInicioEn: payload.curadoInicioEn ?? undefined,
     observaciones: payload.notes?.trim() || null,
   };
 }

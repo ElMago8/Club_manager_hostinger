@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { ExpandableTextCell } from "@/components/cultivation/ExpandableTextCell";
 import { CultivationStatusMessage } from "@/components/cultivation/RelationshipWarning";
@@ -11,12 +12,42 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useSortable } from "@/hooks/useSortable";
 import { SortHead } from "@/components/ui/sort-head";
 import { deleteGenetics, getGenetics } from "@/services/geneticsService";
-import type { Genetics } from "@/types/cultivation";
+import type { CannabinoidProfile, Genetics } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/geneticas")({
   head: () => ({ meta: [{ title: "Geneticas - Cannabis Club Manager" }] }),
   component: GeneticsPage,
 });
+
+const DOMINANT_LABEL: Record<Genetics["dominantProfile"], string> = {
+  indica: "Índica",
+  sativa: "Sativa",
+  hibrida: "Híbrida",
+  desconocida: "Desconocida",
+};
+
+const DOMINANT_CLASS: Record<Genetics["dominantProfile"], string> = {
+  indica: "border-violet-200 bg-violet-500/10 text-violet-700",
+  sativa: "border-green-200 bg-green-500/10 text-green-700",
+  hibrida: "border-amber-200 bg-amber-500/10 text-amber-700",
+  desconocida: "border-muted bg-muted text-muted-foreground",
+};
+
+const CANNABINOID_LABEL: Record<NonNullable<CannabinoidProfile>, string> = {
+  thc_dominante: "THC dominante",
+  cbd_dominante: "CBD dominante",
+  balanceada_thc_cbd: "Balanceada THC:CBD",
+  cbg: "CBG",
+  desconocida: "Desconocida",
+};
+
+const CANNABINOID_CLASS: Record<NonNullable<CannabinoidProfile>, string> = {
+  thc_dominante: "border-amber-200 bg-amber-500/10 text-amber-700",
+  cbd_dominante: "border-sky-200 bg-sky-500/10 text-sky-700",
+  balanceada_thc_cbd: "border-emerald-200 bg-emerald-500/10 text-emerald-700",
+  cbg: "border-teal-200 bg-teal-500/10 text-teal-700",
+  desconocida: "border-muted bg-muted text-muted-foreground",
+};
 
 function GeneticsPage() {
   const location = useLocation();
@@ -80,15 +111,14 @@ function GeneticsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <SortHead label="Nombre"   sortKey="name"          col={sCol} dir={sDir} onSort={sort} />
-                    <SortHead label="Breeder"  sortKey="breeder"       col={sCol} dir={sDir} onSort={sort} />
-                    <SortHead label="Tipo"     sortKey="type"          col={sCol} dir={sDir} onSort={sort} />
-                    <SortHead label="THC %"    sortKey="thcPercent"    col={sCol} dir={sDir} onSort={sort} />
-                    <SortHead label="Sativa %" sortKey="sativaPercent" col={sCol} dir={sDir} onSort={sort} />
-                    <SortHead label="Indica %" sortKey="indicaPercent" col={sCol} dir={sDir} onSort={sort} />
-                    <SortHead label="Sabor"    sortKey="taste"         col={sCol} dir={sDir} onSort={sort} />
-                    <SortHead label="Efecto"   sortKey="effect"        col={sCol} dir={sDir} onSort={sort} />
-                    <SortHead label="Aroma"    sortKey="aroma"         col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Nombre"             sortKey="name"              col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Breeder"            sortKey="breeder"           col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="THC %"              sortKey="thcPercent"        col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="CBD %"              sortKey="cbdPercent"        col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Sativa %"           sortKey="sativaPercent"     col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Indica %"           sortKey="indicaPercent"     col={sCol} dir={sDir} onSort={sort} />
+                    <SortHead label="Predominancia"      sortKey="dominantProfile"   col={sCol} dir={sDir} onSort={sort} />
+                    <TableHead>Perfil cannabinoide</TableHead>
                     <TableHead>Observaciones</TableHead>
                     <TableHead>Acciones</TableHead>
                   </TableRow>
@@ -102,10 +132,8 @@ function GeneticsPage() {
                         </Link>
                       </TableCell>
                       <TableCell>{item.breeder ?? "-"}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="capitalize">{item.type}</Badge>
-                      </TableCell>
                       <TableCell>{typeof item.thcPercent === "number" ? `${item.thcPercent}%` : "-"}</TableCell>
+                      <TableCell>{typeof item.cbdPercent === "number" ? `${item.cbdPercent}%` : "-"}</TableCell>
                       <TableCell>
                         {typeof item.sativaPercent === "number" ? (
                           <Badge className="border-green-500/40 bg-green-500/10 text-green-700 hover:bg-green-500/10 dark:text-green-300">
@@ -120,28 +148,48 @@ function GeneticsPage() {
                           </Badge>
                         ) : "-"}
                       </TableCell>
-                      <TableCell>{item.taste ?? "-"}</TableCell>
-                      <TableCell>{item.effect ?? "-"}</TableCell>
-                      <TableCell>{item.aroma ?? "-"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={DOMINANT_CLASS[item.dominantProfile]}>
+                          {DOMINANT_LABEL[item.dominantProfile]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {item.cannabinoidProfile ? (
+                          <Badge variant="outline" className={CANNABINOID_CLASS[item.cannabinoidProfile]}>
+                            {CANNABINOID_LABEL[item.cannabinoidProfile]}
+                          </Badge>
+                        ) : "-"}
+                      </TableCell>
                       <TableCell>
                         <ExpandableTextCell title={`Observaciones de ${item.name}`} text={item.notes} className="max-w-[180px]" />
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link to="/app/cultivo/geneticas/$id" params={{ id: item.id }}>
-                              <Pencil className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setDeleteTarget(item)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link to="/app/cultivo/geneticas/$id" params={{ id: item.id }}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Ver
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link to="/app/cultivo/geneticas/$id" params={{ id: item.id }}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget(item)}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}

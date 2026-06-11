@@ -9,6 +9,7 @@ import {
   Settings,
   Leaf,
   ChevronDown,
+  Receipt,
 } from "lucide-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -40,6 +41,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Productos · Stock", href: "/app/catalog", icon: Package },
   { label: "Cultivo", href: "/app/cultivo", icon: Leaf },
   { label: "Movimientos", href: "/app/movements", icon: ArrowLeftRight },
+  { label: "Facturación ARCA", href: "/app/facturacion", icon: Receipt },
   { label: "Alertas", href: "/app/alertas", icon: BellRing },
   { label: "Usuarios y Roles", href: "/app/usuarios", icon: ShieldCheck },
   { label: "Auditoría", href: "/app/auditoria", icon: FileSearch },

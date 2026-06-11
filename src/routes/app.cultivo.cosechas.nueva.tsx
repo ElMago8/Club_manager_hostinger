@@ -1,33 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, Save, Wheat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { getBatches } from "@/services/batchService";
 import { createHarvest, getHarvestById, updateHarvest } from "@/services/harvestService";
-import type { Batch, HarvestStatus } from "@/types/cultivation";
-
-const PRESET_ENTORNOS = ["indoor", "outdoor", "invernadero"] as const;
-const PRESET_MEDIOS   = ["sustrato", "fibra_de_coco", "lana_de_roca", "hidroponia", "aeroponia"] as const;
-
-const MEDIO_LABEL: Record<string, string> = {
-  sustrato:      "Sustrato",
-  fibra_de_coco: "Fibra de coco",
-  lana_de_roca:  "Lana de roca",
-  hidroponia:    "Hidroponia",
-  aeroponia:     "Aeroponia",
-};
+import { getGrowRooms } from "@/services/growRoomService";
+import type { Batch, GrowRoom, HarvestStatus } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/cosechas/nueva")({
   head: () => ({ meta: [{ title: "Nueva cosecha - Cannabis Club Manager" }] }),
@@ -42,12 +25,11 @@ const today = new Date().toISOString().slice(0, 10);
 type HarvestForm = {
   code: string;
   batchId: string;
+  roomId: string;
   harvestDate: string;
   wetWeight: string;
   dryWeight: string;
   shrinkage: string;
-  cultivationType: string;   // Entorno de cultivo
-  growMedium: string;        // Tipo de cultivo
   status: HarvestStatus;
   notes: string;
 };
@@ -55,12 +37,11 @@ type HarvestForm = {
 const initialForm: HarvestForm = {
   code: "",
   batchId: "",
+  roomId: "",
   harvestDate: today,
   wetWeight: "",
   dryWeight: "",
   shrinkage: "",
-  cultivationType: "",
-  growMedium: "",
   status: "en_secado",
   notes: "",
 };
@@ -70,21 +51,17 @@ function NewHarvestPage() {
   const { edit: editId } = useSearch({ from: "/app/cultivo/cosechas/nueva" });
   const [form, setForm] = useState<HarvestForm>(initialForm);
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [rooms, setRooms] = useState<GrowRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [customTypeOpen, setCustomTypeOpen] = useState(false);
-  const [customTypeInput, setCustomTypeInput] = useState("");
-  const customTypeRef = useRef<HTMLInputElement>(null);
-  const [customMediumOpen, setCustomMediumOpen] = useState(false);
-  const [customMediumInput, setCustomMediumInput] = useState("");
-  const customMediumRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const batchList = await getBatches();
+        const [batchList, roomList] = await Promise.all([getBatches(), getGrowRooms()]);
         setBatches(batchList);
+        setRooms(roomList);
 
         if (editId) {
           const harvest = await getHarvestById(editId);
@@ -95,12 +72,11 @@ function NewHarvestPage() {
           setForm({
             code: harvest.code,
             batchId: harvest.batchId,
+            roomId: harvest.roomId ?? "",
             harvestDate: harvest.harvestDate,
             wetWeight: harvest.wetWeightGrams != null ? String(harvest.wetWeightGrams) : "",
             dryWeight: harvest.dryWeightGrams != null ? String(harvest.dryWeightGrams) : "",
             shrinkage: harvest.shrinkageGrams != null ? String(harvest.shrinkageGrams) : "",
-            cultivationType: harvest.cultivationType ?? "",
-            growMedium: harvest.growMedium ?? "",
             status: harvest.status,
             notes: harvest.notes ?? "",
           });
@@ -153,13 +129,11 @@ function NewHarvestPage() {
         batchId: form.batchId,
         batchCode: selectedBatch?.code,
         geneticsName: selectedBatch?.geneticsName,
-        roomName: selectedBatch?.roomName,
+        roomId: form.roomId || undefined,
         harvestDate: form.harvestDate,
         wetWeightGrams,
         dryWeightGrams,
         shrinkageGrams,
-        cultivationType: form.cultivationType || undefined,
-        growMedium: form.growMedium || undefined,
         status: form.status,
         notes: form.notes.trim() || undefined,
       };
@@ -260,62 +234,21 @@ function NewHarvestPage() {
                 </Select>
               </div>
 
-              {/* Entorno de cultivo */}
-              <div className="space-y-2">
-                <Label htmlFor="cultivationType">Entorno de cultivo</Label>
-                <Select
-                  value={
-                    PRESET_ENTORNOS.includes(form.cultivationType as typeof PRESET_ENTORNOS[number])
-                      ? form.cultivationType
-                      : form.cultivationType ? "otro" : ""
-                  }
-                  onValueChange={(val) => {
-                    if (val === "otro") { setCustomTypeInput(""); setCustomTypeOpen(true); }
-                    else set("cultivationType", val);
-                  }}
-                >
-                  <SelectTrigger id="cultivationType">
-                    <SelectValue placeholder="Seleccionar entorno">
-                      {form.cultivationType && !PRESET_ENTORNOS.includes(form.cultivationType as typeof PRESET_ENTORNOS[number])
-                        ? form.cultivationType : undefined}
-                    </SelectValue>
+              {/* Sala de cultivo */}
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="roomId">Sala de cultivo</Label>
+                <Select value={form.roomId} onValueChange={(v) => set("roomId", v === "none" ? "" : v)}>
+                  <SelectTrigger id="roomId">
+                    <SelectValue placeholder="Seleccionar sala (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="indoor">Indoor</SelectItem>
-                    <SelectItem value="outdoor">Outdoor</SelectItem>
-                    <SelectItem value="invernadero">Invernadero</SelectItem>
-                    <SelectItem value="otro">Otro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Tipo de cultivo */}
-              <div className="space-y-2">
-                <Label htmlFor="growMedium">Tipo de cultivo</Label>
-                <Select
-                  value={
-                    PRESET_MEDIOS.includes(form.growMedium as typeof PRESET_MEDIOS[number])
-                      ? form.growMedium
-                      : form.growMedium ? "otro" : ""
-                  }
-                  onValueChange={(val) => {
-                    if (val === "otro") { setCustomMediumInput(""); setCustomMediumOpen(true); }
-                    else set("growMedium", val);
-                  }}
-                >
-                  <SelectTrigger id="growMedium">
-                    <SelectValue placeholder="Seleccionar tipo">
-                      {form.growMedium && !PRESET_MEDIOS.includes(form.growMedium as typeof PRESET_MEDIOS[number])
-                        ? form.growMedium : undefined}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sustrato">Sustrato</SelectItem>
-                    <SelectItem value="fibra_de_coco">Fibra de coco</SelectItem>
-                    <SelectItem value="lana_de_roca">Lana de roca</SelectItem>
-                    <SelectItem value="hidroponia">Hidroponia</SelectItem>
-                    <SelectItem value="aeroponia">Aeroponia</SelectItem>
-                    <SelectItem value="otro">Otro</SelectItem>
+                    <SelectItem value="none">Sin sala asignada</SelectItem>
+                    {rooms.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.name} · {r.code}
+                        {r.cultivationType ? ` · ${r.cultivationType}` : ""}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -404,97 +337,6 @@ function NewHarvestPage() {
           </Card>
         </form>
       )}
-
-      {/* Modal entorno personalizado */}
-      <Dialog open={customTypeOpen} onOpenChange={(open) => {
-        if (!open && !form.cultivationType) set("cultivationType", "");
-        setCustomTypeOpen(open);
-      }}>
-        <DialogContent className="sm:max-w-[380px]">
-          <DialogHeader>
-            <DialogTitle>Entorno de cultivo personalizado</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label htmlFor="customType">Describí el entorno de cultivo</Label>
-            <Input
-              id="customType"
-              ref={customTypeRef}
-              autoFocus
-              value={customTypeInput}
-              onChange={(e) => setCustomTypeInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  if (customTypeInput.trim()) {
-                    set("cultivationType", customTypeInput.trim());
-                    setCustomTypeOpen(false);
-                  }
-                }
-              }}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" className="cursor-pointer" onClick={() => setCustomTypeOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              className="cursor-pointer"
-              disabled={!customTypeInput.trim()}
-              onClick={() => {
-                set("cultivationType", customTypeInput.trim());
-                setCustomTypeOpen(false);
-              }}
-            >
-              Confirmar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      {/* Modal tipo de cultivo personalizado */}
-      <Dialog open={customMediumOpen} onOpenChange={(open) => {
-        if (!open && !form.growMedium) set("growMedium", "");
-        setCustomMediumOpen(open);
-      }}>
-        <DialogContent className="sm:max-w-[380px]">
-          <DialogHeader>
-            <DialogTitle>Tipo de cultivo personalizado</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label htmlFor="customMedium">Describí el tipo de cultivo</Label>
-            <Input
-              id="customMedium"
-              ref={customMediumRef}
-              autoFocus
-              value={customMediumInput}
-              onChange={(e) => setCustomMediumInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  if (customMediumInput.trim()) {
-                    set("growMedium", customMediumInput.trim());
-                    setCustomMediumOpen(false);
-                  }
-                }
-              }}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" className="cursor-pointer" onClick={() => setCustomMediumOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              className="cursor-pointer"
-              disabled={!customMediumInput.trim()}
-              onClick={() => {
-                set("growMedium", customMediumInput.trim());
-                setCustomMediumOpen(false);
-              }}
-            >
-              Confirmar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

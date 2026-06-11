@@ -368,6 +368,80 @@ async function main() {
   }
   console.log("  ✓ Documentos de prueba creados/actualizados");
 
+  // 7. Comprobantes de Facturacion ARCA demo.
+  const sociosFacturacion = await prisma.socio.findMany({
+    where: { estado: { not: "eliminado" } },
+    orderBy: { id: "asc" },
+    take: 6,
+  });
+
+  const comprobantesSeed = [
+    { tipoComprobante: "factura_c", codigoComprobante: "FAC-000001", numeroComprobante: "0001-00000001", concepto: "Cuota mensual socio", total: 30000, estadoArca: "aprobado", estadoCobro: "pagado" },
+    { tipoComprobante: "factura_c", codigoComprobante: "FAC-000002", numeroComprobante: "0001-00000002", concepto: "Cuota mensual socio", total: 40000, estadoArca: "aprobado", estadoCobro: "impago" },
+    { tipoComprobante: "factura_c", codigoComprobante: "FAC-000003", numeroComprobante: "0001-00000003", concepto: "Aporte mensual paciente", total: 50000, estadoArca: "pendiente", estadoCobro: "impago" },
+    { tipoComprobante: "nota_credito_c", codigoComprobante: "NC-000004", numeroComprobante: "0001-00000004", concepto: "Ajuste administrativo", total: -10000, estadoArca: "aprobado", estadoCobro: "pagado" },
+    { tipoComprobante: "factura_c", codigoComprobante: "FAC-000005", numeroComprobante: "0001-00000005", concepto: "Cuota mensual socio", total: 80000, estadoArca: "observado", estadoCobro: "parcial" },
+    { tipoComprobante: "factura_c", codigoComprobante: "FAC-000006", numeroComprobante: "0001-00000006", concepto: "Cuota mensual socio", total: 80000, estadoArca: "aprobado", estadoCobro: "vencido" },
+  ];
+
+  for (const [index, comprobante] of comprobantesSeed.entries()) {
+    const socio = sociosFacturacion[index];
+    if (!socio) continue;
+
+    const fechaEmision = new Date(hoy.getFullYear(), hoy.getMonth(), Math.min(index + 1, 28));
+    const vencimientoCae = comprobante.estadoArca === "aprobado" ? fecha(10 + index) : undefined;
+    const baseData = {
+      socioId: socio.id,
+      tipoComprobante: comprobante.tipoComprobante,
+      puntoVenta: "0001",
+      numeroComprobante: comprobante.numeroComprobante,
+      fechaEmision,
+      fechaVencimientoPago: fecha(15 + index),
+      concepto: comprobante.concepto,
+      condicionIva: "consumidor_final",
+      cuitDni: socio.dni,
+      razonSocial: `${socio.nombre} ${socio.apellido}`.trim(),
+      domicilio: socio.direccion,
+      subtotal: comprobante.total,
+      iva: 0,
+      total: comprobante.total,
+      moneda: "ARS",
+      estadoArca: comprobante.estadoArca,
+      estadoCobro: comprobante.estadoCobro,
+      cae: comprobante.estadoArca === "aprobado" ? `7285463729104${index}` : undefined,
+      vencimientoCae,
+      observaciones: "Comprobante demo ARCA simulado.",
+    };
+
+    await prisma.comprobanteFacturacion.upsert({
+      where: { codigoComprobante: comprobante.codigoComprobante },
+      update: baseData,
+      create: {
+        codigoComprobante: comprobante.codigoComprobante,
+        ...baseData,
+        items: {
+          create: [{
+            descripcion: comprobante.concepto,
+            cantidad: 1,
+            precioUnitario: Math.abs(comprobante.total),
+            subtotal: comprobante.total,
+          }],
+        },
+        pagos: comprobante.estadoCobro === "pagado"
+          ? {
+              create: [{
+                fechaPago: fechaEmision,
+                monto: Math.abs(comprobante.total),
+                medioPago: "efectivo",
+                observaciones: "Pago demo generado por seed.",
+              }],
+            }
+          : undefined,
+      },
+    });
+  }
+  console.log(`  ✓ ${Math.min(sociosFacturacion.length, comprobantesSeed.length)} comprobantes demo ARCA creados/actualizados`);
+
   console.log("");
   console.log("✅ Seed completado.");
   console.log("   RECORDATORIO: Cambiar contraseñas antes de producción.");

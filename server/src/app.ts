@@ -10,6 +10,7 @@ import { userRoutes } from "./modules/users/user.routes.js";
 import { roleRoutes } from "./modules/roles/role.routes.js";
 import { permissionRoutes } from "./modules/roles/permission.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
+import { billingRoutes } from "./modules/billing/billing.routes.js";
 
 export const app = express();
 
@@ -36,5 +37,6 @@ app.use("/api/users", userRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/permissions", permissionRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/billing", billingRoutes);
 
 app.use(errorHandler);

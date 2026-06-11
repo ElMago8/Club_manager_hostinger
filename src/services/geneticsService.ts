@@ -1,6 +1,6 @@
 import { genetics } from "@/data/cultivationMockData";
 import { apiRequest, withMockFallback } from "@/services/cultivationApi";
-import type { Genetics } from "@/types/cultivation";
+import type { CannabinoidProfile, Genetics } from "@/types/cultivation";
 
 export interface AssignGeneticsToBedPayload {
   bedId: string;
@@ -29,9 +29,13 @@ interface ApiGenetics {
   nombre?: string;
   name?: string;
   breeder?: string | null;
+  origen?: string | null;
   tipo?: string | null;
   type?: string | null;
+  perfilCannabionoide?: string | null;
   thcEstimado?: number | null;
+  cbdEstimado?: number | null;
+  tiempoFloracionDias?: number | null;
   sativaPorcentaje?: number | null;
   indicaPorcentaje?: number | null;
   sabor?: string | null;
@@ -89,15 +93,20 @@ function mapApiGenetics(item: ApiGenetics): Genetics {
     id: String(item.id),
     name: item.nombre ?? item.name ?? "",
     breeder: item.breeder ?? undefined,
+    origin: (["madre", "semilla", "esqueje"].includes(item.origen ?? "") ? item.origen : undefined) as Genetics["origin"],
     type: normalizeType(item.tipo ?? item.type),
     dominantProfile: dominantProfileFromPercentages(indicaPercent, sativaPercent),
+    cannabinoidProfile: (item.perfilCannabionoide ?? undefined) as CannabinoidProfile | undefined,
     thcPercent: item.thcEstimado ?? undefined,
+    cbdPercent: item.cbdEstimado ?? undefined,
+    floweringTimeDays: item.tiempoFloracionDias ?? undefined,
     sativaPercent,
     indicaPercent,
     taste: item.sabor ?? undefined,
     effect: item.efecto ?? undefined,
     aroma: item.aroma ?? undefined,
-    notes: item.observaciones ?? item.notes ?? item.descripcion ?? undefined,
+    description: item.descripcion ?? undefined,
+    notes: item.observaciones ?? item.notes ?? undefined,
   };
 }
 
@@ -109,13 +118,18 @@ function toApiGeneticsPayload(payload: CreateGeneticsPayload | UpdateGeneticsPay
     codigoGenetica: isCreatePayload && trimmedName ? createGeneticsCode(trimmedName) : undefined,
     nombre: trimmedName,
     breeder: optionalString(payload.breeder),
+    origen: optionalString(payload.origin),
     tipo: payload.type,
+    perfilCannabionoide: payload.cannabinoidProfile ?? null,
     thcEstimado: payload.thcPercent,
+    cbdEstimado: payload.cbdPercent,
+    tiempoFloracionDias: payload.floweringTimeDays,
     sativaPorcentaje: payload.sativaPercent,
     indicaPorcentaje: payload.indicaPercent,
     sabor: optionalString(payload.taste),
     efecto: optionalString(payload.effect),
     aroma: optionalString(payload.aroma),
+    descripcion: optionalString(payload.description),
     observaciones: optionalString(payload.notes),
   };
 }

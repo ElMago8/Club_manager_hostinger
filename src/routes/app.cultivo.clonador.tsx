@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { Eye, Plus } from "lucide-react";
+import { Eye, MoreVertical, Plus } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -216,14 +217,21 @@ function ClonadoresPage() {
                       {showLiquidPPM && <TableCell className="font-mono text-xs">{latest?.liquidPPM ?? "-"}</TableCell>}
                       <TableCell>{c.responsibleUserId ?? "Sin asignar"}</TableCell>
                       <TableCell>
-                        <div className="flex justify-center gap-1">
-                          <Button asChild variant="ghost" size="sm" className="gap-1">
-                            <Link to="/app/cultivo/clonador/$id" params={{ id: c.id }}>
-                              <Eye className="h-4 w-4" />
-                              Ver
-                            </Link>
-                          </Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link to="/app/cultivo/clonador/$id" params={{ id: c.id }}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Ver detalles
+                              </Link>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );

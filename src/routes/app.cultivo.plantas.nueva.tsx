@@ -355,15 +355,14 @@ function NewPlantPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Origen de la madre</Label>
+              <Label>Origen de la planta</Label>
               <Select value={form.origin} onValueChange={(origin) => setForm({ ...form, origin: origin as PlantOrigin })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="semilla">Semilla</SelectItem>
                   <SelectItem value="esqueje">Esqueje</SelectItem>
-                  <SelectItem value="madre_interna">Madre interna</SelectItem>
-                  <SelectItem value="compra_externa">Compra externa</SelectItem>
-                  <SelectItem value="otro">Otro</SelectItem>
+                  <SelectItem value="madre">Madre</SelectItem>
+                  <SelectItem value="planta">Planta</SelectItem>
                 </SelectContent>
               </Select>
             </div>

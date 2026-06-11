@@ -87,6 +87,21 @@ const PARAM_STATUS_CLASS: Record<MeasurementStatus, string> = {
   critical: "border-red-200 bg-red-500/10 text-red-700",
 };
 
+const PLANT_STATUS_LABEL: Record<PlantStatus, string> = {
+  normal: "Normal",
+  observacion: "Observación",
+  alerta: "Alerta",
+  descartada: "Descartada",
+  cosechada: "Cosechada",
+};
+
+const PLANT_ORIGIN_LABEL: Record<PlantOrigin, string> = {
+  semilla: "Semilla",
+  esqueje: "Esqueje",
+  madre: "Madre",
+  planta: "Planta",
+};
+
 type BulkForm = {
   count: string;
   geneticsId: string;
@@ -138,6 +153,7 @@ function GrowBedDetailPage() {
   const [bulkMessage, setBulkMessage] = useState("");
   const [capacityValue, setCapacityValue] = useState("");
   const [capacityError, setCapacityError] = useState("");
+  const [detailPlant, setDetailPlant] = useState<Plant | null>(null);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [quickNotes, setQuickNotes] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -465,31 +481,166 @@ function GrowBedDetailPage() {
                 <button
                   key={position}
                   type="button"
-                  onClick={() => {
-                    if (plant) {
-                      setSelectedPlant(plant);
-                      setQuickNotes(plant.notes ?? "");
-                    }
-                  }}
+                  onClick={() => { if (plant) setDetailPlant(plant); }}
                   className={[
-                    "aspect-square rounded-md border p-1 text-left transition-colors",
+                    "min-h-[6rem] rounded-md border p-1 text-left transition-colors",
                     displayStage
                       ? PLANT_STAGE_CLASS[displayStage]
                       : "border-dashed bg-muted/30 text-muted-foreground hover:bg-muted/50",
                   ].join(" ")}
                 >
                   <span className="block font-mono text-[10px] leading-none">#{position}</span>
-                  <span className="mt-1 block truncate text-[11px] font-medium">
-                    {plant ? shortCode(plant.internalCode) : "vacio"}
+                  <span className="mt-0.5 block truncate text-[11px] font-medium leading-tight">
+                    {plant ? shortCode(plant.internalCode) : "vacío"}
                   </span>
-                  {plant ? <span className="block truncate text-[10px]">{STAGE_LABEL[displayStage ?? plant.stage]}</span> : null}
-                  {plant ? <span className="block truncate text-[10px]">{plant.potCode ?? (plant.potSizeLiters ? `${plant.potSizeLiters} L` : plant.status)}</span> : null}
+                  {plant ? <span className="block truncate text-[10px] leading-tight">{STAGE_LABEL[displayStage ?? plant.stage]}</span> : null}
+                  {plant ? <span className="block truncate text-[10px] leading-tight opacity-80">{PLANT_STATUS_LABEL[plant.status]}</span> : null}
+                  {plant ? (
+                    <span className="block truncate text-[10px] leading-tight opacity-70">
+                      {plant.motherPlantCode ?? "Sin madre"}
+                    </span>
+                  ) : null}
+                  {plant ? (
+                    <span className="block truncate text-[10px] font-medium leading-tight">
+                      {plant.geneticsName ?? "Sin genética"}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de detalle de planta */}
+      <Dialog open={Boolean(detailPlant)} onOpenChange={(open) => { if (!open) setDetailPlant(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalle de planta</DialogTitle>
+            <DialogDescription>
+              Información completa de la planta seleccionada.
+            </DialogDescription>
+          </DialogHeader>
+          {detailPlant ? (
+            <div className="space-y-4">
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Código</p>
+                  <p className="font-mono">{detailPlant.internalCode}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Nombre</p>
+                  <p>{detailPlant.plantName ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Madre de origen</p>
+                  <p className="font-mono">{detailPlant.motherPlantCode ?? "Sin madre"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Camilla</p>
+                  <p className="font-mono">{bed?.name ?? detailPlant.bedId}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Posición</p>
+                  <p className="font-mono">#{detailPlant.bedPosition}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Lote</p>
+                  <p className="font-mono">{detailPlant.batchId ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Etapa</p>
+                  <Badge variant="outline" className={PLANT_STAGE_CLASS[detailPlant.stage]}>
+                    {STAGE_LABEL[detailPlant.stage]}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Estado</p>
+                  <Badge variant="outline" className={PLANT_STATUS_CLASS[detailPlant.status]}>
+                    {PLANT_STATUS_LABEL[detailPlant.status]}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Origen</p>
+                  <p>{PLANT_ORIGIN_LABEL[detailPlant.origin]}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Fecha inicio</p>
+                  <p className="font-mono">{detailPlant.startDate ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Fecha inicio etapa</p>
+                  <p className="font-mono">{detailPlant.stageStartDate ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Código maceta</p>
+                  <p className="font-mono">{detailPlant.potCode ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Litros maceta</p>
+                  <p className="font-mono">{detailPlant.potSizeLiters != null ? `${detailPlant.potSizeLiters} L` : "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Tipo maceta</p>
+                  <p>{detailPlant.potType ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Sustrato</p>
+                  <p>{detailPlant.substrate ?? "-"}</p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-xs text-muted-foreground">Observaciones</p>
+                  <p className="whitespace-pre-wrap">{detailPlant.notes ?? "-"}</p>
+                </div>
+                <div className="sm:col-span-2 space-y-2">
+                  <p className="text-xs text-muted-foreground">Genética</p>
+                  <p className="font-semibold">{detailPlant.geneticsName ?? "Sin genética"}</p>
+                  {(() => {
+                    const gen = genetics.find((g) => g.id === detailPlant.geneticsId);
+                    if (!gen || (gen.sativaPercent == null && gen.indicaPercent == null)) return null;
+                    const sativa = gen.sativaPercent ?? 0;
+                    const indica = gen.indicaPercent ?? 0;
+                    const dominant = sativa >= indica ? "sativa" : "indica";
+                    return (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-green-700">{sativa}% Sativa</span>
+                          <span className="text-violet-700">{indica}% Indica</span>
+                        </div>
+                        <div className="flex h-3 overflow-hidden rounded-full border">
+                          <div className="bg-green-500 transition-all" style={{ width: `${sativa}%` }} />
+                          <div className="bg-violet-500 transition-all" style={{ width: `${indica}%` }} />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Predomina:{" "}
+                          <span className={`font-semibold ${dominant === "sativa" ? "text-green-700" : "text-violet-700"}`}>
+                            {dominant === "sativa" ? "Sativa" : "Indica"}
+                          </span>
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setDetailPlant(null)}>Cerrar</Button>
+                <Button
+                  className="gap-2"
+                  onClick={() => {
+                    const plant = detailPlant;
+                    setDetailPlant(null);
+                    setSelectedPlant(plant);
+                    setQuickNotes(plant.notes ?? "");
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar planta
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
@@ -533,9 +684,8 @@ function GrowBedDetailPage() {
                 <SelectContent>
                   <SelectItem value="semilla">Semilla</SelectItem>
                   <SelectItem value="esqueje">Esqueje</SelectItem>
-                  <SelectItem value="madre_interna">Madre interna</SelectItem>
-                  <SelectItem value="compra_externa">Compra externa</SelectItem>
-                  <SelectItem value="otro">Otro</SelectItem>
+                  <SelectItem value="madre">Madre</SelectItem>
+                  <SelectItem value="planta">Planta</SelectItem>
                 </SelectContent>
               </Select>
             </div>

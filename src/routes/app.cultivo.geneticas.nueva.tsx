@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { GeneticsProfileSlider, normalizeGeneticsProfile } from "@/components/cultivation/GeneticsProfileSlider";
 import { createGenetics } from "@/services/geneticsService";
-import type { Genetics } from "@/types/cultivation";
+import type { CannabinoidProfile, Genetics } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/geneticas/nueva")({
   head: () => ({ meta: [{ title: "Nueva genética - Cannabis Club Manager" }] }),
@@ -31,14 +31,19 @@ function NewGeneticsPage() {
   const [form, setForm] = useState<GeneticsForm>({
     name: "",
     breeder: "",
+    origin: undefined,
     type: "feminizada",
     dominantProfile: "hibrida",
+    cannabinoidProfile: undefined,
     thcPercent: undefined,
+    cbdPercent: undefined,
+    floweringTimeDays: undefined,
     sativaPercent: 50,
     indicaPercent: 50,
     taste: "",
     effect: "",
     aroma: "",
+    description: "",
     notes: "",
   });
 
@@ -95,136 +100,222 @@ function NewGeneticsPage() {
             <CardTitle>Crear genética</CardTitle>
             <CardDescription>Completá las especificaciones principales de la variedad.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="grid gap-3 border-b py-3 md:grid-cols-[220px_1fr] md:items-center">
-              <Label htmlFor="name" className="flex items-center gap-2 font-semibold">
-                <Leaf className="h-4 w-4 text-muted-foreground" />
-                Genética
-              </Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={(event) => setForm({ ...form, name: event.target.value })}
-                placeholder="Blueberry x Thin Mint Girl Scout Cookies x Sunset Sherbert"
-              />
-            </div>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
 
-            <div className="grid gap-3 border-b py-3 md:grid-cols-[220px_1fr] md:items-center">
-              <Label htmlFor="breeder" className="flex items-center gap-2 font-semibold">
-                <Tag className="h-4 w-4 text-muted-foreground" />
-                Breeder
-              </Label>
-              <Input
-                id="breeder"
-                value={form.breeder ?? ""}
-                onChange={(event) => setForm({ ...form, breeder: event.target.value })}
-                placeholder="Banco o criador"
-              />
-            </div>
+              <div className="md:col-span-2 space-y-1.5">
+                <Label htmlFor="name" className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Leaf className="h-3.5 w-3.5 text-muted-foreground" />
+                  Genética
+                </Label>
+                <Input
+                  id="name"
+                  value={form.name}
+                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                  placeholder="Blueberry x Thin Mint Girl Scout Cookies x Sunset Sherbert"
+                />
+              </div>
 
-            <div className="grid gap-3 border-b py-3 md:grid-cols-[220px_1fr] md:items-center">
-              <Label htmlFor="thcPercent" className="flex items-center gap-2 font-semibold">
-                <Sparkles className="h-4 w-4 text-muted-foreground" />
-                THC %
-              </Label>
-              <Input
-                id="thcPercent"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={form.thcPercent ?? ""}
-                onChange={(event) => setForm({ ...form, thcPercent: optionalNumber(event.target.value) })}
-                placeholder="26"
-              />
-            </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="breeder" className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                  Breeder
+                </Label>
+                <Input
+                  id="breeder"
+                  value={form.breeder ?? ""}
+                  onChange={(event) => setForm({ ...form, breeder: event.target.value })}
+                  placeholder="Banco o criador"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                  Origen
+                </Label>
+                <Select
+                  value={form.origin ?? ""}
+                  onValueChange={(v) => setForm({ ...form, origin: v === "" ? undefined : v as Genetics["origin"] })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Seleccionar origen" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="semilla">Semilla</SelectItem>
+                    <SelectItem value="madre">Madre</SelectItem>
+                    <SelectItem value="esqueje">Esqueje</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="grid gap-3 border-b py-3 md:grid-cols-[220px_1fr] md:items-center">
-              <Label className="flex items-center gap-2 font-semibold">
-                <Tag className="h-4 w-4 text-muted-foreground" />
-                Tipo
-              </Label>
-              <Select value={form.type} onValueChange={(type) => setForm({ ...form, type: type as Genetics["type"] })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="regular">Regular</SelectItem>
-                  <SelectItem value="feminizada">Feminizada</SelectItem>
-                  <SelectItem value="automatica">Automática</SelectItem>
-                  <SelectItem value="esqueje">Esqueje</SelectItem>
-                  <SelectItem value="desconocida">Desconocida</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="thcPercent" className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                  THC %
+                </Label>
+                <Input
+                  id="thcPercent"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={form.thcPercent ?? ""}
+                  onChange={(event) => setForm({ ...form, thcPercent: optionalNumber(event.target.value) })}
+                  placeholder="26"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cbdPercent" className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                  CBD %
+                </Label>
+                <Input
+                  id="cbdPercent"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={form.cbdPercent ?? ""}
+                  onChange={(event) => setForm({ ...form, cbdPercent: optionalNumber(event.target.value) })}
+                  placeholder="0.5"
+                />
+              </div>
 
-            <div className="grid gap-3 border-b py-3 md:grid-cols-[220px_1fr] md:items-center">
-              <Label className="flex items-center gap-2 font-semibold">
-                <Leaf className="h-4 w-4 text-muted-foreground" />
-                Perfil Sativa / Indica
-              </Label>
-              <GeneticsProfileSlider
-                sativaPercent={form.sativaPercent}
-                indicaPercent={form.indicaPercent}
-                onChange={(profile) => setForm({ ...form, ...profile })}
-              />
-            </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="floweringTimeDays" className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                  Tiempo de floración (días)
+                </Label>
+                <Input
+                  id="floweringTimeDays"
+                  type="number"
+                  min="1"
+                  max="365"
+                  step="1"
+                  value={form.floweringTimeDays ?? ""}
+                  onChange={(event) => setForm({ ...form, floweringTimeDays: optionalNumber(event.target.value) })}
+                  placeholder="Ej: 63"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                  Tipo
+                </Label>
+                <Select value={form.type} onValueChange={(type) => setForm({ ...form, type: type as Genetics["type"] })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="regular">Regular</SelectItem>
+                    <SelectItem value="feminizada">Feminizada</SelectItem>
+                    <SelectItem value="automatica">Automática</SelectItem>
+                    <SelectItem value="esqueje">Esqueje</SelectItem>
+                    <SelectItem value="desconocida">Desconocida</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="grid gap-3 border-b py-3 md:grid-cols-[220px_1fr] md:items-center">
-              <Label htmlFor="taste" className="flex items-center gap-2 font-semibold">
-                <Tag className="h-4 w-4 text-muted-foreground" />
-                Sabor
-              </Label>
-              <Input
-                id="taste"
-                value={form.taste ?? ""}
-                onChange={(event) => setForm({ ...form, taste: event.target.value })}
-                placeholder="Dulce, terroso, cítrico"
-              />
-            </div>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                  Perfil cannabinoide
+                </Label>
+                <Select
+                  value={form.cannabinoidProfile ?? "desconocida"}
+                  onValueChange={(v) => setForm({ ...form, cannabinoidProfile: v === "desconocida" ? undefined : v as CannabinoidProfile })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desconocida">Desconocida</SelectItem>
+                    <SelectItem value="thc_dominante">THC dominante</SelectItem>
+                    <SelectItem value="cbd_dominante">CBD dominante</SelectItem>
+                    <SelectItem value="balanceada_thc_cbd">Balanceada THC:CBD</SelectItem>
+                    <SelectItem value="cbg">CBG</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="aroma" className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Wind className="h-3.5 w-3.5 text-muted-foreground" />
+                  Aroma
+                </Label>
+                <Input
+                  id="aroma"
+                  value={form.aroma ?? ""}
+                  onChange={(event) => setForm({ ...form, aroma: event.target.value })}
+                  placeholder="Fresco, frutal, frutos rojos"
+                />
+              </div>
 
-            <div className="grid gap-3 border-b py-3 md:grid-cols-[220px_1fr] md:items-center">
-              <Label htmlFor="effect" className="flex items-center gap-2 font-semibold">
-                <Sparkles className="h-4 w-4 text-muted-foreground" />
-                Efecto
-              </Label>
-              <Input
-                id="effect"
-                value={form.effect ?? ""}
-                onChange={(event) => setForm({ ...form, effect: event.target.value })}
-                placeholder="Lúcido, energético, creativo"
-              />
-            </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="taste" className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                  Sabor
+                </Label>
+                <Input
+                  id="taste"
+                  value={form.taste ?? ""}
+                  onChange={(event) => setForm({ ...form, taste: event.target.value })}
+                  placeholder="Dulce, terroso, cítrico"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="effect" className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                  Efecto
+                </Label>
+                <Input
+                  id="effect"
+                  value={form.effect ?? ""}
+                  onChange={(event) => setForm({ ...form, effect: event.target.value })}
+                  placeholder="Lúcido, energético, creativo"
+                />
+              </div>
 
-            <div className="grid gap-3 border-b py-3 md:grid-cols-[220px_1fr] md:items-center">
-              <Label htmlFor="aroma" className="flex items-center gap-2 font-semibold">
-                <Wind className="h-4 w-4 text-muted-foreground" />
-                Aroma
-              </Label>
-              <Input
-                id="aroma"
-                value={form.aroma ?? ""}
-                onChange={(event) => setForm({ ...form, aroma: event.target.value })}
-                placeholder="Fresco, frutal, frutos rojos"
-              />
-            </div>
+              <div className="md:col-span-2 space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Leaf className="h-3.5 w-3.5 text-muted-foreground" />
+                  Perfil Sativa / Indica
+                </Label>
+                <GeneticsProfileSlider
+                  sativaPercent={form.sativaPercent}
+                  indicaPercent={form.indicaPercent}
+                  onChange={(profile) => setForm({ ...form, ...profile })}
+                />
+              </div>
 
-            <div className="grid gap-3 py-3 md:grid-cols-[220px_1fr]">
-              <Label htmlFor="notes" className="flex items-center gap-2 pt-2 font-semibold">
-                <Sparkles className="h-4 w-4 text-muted-foreground" />
-                Observación
-              </Label>
-              <Textarea
-                id="notes"
-                value={form.notes ?? ""}
-                onChange={(event) => setForm({ ...form, notes: event.target.value })}
-                placeholder="Notas internas sobre cultivo, comportamiento o trazabilidad."
-              />
-            </div>
+              <div className="md:col-span-2 space-y-1.5">
+                <Label htmlFor="description" className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                  Descripción
+                </Label>
+                <Textarea
+                  id="description"
+                  rows={2}
+                  value={form.description ?? ""}
+                  onChange={(event) => setForm({ ...form, description: event.target.value })}
+                  placeholder="Descripción general de la variedad."
+                />
+              </div>
 
-            <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={saving} className="gap-2">
-                <Save className="h-4 w-4" />
-                {saving ? "Guardando..." : "Guardar genética"}
-              </Button>
+              <div className="md:col-span-2 space-y-1.5">
+                <Label htmlFor="notes" className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                  Observación
+                </Label>
+                <Textarea
+                  id="notes"
+                  rows={2}
+                  value={form.notes ?? ""}
+                  onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                  placeholder="Notas internas sobre cultivo, comportamiento o trazabilidad."
+                />
+              </div>
+
+              <div className="md:col-span-2 flex justify-end pt-2">
+                <Button type="submit" disabled={saving} className="gap-2">
+                  <Save className="h-4 w-4" />
+                  {saving ? "Guardando..." : "Guardar genética"}
+                </Button>
+              </div>
+
             </div>
           </CardContent>
         </Card>

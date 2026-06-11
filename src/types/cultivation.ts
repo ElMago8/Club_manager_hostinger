@@ -44,9 +44,8 @@ export type BedStatus =
 export type PlantOrigin =
   | "semilla"
   | "esqueje"
-  | "madre_interna"
-  | "compra_externa"
-  | "otro";
+  | "madre"
+  | "planta";
 
 export type PlantStage =
   | "vegetativo"
@@ -110,21 +109,34 @@ export interface GrowBed {
   currentPlants: number;
   mainBatchId?: string;
   responsibleUserId?: string;
+  contadorInicioEn?: string;
   notes?: string;
 }
+
+export type CannabinoidProfile =
+  | "thc_dominante"
+  | "cbd_dominante"
+  | "balanceada_thc_cbd"
+  | "cbg"
+  | "desconocida";
 
 export interface Genetics {
   id: string;
   name: string;
   breeder?: string;
+  origin?: "madre" | "semilla" | "esqueje";
   type: "regular" | "feminizada" | "automatica" | "esqueje" | "desconocida";
   dominantProfile: "indica" | "sativa" | "hibrida" | "desconocida";
+  cannabinoidProfile?: CannabinoidProfile;
   thcPercent?: number;
+  cbdPercent?: number;
+  floweringTimeDays?: number;
   sativaPercent?: number;
   indicaPercent?: number;
   taste?: string;
   effect?: string;
   aroma?: string;
+  description?: string;
   notes?: string;
 }
 
@@ -276,6 +288,7 @@ export interface Harvest {
   batchId: string;
   batchCode?: string;
   geneticsName?: string;
+  roomId?: string;
   roomName?: string;
   harvestDate: string;
   wetWeightGrams?: number;
@@ -284,5 +297,7 @@ export interface Harvest {
   cultivationType?: string;
   growMedium?: string;
   status: HarvestStatus;
+  secadoInicioEn?: string;
+  curadoInicioEn?: string;
   notes?: string;
 }

@@ -28,6 +28,7 @@ model SalaCultivo {
   clonadores            Clonador[]
   madres                Madre[]
   lotesCultivo          LoteCultivo[]
+  cosechas              Cosecha[]
   registrosAmbientales  RegistroAmbiental[]
   tareasCultivo         TareaCultivo[]
   medicionesCultivo     MedicionCultivo[]
@@ -62,12 +63,13 @@ model Clonador {
   codigoClonador          String   @unique @map("codigo_clonador")
   salaCultivoId           Int      @map("sala_cultivo_id")
   nombre                  String
-  estado                  String   @default("activa")
-  capacidadMaximaEsquejes Int      @map("capacidad_maxima_esquejes")
+  estado                  String    @default("activa")
+  capacidadMaximaEsquejes Int       @map("capacidad_maxima_esquejes")
+  contadorInicioEn        DateTime? @map("contador_inicio_en")
   responsable             String?
   descripcion             String?
-  creadoEn                DateTime @default(now()) @map("creado_en")
-  actualizadoEn           DateTime @updatedAt @map("actualizado_en")
+  creadoEn                DateTime  @default(now()) @map("creado_en")
+  actualizadoEn           DateTime  @updatedAt @map("actualizado_en")
 
   salaCultivo       SalaCultivo       @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
   esquejes          Planta[]
@@ -90,6 +92,8 @@ model Genetica {
   sabor               String?
   efecto              String?
   aroma               String?
+  origen              String?
+  perfilCannabionoide String?  @map("perfil_cannabinoide")
   tiempoFloracionDias Int?     @map("tiempo_floracion_dias")
   estado              String   @default("activa")
   descripcion         String?
@@ -305,7 +309,8 @@ model Socio {
   creadoEn          DateTime  @default(now()) @map("creado_en")
   actualizadoEn     DateTime  @updatedAt @map("actualizado_en")
 
-  documentos DocumentoSocio[]
+  documentos    DocumentoSocio[]
+  comprobantes  ComprobanteFacturacion[]
 
   @@map("socios")
 }
@@ -331,6 +336,80 @@ model DocumentoSocio {
 
   @@index([socioId])
   @@map("documentos_socio")
+}
+
+model ComprobanteFacturacion {
+  id                       Int       @id @default(autoincrement())
+  codigoComprobante        String    @unique @map("codigo_comprobante")
+  socioId                  Int       @map("socio_id")
+  tipoComprobante          String    @map("tipo_comprobante")
+  puntoVenta               String?   @map("punto_venta")
+  numeroComprobante        String?   @map("numero_comprobante")
+  fechaEmision             DateTime  @map("fecha_emision")
+  fechaVencimientoPago     DateTime? @map("fecha_vencimiento_pago")
+  concepto                 String
+  condicionIva             String    @default("consumidor_final") @map("condicion_iva")
+  cuitDni                  String?   @map("cuit_dni")
+  razonSocial              String?   @map("razon_social")
+  domicilio                String?
+  subtotal                 Float     @default(0)
+  iva                      Float     @default(0)
+  total                    Float
+  moneda                   String    @default("ARS")
+  estadoArca               String    @default("pendiente") @map("estado_arca")
+  estadoCobro              String    @default("impago") @map("estado_cobro")
+  cae                      String?
+  vencimientoCae           DateTime? @map("vencimiento_cae")
+  pdfUrl                   String?   @map("pdf_url")
+  observaciones            String?
+  comprobanteRelacionadoId Int?      @map("comprobante_relacionado_id")
+  creadoEn                 DateTime  @default(now()) @map("creado_en")
+  actualizadoEn            DateTime  @updatedAt @map("actualizado_en")
+
+  socio                  Socio                       @relation(fields: [socioId], references: [id], onDelete: Restrict)
+  comprobanteRelacionado ComprobanteFacturacion?     @relation("ComprobanteRelacionado", fields: [comprobanteRelacionadoId], references: [id], onDelete: SetNull)
+  comprobantesRelacionados ComprobanteFacturacion[]   @relation("ComprobanteRelacionado")
+  items                  ItemComprobanteFacturacion[]
+  pagos                  PagoComprobanteFacturacion[]
+
+  @@index([socioId])
+  @@index([comprobanteRelacionadoId])
+  @@index([fechaEmision])
+  @@index([estadoArca])
+  @@index([estadoCobro])
+  @@map("comprobantes_facturacion")
+}
+
+model ItemComprobanteFacturacion {
+  id                         Int      @id @default(autoincrement())
+  comprobanteFacturacionId   Int      @map("comprobante_facturacion_id")
+  descripcion                String
+  cantidad                   Float
+  precioUnitario             Float    @map("precio_unitario")
+  subtotal                   Float
+  creadoEn                   DateTime @default(now()) @map("creado_en")
+
+  comprobanteFacturacion ComprobanteFacturacion @relation(fields: [comprobanteFacturacionId], references: [id], onDelete: Cascade)
+
+  @@index([comprobanteFacturacionId])
+  @@map("items_comprobante_facturacion")
+}
+
+model PagoComprobanteFacturacion {
+  id                       Int      @id @default(autoincrement())
+  comprobanteFacturacionId Int      @map("comprobante_facturacion_id")
+  fechaPago                DateTime @default(now()) @map("fecha_pago")
+  monto                    Float
+  medioPago                String   @map("medio_pago")
+  referencia               String?
+  observaciones            String?
+  creadoEn                 DateTime @default(now()) @map("creado_en")
+
+  comprobanteFacturacion ComprobanteFacturacion @relation(fields: [comprobanteFacturacionId], references: [id], onDelete: Cascade)
+
+  @@index([comprobanteFacturacionId])
+  @@index([fechaPago])
+  @@map("pagos_comprobante_facturacion")
 }
 
 model TareaCultivo {
@@ -370,20 +449,23 @@ model Cosecha {
   id                Int       @id @default(autoincrement())
   codigoCosecha     String    @unique @map("codigo_cosecha")
   loteCultivoId     Int       @map("lote_cultivo_id")
+  salaCultivoId     Int?      @map("sala_cultivo_id")
   fechaCosecha      DateTime  @map("fecha_cosecha")
   pesoHumedoGramos  Float?    @map("peso_humedo_gramos")
   pesoSecoGramos    Float?    @map("peso_seco_gramos")
   pesoMermaGramos   Float?    @map("peso_merma_gramos")
-  entornoCultivo    String?   @map("entorno_cultivo")
-  tipoCultivo       String?   @map("tipo_cultivo")
   estado            String    @default("registrada")
+  secadoInicioEn    DateTime? @map("secado_inicio_en")
+  curadoInicioEn    DateTime? @map("curado_inicio_en")
   observaciones     String?
   creadoEn          DateTime  @default(now()) @map("creado_en")
   actualizadoEn     DateTime  @updatedAt @map("actualizado_en")
 
-  loteCultivo LoteCultivo @relation(fields: [loteCultivoId], references: [id], onDelete: Restrict)
+  loteCultivo LoteCultivo  @relation(fields: [loteCultivoId], references: [id], onDelete: Restrict)
+  salaCultivo SalaCultivo? @relation(fields: [salaCultivoId], references: [id], onDelete: SetNull)
 
   @@index([loteCultivoId])
+  @@index([salaCultivoId])
   @@map("cosechas")
 }
 

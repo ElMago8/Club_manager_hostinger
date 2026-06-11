@@ -79,10 +79,10 @@ function toApiGrowRoomPayload(payload: CreateGrowRoomPayload) {
     tipoRiego: payload.irrigationSystem,
     tieneAireAcondicionado: payload.hasAirConditioning,
     tieneDeshumidificador: payload.hasDehumidifier,
-    sensores: payload.installedSensors.map((sensor) => sensor.trim()).filter(Boolean).join(","),
-    descripcion: payload.notes,
-    entornoCultivo: payload.cultivationType ?? null,
-    tipoCultivo: payload.growMedium ?? null,
+    sensores: payload.installedSensors.map((sensor) => sensor.trim()).filter(Boolean).join(",") || undefined,
+    descripcion: payload.notes || undefined,
+    entornoCultivo: payload.cultivationType || undefined,
+    tipoCultivo: payload.growMedium || undefined,
   };
 }
 
@@ -152,6 +152,8 @@ export async function updateGrowRoom(id: string, payload: UpdateGrowRoomPayload)
             hasAirConditioning: payload.hasAirConditioning ?? false,
             hasDehumidifier: payload.hasDehumidifier ?? false,
             installedSensors: payload.installedSensors ?? [],
+            cultivationType: payload.cultivationType,
+            growMedium: payload.growMedium,
             notes: payload.notes,
           })),
         }),

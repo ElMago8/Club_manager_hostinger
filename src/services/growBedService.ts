@@ -250,6 +250,7 @@ interface ApiClonador {
   nombre: string;
   estado: string;
   capacidadMaximaEsquejes: number;
+  contadorInicioEn?: string | null;
   responsable: string | null;
   descripcion: string | null;
   _count: { esquejes: number };
@@ -265,6 +266,7 @@ function mapApiClonador(c: ApiClonador): GrowBed {
     status: c.estado as GrowBed["status"],
     maxPlants: c.capacidadMaximaEsquejes,
     currentPlants: c._count.esquejes,
+    contadorInicioEn: c.contadorInicioEn ?? undefined,
     responsibleUserId: c.responsable ?? undefined,
     notes: c.descripcion ?? undefined,
   };

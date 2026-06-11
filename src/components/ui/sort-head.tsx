@@ -1,9 +1,10 @@
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { TableHead } from "@/components/ui/table";
 import type { SortDir } from "@/hooks/useSortable";
+import type { ReactNode } from "react";
 
 interface Props {
-  label: string;
+  label: ReactNode;
   sortKey: string;
   col: string | null;
   dir: SortDir;
@@ -18,7 +19,7 @@ export function SortHead({ label, sortKey, col, dir, onSort, className }: Props)
       className={`cursor-pointer select-none ${className ?? ""}`}
       onClick={() => onSort(sortKey)}
     >
-      <span className="inline-flex items-center gap-1 whitespace-nowrap">
+      <span className="inline-flex items-center gap-1">
         {label}
         {active
           ? dir === "asc"

@@ -616,7 +616,9 @@ const geneticaSchema = z.object({
   codigoGenetica: z.string().trim().min(1),
   nombre: z.string().trim().min(1),
   breeder: nullableText,
+  origen: nullableText,
   tipo: z.string().trim().min(1),
+  perfilCannabionoide: nullableText,
   thcEstimado: z.coerce.number().min(0).max(100).optional(),
   cbdEstimado: z.coerce.number().min(0).max(100).optional(),
   sativaPorcentaje: z.coerce.number().min(0).max(100).optional(),
@@ -739,19 +741,23 @@ const tareaCultivoSchema = z.object({
 const cosechaSchema = z.object({
   codigoCosecha: z.string().trim().min(1),
   loteCultivoId: intId,
+  salaCultivoId: intId.optional().nullable(),
   fechaCosecha: z.coerce.date(),
   pesoHumedoGramos: z.coerce.number().min(0).optional(),
   pesoSecoGramos: z.coerce.number().min(0).optional(),
   pesoMermaGramos: z.coerce.number().min(0).optional(),
-  entornoCultivo: optionalText,
-  tipoCultivo: optionalText,
-  estado: z.string().trim().min(1).default("registrada"),
+  estado: z.string().trim().min(1).default("en_secado"),
+  secadoInicioEn: z.coerce.date().optional().nullable(),
+  curadoInicioEn: z.coerce.date().optional().nullable(),
   observaciones: optionalText,
 });
 
 function cosechaRoutes() {
   const router = Router();
-  const include = { loteCultivo: { include: { genetica: true, salaCultivo: true } } };
+  const include = {
+    loteCultivo: { include: { genetica: true, salaCultivo: true } },
+    salaCultivo: true,
+  };
 
   router.get("/", async (_req, res, next) => {
     try {
@@ -781,7 +787,12 @@ function cosechaRoutes() {
 
   router.put("/:id", async (req, res, next) => {
     try {
-      res.json(await prisma.cosecha.update({ where: { id: parseId(req) }, data: cosechaSchema.partial().parse(req.body), include }));
+      const id = parseId(req);
+      const data = cosechaSchema
+        .extend({ estado: z.string().trim().min(1).optional() })
+        .partial()
+        .parse(req.body);
+      res.json(await prisma.cosecha.update({ where: { id }, data, include }));
     } catch (error) {
       next(error);
     }
@@ -997,6 +1008,7 @@ function clonadorRoutes() {
     nombre: z.string().trim().min(1),
     estado: z.string().trim().min(1).default("activa"),
     capacidadMaximaEsquejes: z.coerce.number().int().min(0).max(60),
+    contadorInicioEn: z.coerce.date().optional().nullable(),
     responsable: optionalText,
     descripcion: optionalText,
   });

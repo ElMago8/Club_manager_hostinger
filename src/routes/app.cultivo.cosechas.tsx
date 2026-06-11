@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { Pencil, Plus, Trash2, Wheat } from "lucide-react";
+import { MoreVertical, Pencil, Plus, StopCircle, Trash2, Wheat } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { CultivationStatusMessage } from "@/components/cultivation/RelationshipWarning";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSortable } from "@/hooks/useSortable";
 import { SortHead } from "@/components/ui/sort-head";
 import { deleteHarvest, getHarvests } from "@/services/harvestService";
+import { apiRequest } from "@/services/cultivationApi";
 import type { Harvest, HarvestStatus } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/cosechas")({
@@ -41,9 +44,13 @@ function fmt(n?: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(2)} kg` : `${n} g`;
 }
 
-function pct(wet?: number, dry?: number) {
-  if (!wet || !dry) return "—";
-  return `${((dry / wet) * 100).toFixed(1)}%`;
+function elapsedLabel(startIso: string, now: number): string {
+  const ms = now - new Date(startIso).getTime();
+  if (ms < 0) return "0h";
+  const totalHours = Math.floor(ms / 3_600_000);
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  return days > 0 ? `${days}d ${hours}h` : `${totalHours}h`;
 }
 
 function HarvestsPage() {
@@ -51,8 +58,15 @@ function HarvestsPage() {
   const [harvests, setHarvests] = useState<Harvest[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<Harvest | null>(null);
+  const [stopTarget, setStopTarget] = useState<Harvest | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -73,6 +87,25 @@ function HarvestsPage() {
   const { sorted, col: sCol, dir: sDir, toggle: sort } = useSortable(filtered);
 
   const totalDryGrams = harvests.reduce((sum, h) => sum + (h.dryWeightGrams ?? 0), 0);
+
+  async function handleStopCounter(h: Harvest) {
+    const field = h.status === "en_secado" ? "secadoInicioEn" : "curadoInicioEn";
+    await apiRequest(`/cultivation/harvests/${h.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ [field]: null }),
+    });
+    setStopTarget(null);
+    await load();
+  }
+
+  async function handleStartCounter(h: Harvest) {
+    const field = h.status === "en_secado" ? "secadoInicioEn" : "curadoInicioEn";
+    await apiRequest(`/cultivation/harvests/${h.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ [field]: new Date().toISOString() }),
+    });
+    await load();
+  }
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -139,7 +172,7 @@ function HarvestsPage() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Listas para stock</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Stock</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold text-emerald-600">{countByStatus("lista_para_stock")}</p>
@@ -163,7 +196,6 @@ function HarvestsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="registrada">Registrada</SelectItem>
                 <SelectItem value="en_secado">En secado</SelectItem>
                 <SelectItem value="seca">Seca</SelectItem>
                 <SelectItem value="en_curado">En curado</SelectItem>
@@ -189,7 +221,7 @@ function HarvestsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto [&_td]:text-center [&_th]:text-center">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -197,13 +229,15 @@ function HarvestsPage() {
                         <SortHead label="Lote"         sortKey="batchCode"       col={sCol} dir={sDir} onSort={sort} />
                         <SortHead label="Genética"     sortKey="geneticsName"    col={sCol} dir={sDir} onSort={sort} />
                         <SortHead label="Sala"         sortKey="roomName"        col={sCol} dir={sDir} onSort={sort} />
+                        <SortHead label="Entorno"      sortKey="cultivationType" col={sCol} dir={sDir} onSort={sort} />
+                        <SortHead label="Tipo cultivo" sortKey="growMedium"      col={sCol} dir={sDir} onSort={sort} />
                         <SortHead label="Fecha"        sortKey="harvestDate"     col={sCol} dir={sDir} onSort={sort} />
                         <SortHead label="Peso húmedo"  sortKey="wetWeightGrams"  col={sCol} dir={sDir} onSort={sort} className="text-right" />
                         <SortHead label="Peso seco"    sortKey="dryWeightGrams"  col={sCol} dir={sDir} onSort={sort} className="text-right" />
                         <TableHead className="text-right">Merma</TableHead>
-                        <TableHead className="text-right">Rendimiento</TableHead>
                         <SortHead label="Estado"       sortKey="status"          col={sCol} dir={sDir} onSort={sort} />
-                        <TableHead className="text-right">Acciones</TableHead>
+                        <TableHead>Tiempo Transcurrido</TableHead>
+                        <TableHead>Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -213,32 +247,60 @@ function HarvestsPage() {
                           <TableCell>{h.batchCode ?? "—"}</TableCell>
                           <TableCell>{h.geneticsName ?? "—"}</TableCell>
                           <TableCell>{h.roomName ?? "—"}</TableCell>
+                          <TableCell>{h.cultivationType ?? "—"}</TableCell>
+                          <TableCell>{h.growMedium ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{h.harvestDate}</TableCell>
                           <TableCell className="text-right font-mono">{fmt(h.wetWeightGrams)}</TableCell>
                           <TableCell className="text-right font-mono">{fmt(h.dryWeightGrams)}</TableCell>
                           <TableCell className="text-right font-mono">{fmt(h.shrinkageGrams)}</TableCell>
-                          <TableCell className="text-right font-mono">{pct(h.wetWeightGrams, h.dryWeightGrams)}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={STATUS_CLASS[h.status]}>
                               {STATUS_LABEL[h.status]}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" asChild>
-                                <Link to="/app/cultivo/cosechas/nueva" search={{ edit: h.id }}>
-                                  <Pencil className="h-4 w-4" />
-                                </Link>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => setDeleteTarget(h)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                          <TableCell>
+                            {h.status === "en_secado" || h.status === "en_curado" ? (
+                              (() => {
+                                const start = h.status === "en_secado" ? h.secadoInicioEn : h.curadoInicioEn;
+                                return start
+                                  ? (
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <span className="font-mono text-sm">{elapsedLabel(start, now)}</span>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 w-6 cursor-pointer p-0 text-muted-foreground hover:text-destructive"
+                                        onClick={() => setStopTarget(h)}
+                                      >
+                                        <StopCircle className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  )
+                                  : <Button size="sm" variant="outline" className="h-7 cursor-pointer text-xs" onClick={() => void handleStartCounter(h)}>Iniciar</Button>;
+                              })()
+                            ) : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                  <Link to="/app/cultivo/cosechas/nueva" search={{ edit: h.id }}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget(h)}>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Eliminar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -256,6 +318,24 @@ function HarvestsPage() {
             onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
             onConfirm={handleDelete}
           />
+
+          <Dialog open={!!stopTarget} onOpenChange={(open) => { if (!open) setStopTarget(null); }}>
+            <DialogContent className="sm:max-w-[380px]">
+              <DialogHeader>
+                <DialogTitle>Detener contador</DialogTitle>
+                <DialogDescription>
+                  ¿Detener el contador de {stopTarget?.code}? Se perderá el tiempo registrado y podrás iniciarlo nuevamente.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setStopTarget(null)}>Cancelar</Button>
+                <Button variant="destructive" onClick={() => stopTarget && void handleStopCounter(stopTarget)}>
+                  <StopCircle className="mr-2 h-4 w-4" />
+                  Detener
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </>

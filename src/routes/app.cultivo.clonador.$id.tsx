@@ -56,36 +56,13 @@ const STAGE_COLOR: Record<PlantStage, string> = {
   a_reparar: "bg-rose-500/15 border-rose-300 text-rose-800",
 };
 
-function useContador() {
-  const [activatedAt, setActivatedAt] = useState<number | null>(null);
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    if (!activatedAt) return;
-    const interval = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(interval);
-  }, [activatedAt]);
-
-  function activate() {
-    const ts = Date.now();
-    setActivatedAt(ts);
-    setNow(ts);
-  }
-
-  function deactivate() {
-    setActivatedAt(null);
-  }
-
-  const elapsed = activatedAt
-    ? (() => {
-        const ms = now - activatedAt;
-        const days = Math.floor(ms / 86_400_000);
-        const hours = Math.floor((ms % 86_400_000) / 3_600_000);
-        return days > 0 ? `${days}d ${hours}h` : `${hours}h`;
-      })()
-    : null;
-
-  return { activatedAt, elapsed, activate, deactivate };
+function elapsedLabel(startIso: string, now: number): string {
+  const ms = now - new Date(startIso).getTime();
+  if (ms < 0) return "0h";
+  const totalHours = Math.floor(ms / 3_600_000);
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  return days > 0 ? `${days}d ${hours}h` : `${totalHours}h`;
 }
 
 function ClonadorDetailPage() {
@@ -107,7 +84,12 @@ function ClonadorDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
   const [stopContadorOpen, setStopContadorOpen] = useState(false);
-  const { activatedAt, elapsed, activate, deactivate } = useContador();
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const [incSubstratePH, setIncSubstratePH] = useState(false);
   const [incSubstratePPM, setIncSubstratePPM] = useState(false);
@@ -508,20 +490,25 @@ function ClonadorDetailPage() {
               </CardDescription>
             </div>
             <div className="flex shrink-0 items-center gap-3">
-              {activatedAt ? (
+              {clonador.contadorInicioEn ? (
                 <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-700">
-                  <span className="font-mono font-semibold">{elapsed}</span>
+                  <span className="font-mono font-semibold">{elapsedLabel(clonador.contadorInicioEn, now)}</span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-auto p-0 text-amber-700 hover:text-amber-900"
+                    className="h-auto cursor-pointer p-0 text-amber-700 hover:text-amber-900"
                     onClick={() => setStopContadorOpen(true)}
                   >
                     <TimerOff className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
-                <Button variant="outline" className="gap-2" onClick={activate}>
+                <Button variant="outline" className="gap-2 cursor-pointer" onClick={() => {
+                  void apiRequest(`/cultivation/clonadores/${clonador.id}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ contadorInicioEn: new Date().toISOString() }),
+                  }).then(() => loadData());
+                }}>
                   <Timer className="h-4 w-4" />
                   Activar contador
                 </Button>
@@ -613,7 +600,7 @@ function ClonadorDetailPage() {
           <DialogHeader>
             <DialogTitle>Detener contador</DialogTitle>
             <DialogDescription>
-              ¿Querés detener el contador? Se perderá el tiempo registrado ({elapsed}).
+              ¿Querés detener el contador? Se perderá el tiempo registrado{clonador.contadorInicioEn ? ` (${elapsedLabel(clonador.contadorInicioEn, now)})` : ""}.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -622,7 +609,12 @@ function ClonadorDetailPage() {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => { deactivate(); setStopContadorOpen(false); }}
+              onClick={() => {
+                void apiRequest(`/cultivation/clonadores/${clonador.id}`, {
+                  method: "PUT",
+                  body: JSON.stringify({ contadorInicioEn: null }),
+                }).then(() => { setStopContadorOpen(false); void loadData(); });
+              }}
             >
               <TimerOff className="mr-2 h-4 w-4" />
               Detener

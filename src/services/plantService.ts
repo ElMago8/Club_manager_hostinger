@@ -87,17 +87,16 @@ export interface BulkCreatePlantsForBedPayload {
 const API_TO_UI_ORIGIN: Partial<Record<ApiPlantOrigin, Plant["origin"]>> = {
   seed: "semilla",
   clone: "esqueje",
-  internal_mother: "madre_interna",
-  external_purchase: "compra_externa",
-  other: "otro",
+  internal_mother: "madre",
+  external_purchase: "planta",
+  other: "planta",
 };
 
 const UI_TO_API_ORIGIN: Record<Plant["origin"], ApiPlantOrigin> = {
   semilla: "seed",
   esqueje: "clone",
-  madre_interna: "internal_mother",
-  compra_externa: "external_purchase",
-  otro: "other",
+  madre: "internal_mother",
+  planta: "external_purchase",
 };
 
 const API_TO_UI_STAGE: Partial<Record<ApiPlantStage, PlantStage>> = {
