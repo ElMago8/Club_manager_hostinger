@@ -35,6 +35,8 @@ type GrowBedForm = {
   substratePPM: string;
   liquidPH: string;
   liquidPPM: string;
+  runoffPH: string;
+  runoffPPM: string;
   measurementMethod: MeasurementMethod;
   notes: string;
 };
@@ -52,6 +54,8 @@ const initialForm: GrowBedForm = {
   substratePPM: "",
   liquidPH: "",
   liquidPPM: "",
+  runoffPH: "",
+  runoffPPM: "",
   measurementMethod: "otro",
   notes: "",
 };
@@ -110,6 +114,8 @@ function NewGrowBedPage() {
             substratePPM: optionalFieldValue(latestMeasurement?.substratePPM),
             liquidPH: optionalFieldValue(latestMeasurement?.liquidPH),
             liquidPPM: optionalFieldValue(latestMeasurement?.liquidPPM),
+            runoffPH: optionalFieldValue(latestMeasurement?.runoffPH),
+            runoffPPM: optionalFieldValue(latestMeasurement?.runoffPPM),
             measurementMethod: latestMeasurement?.measurementMethod ?? "otro",
             notes: bed.notes ?? "",
           });
@@ -133,6 +139,8 @@ function NewGrowBedPage() {
     substratePPM: optionalNumber(form.substratePPM),
     liquidPH: optionalNumber(form.liquidPH),
     liquidPPM: optionalNumber(form.liquidPPM),
+    runoffPH: optionalNumber(form.runoffPH),
+    runoffPPM: optionalNumber(form.runoffPPM),
   });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -142,7 +150,7 @@ function NewGrowBedPage() {
     const maxPlants = Number(form.maxPlants);
     const currentPlants = Number(form.currentPlants);
     const hasInitialMeasurement = Boolean(
-      form.substratePH || form.substratePPM || form.liquidPH || form.liquidPPM,
+      form.substratePH || form.substratePPM || form.liquidPH || form.liquidPPM || form.runoffPH || form.runoffPPM,
     );
 
     if (!form.name.trim()) {
@@ -205,6 +213,8 @@ function NewGrowBedPage() {
           substratePPM: optionalNumber(form.substratePPM),
           liquidPH: optionalNumber(form.liquidPH),
           liquidPPM: optionalNumber(form.liquidPPM),
+          runoffPH: optionalNumber(form.runoffPH),
+          runoffPPM: optionalNumber(form.runoffPPM),
           measurementMethod: form.measurementMethod,
           responsibleName: form.responsibleUserId.trim() || undefined,
         });
@@ -341,6 +351,16 @@ function NewGrowBedPage() {
             <div className="space-y-2">
               <Label htmlFor="liquidPPM">PPM liquido</Label>
               <Input id="liquidPPM" type="number" min="0" step="1" value={form.liquidPPM} onChange={(event) => setForm({ ...form, liquidPPM: event.target.value })} placeholder="Opcional" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="runoffPH">PH drenaje</Label>
+              <Input id="runoffPH" type="number" min="0" max="14" step="0.01" value={form.runoffPH} onChange={(event) => setForm({ ...form, runoffPH: event.target.value })} placeholder="Opcional" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="runoffPPM">PPM drenaje</Label>
+              <Input id="runoffPPM" type="number" min="0" step="1" value={form.runoffPPM} onChange={(event) => setForm({ ...form, runoffPPM: event.target.value })} placeholder="Opcional" />
             </div>
 
             <div className="space-y-2">

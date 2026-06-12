@@ -4,7 +4,8 @@ export type RoomType =
   | "madres"
   | "esquejes"
   | "secado"
-  | "curado";
+  | "curado"
+  | (string & {});
 
 export type RoomStatus =
   | "activa"

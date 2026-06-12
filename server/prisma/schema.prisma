@@ -341,7 +341,7 @@ model DocumentoSocio {
 model ComprobanteFacturacion {
   id                       Int       @id @default(autoincrement())
   codigoComprobante        String    @unique @map("codigo_comprobante")
-  socioId                  Int       @map("socio_id")
+  socioId                  Int?      @map("socio_id")
   tipoComprobante          String    @map("tipo_comprobante")
   puntoVenta               String?   @map("punto_venta")
   numeroComprobante        String?   @map("numero_comprobante")
@@ -366,7 +366,7 @@ model ComprobanteFacturacion {
   creadoEn                 DateTime  @default(now()) @map("creado_en")
   actualizadoEn            DateTime  @updatedAt @map("actualizado_en")
 
-  socio                  Socio                       @relation(fields: [socioId], references: [id], onDelete: Restrict)
+  socio                  Socio?                      @relation(fields: [socioId], references: [id], onDelete: Restrict)
   comprobanteRelacionado ComprobanteFacturacion?     @relation("ComprobanteRelacionado", fields: [comprobanteRelacionadoId], references: [id], onDelete: SetNull)
   comprobantesRelacionados ComprobanteFacturacion[]   @relation("ComprobanteRelacionado")
   items                  ItemComprobanteFacturacion[]

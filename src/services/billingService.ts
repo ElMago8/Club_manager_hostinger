@@ -32,7 +32,7 @@ export interface BillingPayment {
 export interface BillingInvoice {
   id: string;
   codigoComprobante: string;
-  socioId: string;
+  socioId?: string;
   tipoComprobante: ComprobanteType;
   puntoVenta?: string;
   numeroComprobante?: string;
@@ -60,13 +60,16 @@ export interface BillingInvoice {
 }
 
 export interface CreateBillingInvoicePayload {
-  socio_id: number;
+  socio_id?: number;
   tipo_comprobante: ComprobanteType;
   punto_venta?: string;
   fecha_emision: string;
   fecha_vencimiento_pago?: string;
   concepto: string;
   condicion_iva: string;
+  cuit_dni?: string;
+  razon_social?: string;
+  domicilio?: string;
   subtotal: number;
   iva: number;
   total: number;
@@ -93,7 +96,7 @@ interface ApiMember {
 interface ApiInvoice {
   id: number;
   codigoComprobante: string;
-  socioId: number;
+  socioId: number | null;
   tipoComprobante: ComprobanteType;
   puntoVenta: string | null;
   numeroComprobante: string | null;
@@ -154,7 +157,7 @@ function mapInvoice(invoice: ApiInvoice): BillingInvoice {
   return {
     id: String(invoice.id),
     codigoComprobante: invoice.codigoComprobante,
-    socioId: String(invoice.socioId),
+    socioId: invoice.socioId ? String(invoice.socioId) : undefined,
     tipoComprobante: invoice.tipoComprobante,
     puntoVenta: invoice.puntoVenta ?? undefined,
     numeroComprobante: invoice.numeroComprobante ?? undefined,

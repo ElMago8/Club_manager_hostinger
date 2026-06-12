@@ -29,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -97,7 +98,7 @@ type InvoiceSortKey =
   | "estadoCobro";
 
 const TYPE_LABEL: Record<ComprobanteType, string> = {
-  factura_c: "Factura C",
+  factura_c: "Recibo C",
   nota_credito_c: "Nota de credito C",
   nota_debito_c: "Nota de debito C",
   recibo_interno: "Recibo interno",
@@ -129,6 +130,9 @@ const COBRO_CLASS: Record<CobroStatus, string> = {
 
 type NewForm = {
   socioId: string;
+  clienteNombre: string;
+  clienteDocumento: string;
+  clienteDomicilio: string;
   tipo: ComprobanteType;
   concepto: string;
   fecha: string;
@@ -137,6 +141,8 @@ type NewForm = {
   condicionIva: string;
   observaciones: string;
 };
+
+type ClienteMode = "socio" | "otro";
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -238,9 +244,14 @@ function FacturacionPage() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [showFacturado, setShowFacturado] = useState(false);
   const [showPendiente, setShowPendiente] = useState(false);
+  const [showTableTotals, setShowTableTotals] = useState(false);
   const [fechaInput, setFechaInput] = useState(formatDateForInput(today));
+  const [clienteMode, setClienteMode] = useState<ClienteMode>("socio");
   const [newForm, setNewForm] = useState<NewForm>({
     socioId: "",
+    clienteNombre: "",
+    clienteDocumento: "",
+    clienteDomicilio: "",
     tipo: "factura_c",
     concepto: "",
     fecha: today,
@@ -268,7 +279,8 @@ function FacturacionPage() {
     void loadData();
   }, []);
 
-  const selectedSocio = socios.find((socio) => socio.id === newForm.socioId);
+  const selectedSocio = clienteMode === "socio" ? socios.find((socio) => socio.id === newForm.socioId) : undefined;
+  const isReciboC = newForm.tipo === "factura_c";
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -297,7 +309,7 @@ function FacturacionPage() {
       .filter((c) => c.estadoCobro === "impago" || c.estadoCobro === "vencido" || c.estadoCobro === "parcial")
       .reduce((sum, c) => sum + Math.abs(c.total), 0);
     const observados = inPeriod.filter((c) => c.estadoArca === "observado").length;
-    const sociosSet = new Set(inPeriod.map((c) => c.socioId));
+    const sociosSet = new Set(inPeriod.map((c) => c.socioId).filter(Boolean));
     return { count: inPeriod.length, totalFacturado, pendienteCobro, observados, socios: sociosSet.size };
   }, [comprobantes, filterPeriodo]);
 
@@ -324,8 +336,12 @@ function FacturacionPage() {
   }
 
   async function handleNewSave() {
-    if (!selectedSocio) {
+    if (clienteMode === "socio" && !selectedSocio) {
       toast.error("Selecciona un socio real.");
+      return;
+    }
+    if (clienteMode === "otro" && !newForm.clienteNombre.trim()) {
+      toast.error("Ingresa el nombre o razon social del cliente.");
       return;
     }
     if (!newForm.concepto.trim() || !newForm.importe) {
@@ -345,13 +361,16 @@ function FacturacionPage() {
     try {
       setSaving(true);
       const invoice = await createBillingInvoice({
-        socio_id: Number(selectedSocio.id),
+        ...(selectedSocio ? { socio_id: Number(selectedSocio.id) } : {}),
         tipo_comprobante: newForm.tipo,
         punto_venta: "0001",
         fecha_emision: newForm.fecha,
         fecha_vencimiento_pago: newForm.vencimientoPago || undefined,
         concepto: newForm.concepto.trim(),
-        condicion_iva: newForm.condicionIva,
+        condicion_iva: isReciboC ? "consumidor_final" : newForm.condicionIva,
+        cuit_dni: clienteMode === "otro" ? newForm.clienteDocumento.trim() || undefined : undefined,
+        razon_social: clienteMode === "otro" ? newForm.clienteNombre.trim() : undefined,
+        domicilio: clienteMode === "otro" ? newForm.clienteDomicilio.trim() || undefined : undefined,
         subtotal: importe,
         iva: 0,
         total: newForm.tipo === "nota_credito_c" ? -importe : importe,
@@ -369,6 +388,9 @@ function FacturacionPage() {
       setShowNewModal(false);
       setNewForm({
         socioId: socios[0]?.id || "",
+        clienteNombre: "",
+        clienteDocumento: "",
+        clienteDomicilio: "",
         tipo: "factura_c",
         concepto: "",
         fecha: today,
@@ -377,6 +399,7 @@ function FacturacionPage() {
         condicionIva: "consumidor_final",
         observaciones: "",
       });
+      setClienteMode("socio");
       setFechaInput(formatDateForInput(today));
       toast.success("Comprobante creado en base de datos.");
     } catch (error) {
@@ -416,7 +439,7 @@ function FacturacionPage() {
 
           <Button className="gap-2" onClick={() => setShowNewModal(true)}>
             <Plus className="h-4 w-4" />
-            Nueva factura
+            Nuevo recibo
           </Button>
         </div>
 
@@ -507,7 +530,12 @@ function FacturacionPage() {
                   <InvoiceSortHead label="CUIT / DNI" sortKey="documento" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
                   <InvoiceSortHead label="Condicion IVA" sortKey="condicionIva" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
                   <InvoiceSortHead label="Concepto" sortKey="concepto" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
-                  <InvoiceSortHead label="Total" sortKey="total" activeKey={sortKey} dir={sortDir} onSort={handleSort} className="text-right" />
+                  <TableHead className="h-9 px-2 text-right text-xs">
+                    <div className="flex items-center justify-end gap-1">
+                      <InvoiceSortButton label="Total" sortKey="total" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+                      <VisibilityButton visible={showTableTotals} label="totales de la tabla" onToggle={() => setShowTableTotals((current) => !current)} />
+                    </div>
+                  </TableHead>
                   <InvoiceSortHead label="Estado ARCA" sortKey="estadoArca" activeKey={sortKey} dir={sortDir} onSort={handleSort} className="text-center" />
                   <InvoiceSortHead label="Estado cobro" sortKey="estadoCobro" activeKey={sortKey} dir={sortDir} onSort={handleSort} className="text-center" />
                   <TableHead className="h-9 px-2 text-center text-xs">Acciones</TableHead>
@@ -529,7 +557,9 @@ function FacturacionPage() {
                     <TableCell className="px-2 py-2 text-xs">{formatCondicionIva(c.condicionIva)}</TableCell>
                     <TableCell className="max-w-[180px] truncate px-2 py-2 text-xs">{c.concepto}</TableCell>
                     <TableCell className="whitespace-nowrap px-2 py-2 text-right text-xs font-medium">
-                      <span className={c.total < 0 ? "text-red-600 dark:text-red-400" : ""}>{formatCurrency(c.total)}</span>
+                      <span className={c.total < 0 && showTableTotals ? "text-red-600 dark:text-red-400" : ""}>
+                        {showTableTotals ? formatCurrency(c.total) : "••••"}
+                      </span>
                     </TableCell>
                     <TableCell className="px-2 py-2 text-center"><Badge variant="outline" className={`px-2 text-[11px] ${ARCA_CLASS[c.estadoArca]}`}>{ARCA_LABEL[c.estadoArca]}</Badge></TableCell>
                     <TableCell className="px-2 py-2 text-center"><Badge variant="outline" className={`px-2 text-[11px] ${COBRO_CLASS[c.estadoCobro]}`}>{COBRO_LABEL[c.estadoCobro]}</Badge></TableCell>
@@ -573,23 +603,68 @@ function FacturacionPage() {
       <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Plus className="h-4 w-4" />Nueva factura</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Plus className="h-4 w-4" />Nuevo Recibo</DialogTitle>
             <DialogDescription>El comprobante se guarda en base de datos. No se envia a ARCA.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-4">
-            {!socios.length && (
+            {clienteMode === "socio" && !socios.length && (
               <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
                 <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 No hay socios disponibles para facturar. Revisá que el backend esté activo y que existan socios cargados.
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-sm font-semibold">Socio</Label>
-              <Select value={newForm.socioId} onValueChange={(v) => setNewForm({ ...newForm, socioId: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecciona socio" /></SelectTrigger>
-                <SelectContent>{socios.map((s) => <SelectItem key={s.id} value={s.id}>{memberLabel(s)}</SelectItem>)}</SelectContent>
-              </Select>
+              <div className="flex items-center justify-between gap-3">
+                <label className="flex items-center gap-2 text-sm font-semibold">
+                  <Checkbox
+                    checked={clienteMode === "socio"}
+                    onCheckedChange={() => setClienteMode("socio")}
+                  />
+                  Socio
+                </label>
+                <label className="flex items-center gap-2 text-sm font-semibold">
+                  <Checkbox
+                    checked={clienteMode === "otro"}
+                    onCheckedChange={() => setClienteMode("otro")}
+                  />
+                  Otro
+                </label>
+              </div>
+              {clienteMode === "socio" ? (
+                <Select value={newForm.socioId} onValueChange={(v) => setNewForm({ ...newForm, socioId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecciona socio" /></SelectTrigger>
+                  <SelectContent>{socios.map((s) => <SelectItem key={s.id} value={s.id}>{memberLabel(s)}</SelectItem>)}</SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={newForm.clienteNombre}
+                  onChange={(e) => setNewForm({ ...newForm, clienteNombre: e.target.value })}
+                  placeholder="Nombre o razon social"
+                />
+              )}
             </div>
+            {clienteMode === "otro" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="nf-doc-manual" className="text-sm font-semibold">CUIT / DNI</Label>
+                  <Input
+                    id="nf-doc-manual"
+                    value={newForm.clienteDocumento}
+                    onChange={(e) => setNewForm({ ...newForm, clienteDocumento: e.target.value })}
+                    placeholder="Opcional"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="nf-dom-manual" className="text-sm font-semibold">Domicilio</Label>
+                  <Input
+                    id="nf-dom-manual"
+                    value={newForm.clienteDomicilio}
+                    onChange={(e) => setNewForm({ ...newForm, clienteDomicilio: e.target.value })}
+                    placeholder="Opcional"
+                  />
+                </div>
+              </div>
+            )}
             {selectedSocio && (
               <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                 DNI/CUIT: {selectedSocio.dni ?? "-"} · Razon social: {selectedSocio.nombreCompleto} · Domicilio: {selectedSocio.direccion ?? "-"}
@@ -620,23 +695,25 @@ function FacturacionPage() {
               <Label htmlFor="nf-concepto" className="text-sm font-semibold">Concepto</Label>
               <Input id="nf-concepto" value={newForm.concepto} onChange={(e) => setNewForm({ ...newForm, concepto: e.target.value })} placeholder="Ej: Cuota mensual socio" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid gap-4 ${isReciboC ? "grid-cols-1" : "grid-cols-2"}`}>
               <div className="space-y-1.5">
                 <Label htmlFor="nf-importe" className="text-sm font-semibold">Importe total ($)</Label>
                 <Input id="nf-importe" type="number" min="1" step="1" value={newForm.importe} onChange={(e) => setNewForm({ ...newForm, importe: e.target.value })} placeholder="Ej: 50000" />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold">Condicion IVA</Label>
-                <Select value={newForm.condicionIva} onValueChange={(v) => setNewForm({ ...newForm, condicionIva: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="consumidor_final">Consumidor final</SelectItem>
-                    <SelectItem value="monotributista">Monotributista</SelectItem>
-                    <SelectItem value="responsable_inscripto">Responsable inscripto</SelectItem>
-                    <SelectItem value="exento">Exento</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isReciboC && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold">Condicion IVA</Label>
+                  <Select value={newForm.condicionIva} onValueChange={(v) => setNewForm({ ...newForm, condicionIva: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="consumidor_final">Consumidor final</SelectItem>
+                      <SelectItem value="monotributista">Monotributista</SelectItem>
+                      <SelectItem value="responsable_inscripto">Responsable inscripto</SelectItem>
+                      <SelectItem value="exento">Exento</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="nf-obs" className="text-sm font-semibold">Observaciones</Label>
@@ -645,7 +722,7 @@ function FacturacionPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewModal(false)}>Cancelar</Button>
-            <Button onClick={handleNewSave} disabled={saving || !socios.length} className="gap-2"><Plus className="h-4 w-4" />{saving ? "Guardando..." : "Crear factura"}</Button>
+            <Button onClick={handleNewSave} disabled={saving || (clienteMode === "socio" && !socios.length)} className="gap-2"><Plus className="h-4 w-4" />{saving ? "Guardando..." : "Crear recibo"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -668,21 +745,42 @@ function InvoiceSortHead({
   onSort: (key: InvoiceSortKey) => void;
   className?: string;
 }) {
-  const active = activeKey === sortKey;
   const justify = className.includes("text-right")
     ? "justify-end"
     : className.includes("text-center")
       ? "justify-center"
       : "";
-  const Icon = active ? (dir === "asc" ? ChevronUp : ChevronDown) : ChevronsUpDown;
 
   return (
     <TableHead className={`h-9 select-none px-2 text-xs ${className}`}>
-      <button type="button" className={`inline-flex w-full items-center gap-1.5 ${justify}`} onClick={() => onSort(sortKey)}>
-        <span>{label}</span>
-        <Icon className={`h-3.5 w-3.5 ${active ? "text-primary" : "text-muted-foreground/70"}`} />
-      </button>
+      <InvoiceSortButton label={label} sortKey={sortKey} activeKey={activeKey} dir={dir} onSort={onSort} className={`w-full ${justify}`} />
     </TableHead>
+  );
+}
+
+function InvoiceSortButton({
+  label,
+  sortKey,
+  activeKey,
+  dir,
+  onSort,
+  className = "",
+}: {
+  label: string;
+  sortKey: InvoiceSortKey;
+  activeKey: InvoiceSortKey;
+  dir: SortDir;
+  onSort: (key: InvoiceSortKey) => void;
+  className?: string;
+}) {
+  const active = activeKey === sortKey;
+  const Icon = active ? (dir === "asc" ? ChevronUp : ChevronDown) : ChevronsUpDown;
+
+  return (
+    <button type="button" className={`inline-flex items-center gap-1.5 ${className}`} onClick={() => onSort(sortKey)}>
+      <span>{label}</span>
+      <Icon className={`h-3.5 w-3.5 ${active ? "text-primary" : "text-muted-foreground/70"}`} />
+    </button>
   );
 }
 

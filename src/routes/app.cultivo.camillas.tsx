@@ -5,6 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -43,6 +44,22 @@ const PARAM_STATUS_CLASS: Record<MeasurementStatus, string> = {
   critical: "border-red-200 bg-red-500/10 text-red-700",
 };
 
+const MEASUREMENT_COLUMNS = [
+  { key: "substratePH", label: "PH sustrato", getValue: (item?: CultivationMeasurement) => item?.substratePH },
+  { key: "substratePPM", label: "PPM sustrato", getValue: (item?: CultivationMeasurement) => item?.substratePPM },
+  { key: "liquidPH", label: "PH liquido", getValue: (item?: CultivationMeasurement) => item?.liquidPH },
+  { key: "liquidPPM", label: "PPM liquido", getValue: (item?: CultivationMeasurement) => item?.liquidPPM },
+  { key: "runoffPH", label: "PH drenaje", getValue: (item?: CultivationMeasurement) => item?.runoffPH },
+  { key: "runoffPPM", label: "PPM drenaje", getValue: (item?: CultivationMeasurement) => item?.runoffPPM },
+] as const;
+
+type MeasurementColumnKey = typeof MEASUREMENT_COLUMNS[number]["key"];
+
+function splitMeasurementLabel(label: string) {
+  const [first, ...rest] = label.split(" ");
+  return { first, second: rest.join(" ") };
+}
+
 function GrowBedsPage() {
   const location = useLocation();
   const [beds, setBeds] = useState<GrowBed[]>([]);
@@ -52,6 +69,14 @@ function GrowBedsPage() {
   const [status, setStatus] = useState<"all" | BedStatus>("all");
   const [capacity, setCapacity] = useState("");
   const [occupancy, setOccupancy] = useState<"all" | "with_plants" | "empty">("all");
+  const [visibleMeasurementColumns, setVisibleMeasurementColumns] = useState<MeasurementColumnKey[]>([
+    "substratePH",
+    "substratePPM",
+    "liquidPH",
+    "liquidPPM",
+    "runoffPH",
+    "runoffPPM",
+  ]);
 
   useEffect(() => {
     void Promise.all([getGrowBeds(), getGrowRooms(), getMeasurements()]).then(([nextBeds, nextRooms, nextMeasurements]) => {
@@ -86,6 +111,12 @@ function GrowBedsPage() {
 
   function latestBedMeasurement(bedId: string) {
     return measurements.find((item) => item.bedId === bedId);
+  }
+
+  function toggleMeasurementColumn(key: MeasurementColumnKey, checked: boolean) {
+    setVisibleMeasurementColumns((current) =>
+      checked ? [...current, key] : current.filter((item) => item !== key),
+    );
   }
 
   if (location.pathname !== "/app/cultivo/camillas") {
@@ -160,7 +191,28 @@ function GrowBedsPage() {
           <CardTitle>Listado de camillas</CardTitle>
           <CardDescription>Datos conectados al backend local de cultivo.</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="space-y-4 p-0">
+          <div className="mx-4 rounded-md border border-input bg-background/70 p-3 shadow-sm dark:bg-muted/35 dark:shadow-[0_0_0_1px_color-mix(in_oklch,var(--input)_45%,transparent)]">
+            <p className="text-sm font-medium">Elementos de medicion visibles</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+              {MEASUREMENT_COLUMNS.map((column) => {
+                const checked = visibleMeasurementColumns.includes(column.key);
+
+                return (
+                  <label
+                    key={column.key}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/60"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(nextChecked) => toggleMeasurementColumn(column.key, Boolean(nextChecked))}
+                    />
+                    {column.label}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
           <div className="overflow-x-auto rounded-b-md border-t [&_td]:text-center [&_th]:text-center [&_td]:px-2 [&_th]:px-2 [&_td]:py-2 [&_th]:py-2">
             <Table>
               <TableHeader>
@@ -171,11 +223,21 @@ function GrowBedsPage() {
                   <SortHead label="Estado"    sortKey="status"            col={sCol} dir={sDir} onSort={sort} />
                   <SortHead label={<span className="flex flex-col items-center leading-tight"><span>Capacidad</span><span>máxima</span></span>} sortKey="maxPlants"         col={sCol} dir={sDir} onSort={sort} />
                   <SortHead label={<span className="flex flex-col items-center leading-tight"><span>Plantas</span><span>actuales</span></span>} sortKey="currentPlants"     col={sCol} dir={sDir} onSort={sort} />
-                  <TableHead><span className="flex flex-col items-center leading-tight"><span>PH</span><span>sustrato</span></span></TableHead>
-                  <TableHead><span className="flex flex-col items-center leading-tight"><span>PPM</span><span>sustrato</span></span></TableHead>
-                  <TableHead><span className="flex flex-col items-center leading-tight"><span>PH</span><span>líquido</span></span></TableHead>
-                  <TableHead><span className="flex flex-col items-center leading-tight"><span>PPM</span><span>líquido</span></span></TableHead>
-                  <TableHead><span className="flex flex-col items-center leading-tight"><span>Estado</span><span>parámetros</span></span></TableHead>
+                  {MEASUREMENT_COLUMNS.filter((column) => visibleMeasurementColumns.includes(column.key)).map((column) => {
+                    const { first, second } = splitMeasurementLabel(column.label);
+
+                    return (
+                      <TableHead key={column.key}>
+                        <span className="flex flex-col items-center leading-tight">
+                          <span>{first}</span>
+                          <span>{second}</span>
+                        </span>
+                      </TableHead>
+                    );
+                  })}
+                  {visibleMeasurementColumns.length ? (
+                    <TableHead><span className="flex flex-col items-center leading-tight"><span>Estado</span><span>parametros</span></span></TableHead>
+                  ) : null}
                   <SortHead label={<span className="flex flex-col items-center leading-tight"><span>Lote</span><span>principal</span></span>} sortKey="mainBatchId"       col={sCol} dir={sDir} onSort={sort} />
                   <SortHead label="Responsable" sortKey="responsibleUserId" col={sCol} dir={sDir} onSort={sort} />
                   <TableHead>Acciones</TableHead>
@@ -196,13 +258,14 @@ function GrowBedsPage() {
                       </TableCell>
                       <TableCell className="font-mono text-xs">{bed.maxPlants}</TableCell>
                       <TableCell className="font-mono text-xs">{bed.currentPlants}</TableCell>
-                      <TableCell className="font-mono text-xs">{latest?.substratePH ?? "-"}</TableCell>
-                      <TableCell className="font-mono text-xs">{latest?.substratePPM ?? "-"}</TableCell>
-                      <TableCell className="font-mono text-xs">{latest?.liquidPH ?? "-"}</TableCell>
-                      <TableCell className="font-mono text-xs">{latest?.liquidPPM ?? "-"}</TableCell>
-                      <TableCell>
-                        {latest ? <Badge variant="outline" className={PARAM_STATUS_CLASS[latest.status]}>{latest.status}</Badge> : "-"}
-                      </TableCell>
+                      {MEASUREMENT_COLUMNS.filter((column) => visibleMeasurementColumns.includes(column.key)).map((column) => (
+                        <TableCell key={column.key} className="font-mono text-xs">{column.getValue(latest) ?? "-"}</TableCell>
+                      ))}
+                      {visibleMeasurementColumns.length ? (
+                        <TableCell>
+                          {latest ? <Badge variant="outline" className={PARAM_STATUS_CLASS[latest.status]}>{latest.status}</Badge> : "-"}
+                        </TableCell>
+                      ) : null}
                       <TableCell className="font-mono text-xs">{bed.mainBatchId ?? "-"}</TableCell>
                       <TableCell>{bed.responsibleUserId ?? "Sin asignar"}</TableCell>
                       <TableCell>
@@ -233,3 +296,4 @@ function GrowBedsPage() {
     </div>
   );
 }
+

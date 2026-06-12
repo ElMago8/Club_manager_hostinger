@@ -34,6 +34,8 @@ type HarvestForm = {
   notes: string;
 };
 
+type WeightField = "wetWeight" | "dryWeight" | "shrinkage";
+
 const initialForm: HarvestForm = {
   code: "",
   batchId: "",
@@ -45,6 +47,41 @@ const initialForm: HarvestForm = {
   status: "en_secado",
   notes: "",
 };
+
+function parseWeight(value: string): number | undefined {
+  if (!value.trim()) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function formatCalculatedWeight(value: number): string {
+  return Number(value.toFixed(2)).toString();
+}
+
+function getCalculatedWeight(form: HarvestForm): { field: WeightField; value: string } | null {
+  const wetWeight = parseWeight(form.wetWeight);
+  const dryWeight = parseWeight(form.dryWeight);
+  const shrinkage = parseWeight(form.shrinkage);
+  const filled = [wetWeight, dryWeight, shrinkage].filter((value) => value !== undefined);
+
+  if (filled.length !== 2) return null;
+
+  if (wetWeight === undefined && dryWeight !== undefined && shrinkage !== undefined) {
+    return { field: "wetWeight", value: formatCalculatedWeight(dryWeight + shrinkage) };
+  }
+
+  if (dryWeight === undefined && wetWeight !== undefined && shrinkage !== undefined) {
+    const value = wetWeight - shrinkage;
+    return value >= 0 ? { field: "dryWeight", value: formatCalculatedWeight(value) } : null;
+  }
+
+  if (shrinkage === undefined && wetWeight !== undefined && dryWeight !== undefined) {
+    const value = wetWeight - dryWeight;
+    return value >= 0 ? { field: "shrinkage", value: formatCalculatedWeight(value) } : null;
+  }
+
+  return null;
+}
 
 function NewHarvestPage() {
   const navigate = useNavigate();
@@ -92,9 +129,20 @@ function NewHarvestPage() {
   }, [editId]);
 
   const selectedBatch = useMemo(() => batches.find((b) => b.id === form.batchId), [batches, form.batchId]);
+  const calculatedWeight = useMemo(() => getCalculatedWeight(form), [form]);
 
   function set(key: keyof HarvestForm, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function weightValue(field: WeightField): string {
+    return form[field] || (calculatedWeight?.field === field ? calculatedWeight.value : "");
+  }
+
+  function weightClass(field: WeightField): string {
+    return calculatedWeight?.field === field
+      ? "border-amber-400 bg-amber-500/15 font-semibold text-amber-900 ring-1 ring-amber-400/60 dark:border-amber-300 dark:bg-amber-400/20 dark:text-amber-100"
+      : "";
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -105,9 +153,9 @@ function NewHarvestPage() {
     if (!form.batchId) { setError("Seleccioná un lote de cultivo."); return; }
     if (!form.harvestDate) { setError("La fecha de cosecha es obligatoria."); return; }
 
-    const wetWeightGrams = form.wetWeight ? parseFloat(form.wetWeight) : undefined;
-    const dryWeightGrams = form.dryWeight ? parseFloat(form.dryWeight) : undefined;
-    const shrinkageGrams = form.shrinkage ? parseFloat(form.shrinkage) : undefined;
+    const wetWeightGrams = weightValue("wetWeight") ? parseFloat(weightValue("wetWeight")) : undefined;
+    const dryWeightGrams = weightValue("dryWeight") ? parseFloat(weightValue("dryWeight")) : undefined;
+    const shrinkageGrams = weightValue("shrinkage") ? parseFloat(weightValue("shrinkage")) : undefined;
 
     if (wetWeightGrams !== undefined && (isNaN(wetWeightGrams) || wetWeightGrams < 0)) {
       setError("El peso húmedo debe ser un número válido mayor o igual a 0.");
@@ -119,6 +167,16 @@ function NewHarvestPage() {
     }
     if (shrinkageGrams !== undefined && (isNaN(shrinkageGrams) || shrinkageGrams < 0)) {
       setError("La merma debe ser un número válido mayor o igual a 0.");
+      return;
+    }
+
+    if (
+      wetWeightGrams !== undefined &&
+      dryWeightGrams !== undefined &&
+      shrinkageGrams !== undefined &&
+      Math.abs(wetWeightGrams - dryWeightGrams - shrinkageGrams) > 0.01
+    ) {
+      setError("Los pesos no coinciden: peso humedo debe ser igual a peso seco mas merma.");
       return;
     }
 
@@ -262,9 +320,13 @@ function NewHarvestPage() {
                   min={0}
                   step="any"
                   placeholder="Ej: 1800"
-                  value={form.wetWeight}
+                  value={weightValue("wetWeight")}
                   onChange={(e) => set("wetWeight", e.target.value)}
+                  className={weightClass("wetWeight")}
                 />
+                {calculatedWeight?.field === "wetWeight" ? (
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-300">Calculado automaticamente.</p>
+                ) : null}
               </div>
 
               {/* Peso seco */}
@@ -276,9 +338,13 @@ function NewHarvestPage() {
                   min={0}
                   step="any"
                   placeholder="Ej: 420"
-                  value={form.dryWeight}
+                  value={weightValue("dryWeight")}
                   onChange={(e) => set("dryWeight", e.target.value)}
+                  className={weightClass("dryWeight")}
                 />
+                {calculatedWeight?.field === "dryWeight" ? (
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-300">Calculado automaticamente.</p>
+                ) : null}
               </div>
 
               {/* Merma (manual) */}
@@ -290,9 +356,13 @@ function NewHarvestPage() {
                   min={0}
                   step="any"
                   placeholder="Ej: 1380"
-                  value={form.shrinkage}
+                  value={weightValue("shrinkage")}
                   onChange={(e) => set("shrinkage", e.target.value)}
+                  className={weightClass("shrinkage")}
                 />
+                {calculatedWeight?.field === "shrinkage" ? (
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-300">Calculado automaticamente.</p>
+                ) : null}
               </div>
 
               {/* Estado */}

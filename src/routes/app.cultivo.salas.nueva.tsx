@@ -4,6 +4,7 @@ import { ArrowLeft, Save, Warehouse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +14,14 @@ import type { RoomStatus, RoomType } from "@/types/cultivation";
 
 const PRESET_ENTORNOS = ["indoor", "outdoor", "invernadero"] as const;
 const PRESET_MEDIOS   = ["sustrato", "fibra_de_coco", "lana_de_roca", "hidroponia", "aeroponia"] as const;
+const ROOM_TYPE_OPTIONS: Array<{ value: RoomType; label: string }> = [
+  { value: "vegetativo", label: "Vegetativo" },
+  { value: "floracion", label: "Floracion" },
+  { value: "madres", label: "Madres" },
+  { value: "esquejes", label: "Esquejes" },
+  { value: "secado", label: "Secado" },
+  { value: "curado", label: "Curado" },
+];
 
 export const Route = createFileRoute("/app/cultivo/salas/nueva")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -25,7 +34,7 @@ export const Route = createFileRoute("/app/cultivo/salas/nueva")({
 type GrowRoomForm = {
   code: string;
   name: string;
-  type: RoomType;
+  type: string;
   status: RoomStatus;
   installedPowerWatts: string;
   irrigationSystem: "manual" | "automatico";
@@ -51,6 +60,17 @@ const initialForm: GrowRoomForm = {
   growMedium: "",
   notes: "",
 };
+
+function parseRoomTypes(value?: string): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function joinRoomTypes(values: string[]): string {
+  return values.join(", ");
+}
 
 function NewGrowRoomPage() {
   const navigate = useNavigate();
@@ -115,6 +135,11 @@ function NewGrowRoomPage() {
 
     if (!form.name.trim()) {
       setError("El nombre de sala es obligatorio.");
+      return;
+    }
+
+    if (!parseRoomTypes(form.type).length) {
+      setError("Selecciona al menos un tipo de sala.");
       return;
     }
 
@@ -208,20 +233,31 @@ function NewGrowRoomPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={form.type} onValueChange={(type) => setForm({ ...form, type: type as RoomType })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vegetativo">Vegetativo</SelectItem>
-                  <SelectItem value="floracion">Floracion</SelectItem>
-                  <SelectItem value="madres">Madres</SelectItem>
-                  <SelectItem value="esquejes">Esquejes</SelectItem>
-                  <SelectItem value="secado">Secado</SelectItem>
-                  <SelectItem value="curado">Curado</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Tipo (Permite varias opciones)</Label>
+              <div className="grid gap-2 rounded-md border border-input bg-background/70 p-3 shadow-sm dark:bg-muted/35 dark:shadow-[0_0_0_1px_color-mix(in_oklch,var(--input)_45%,transparent)] sm:grid-cols-2">
+                {ROOM_TYPE_OPTIONS.map((option) => {
+                  const selectedTypes = parseRoomTypes(form.type);
+                  const checked = selectedTypes.includes(option.value);
+
+                  return (
+                    <label key={option.value} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(nextChecked) => {
+                          const nextTypes = nextChecked
+                            ? [...selectedTypes, option.value]
+                            : selectedTypes.filter((item) => item !== option.value);
+                          setForm({ ...form, type: joinRoomTypes(nextTypes) });
+                        }}
+                      />
+                      {option.label}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Seleccionadas: {parseRoomTypes(form.type).length ? parseRoomTypes(form.type).join(", ") : "ninguna"}
+              </p>
             </div>
 
             <div className="space-y-2">

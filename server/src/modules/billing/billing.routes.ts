@@ -94,7 +94,7 @@ function normalizeInvoiceBody(body: Record<string, any>) {
 }
 
 const invoiceSchema = rawInvoiceSchema.transform(normalizeInvoiceBody).superRefine((body, ctx) => {
-  if (!body.socioId) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "socio_id es requerido.", path: ["socio_id"] });
+  if (!body.socioId && !body.razonSocial) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Indica un socio o una razon social manual.", path: ["razon_social"] });
   if (!body.tipoComprobante) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "tipo_comprobante es requerido.", path: ["tipo_comprobante"] });
   if (!body.fechaEmision) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "fecha_emision es requerida.", path: ["fecha_emision"] });
   if (!body.concepto) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "concepto es requerido.", path: ["concepto"] });
@@ -164,10 +164,10 @@ async function buildCodes(type: string, pointOfSale = "0001") {
 }
 
 function invoiceDataFromBody(body: InvoiceCreateInput, socio: Awaited<ReturnType<typeof prisma.socio.findUnique>>) {
-  if (!socio) throw new ApiError(404, "Socio no encontrado.");
-  const razonSocial = body.razonSocial ?? `${socio.nombre} ${socio.apellido}`.trim();
+  if (body.socioId && !socio) throw new ApiError(404, "Socio no encontrado.");
+  const razonSocial = body.razonSocial ?? (socio ? `${socio.nombre} ${socio.apellido}`.trim() : undefined);
   return {
-    socioId: body.socioId!,
+    socioId: body.socioId ?? null,
     tipoComprobante: body.tipoComprobante!,
     puntoVenta: body.puntoVenta,
     numeroComprobante: body.numeroComprobante,
@@ -175,9 +175,9 @@ function invoiceDataFromBody(body: InvoiceCreateInput, socio: Awaited<ReturnType
     fechaVencimientoPago: body.fechaVencimientoPago,
     concepto: body.concepto!,
     condicionIva: body.condicionIva,
-    cuitDni: body.cuitDni ?? socio.dni ?? undefined,
+    cuitDni: body.cuitDni ?? socio?.dni ?? undefined,
     razonSocial,
-    domicilio: body.domicilio ?? socio.direccion ?? undefined,
+    domicilio: body.domicilio ?? socio?.direccion ?? undefined,
     subtotal: body.subtotal,
     iva: body.iva,
     total: body.total!,
@@ -223,7 +223,7 @@ billingRoutes.get("/invoices/:id", async (req: Request, res: Response, next: Nex
 billingRoutes.post("/invoices", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = invoiceSchema.parse(req.body);
-    const socio = await prisma.socio.findUnique({ where: { id: body.socioId! } });
+    const socio = body.socioId ? await prisma.socio.findUnique({ where: { id: body.socioId } }) : null;
     const codes = await buildCodes(body.tipoComprobante!, body.puntoVenta);
     const items = body.items?.length ? body.items : [{
       descripcion: body.concepto!,
@@ -254,8 +254,8 @@ billingRoutes.patch("/invoices/:id", async (req: Request, res: Response, next: N
     if (!existing) throw new ApiError(404, "Comprobante no encontrado.");
 
     const socioId = body.socioId ?? existing.socioId;
-    const socio = await prisma.socio.findUnique({ where: { id: socioId } });
-    if (!socio) throw new ApiError(404, "Socio no encontrado.");
+    const socio = socioId ? await prisma.socio.findUnique({ where: { id: socioId } }) : null;
+    if (socioId && !socio) throw new ApiError(404, "Socio no encontrado.");
 
     const data = {
       socioId,

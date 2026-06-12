@@ -1,12 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label as FormLabel } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, ArrowRight, BarChart3, FileText, Leaf, Sprout, TestTube, Timer, TrendingUp, Warehouse } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  Eye,
+  FileText,
+  Leaf,
+  MoreVertical,
+  Pencil,
+  Sprout,
+  TestTube,
+  Timer,
+  Trash2,
+  TrendingUp,
+  Upload,
+  Warehouse,
+} from "lucide-react";
 import { Cell, Label, Pie, PieChart } from "recharts";
 import { getEnvironmentalLogs } from "@/services/environmentalService";
 import { getGenetics } from "@/services/geneticsService";
@@ -114,6 +142,16 @@ const archivosLotes: Array<{
 ];
 
 type CuradoStatus = "En curado" | "Liberado" | "Retenido" | "Observado";
+type UploadTarget = {
+  source: "control" | "archivo";
+  lote: string;
+  title: string;
+  description: string;
+};
+type DetailTarget = {
+  title: string;
+  rows: Array<{ label: string; value: string }>;
+};
 
 const rendimientosLote: Array<{
   lote: string;
@@ -247,6 +285,9 @@ function CultivoPage() {
   const [genetics, setGenetics] = useState<Genetics[]>([]);
   const [mothers, setMothers] = useState<MotherPlantWithPlantCount[]>([]);
   const [logs, setLogs] = useState<EnvironmentalLog[]>([]);
+  const [uploadTarget, setUploadTarget] = useState<UploadTarget | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null);
 
   useEffect(() => {
     void Promise.all([
@@ -323,6 +364,25 @@ function CultivoPage() {
   function bedName(bedId?: string): string {
     if (!bedId) return "-";
     return beds.find((bed) => bed.id === bedId)?.name ?? bedId;
+  }
+
+  function closeUploadModal() {
+    setUploadTarget(null);
+    setUploadFile(null);
+  }
+
+  function handleUploadSubmit() {
+    if (!uploadTarget || !uploadFile) {
+      toast.error("Selecciona un archivo para subir.");
+      return;
+    }
+
+    toast.success(`Archivo "${uploadFile.name}" asociado al lote ${uploadTarget.lote} (demo).`);
+    closeUploadModal();
+  }
+
+  function mockPendingAction(action: string, lote: string) {
+    toast.info(`${action} de lote ${lote} pendiente de integracion.`);
   }
 
   if (location.pathname !== "/app/cultivo") {
@@ -626,7 +686,7 @@ function CultivoPage() {
                         <TableHead>Fecha</TableHead>
                         <TableHead>Resultado</TableHead>
                         <TableHead>Archivo</TableHead>
-                        <TableHead className="w-[120px]">Acción</TableHead>
+                        <TableHead className="w-[80px] text-center">Accion</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -640,16 +700,32 @@ function CultivoPage() {
                           <TableCell className="text-muted-foreground">{c.fecha}</TableCell>
                           <TableCell>{c.resultado}</TableCell>
                           <TableCell className="text-muted-foreground text-xs">{c.archivo}</TableCell>
-                          <TableCell>
-                            <button
-                              type="button"
-                              disabled
-                              className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground opacity-60 cursor-not-allowed"
-                              title="Ver informe (mock)"
-                            >
-                              <FileText className="h-3 w-3" />
-                              Ver informe
-                            </button>
+                          <TableCell className="text-center">
+                            <LoteRowActions
+                              onView={() =>
+                                setDetailTarget({
+                                  title: `Control ${c.tipo} - ${c.lote}`,
+                                  rows: [
+                                    { label: "Lote", value: c.lote },
+                                    { label: "Tipo de control", value: c.tipo },
+                                    { label: "Estado", value: c.estado },
+                                    { label: "Fecha", value: c.fecha },
+                                    { label: "Resultado", value: c.resultado },
+                                    { label: "Archivo", value: c.archivo },
+                                  ],
+                                })
+                              }
+                              onEdit={() => mockPendingAction("Edicion", c.lote)}
+                              onDelete={() => mockPendingAction("Eliminacion", c.lote)}
+                              onUpload={() =>
+                                setUploadTarget({
+                                  source: "control",
+                                  lote: c.lote,
+                                  title: `Subir archivo de control - ${c.lote}`,
+                                  description: `Adjunta un informe o respaldo para el control "${c.tipo}" con estado ${c.estado}.`,
+                                })
+                              }
+                            />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -677,6 +753,7 @@ function CultivoPage() {
                         <TableHead>Nombre del archivo</TableHead>
                         <TableHead>Estado</TableHead>
                         <TableHead>Fecha</TableHead>
+                        <TableHead className="w-[80px] text-center">Accion</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -689,6 +766,32 @@ function CultivoPage() {
                             <Badge variant={a.estado === "Activo" ? "secondary" : "outline"}>{a.estado}</Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground">{a.fecha}</TableCell>
+                          <TableCell className="text-center">
+                            <LoteRowActions
+                              onView={() =>
+                                setDetailTarget({
+                                  title: `Archivo ${a.nombre}`,
+                                  rows: [
+                                    { label: "Lote", value: a.lote },
+                                    { label: "Tipo de archivo", value: a.tipoArchivo },
+                                    { label: "Nombre", value: a.nombre },
+                                    { label: "Estado", value: a.estado },
+                                    { label: "Fecha", value: a.fecha },
+                                  ],
+                                })
+                              }
+                              onEdit={() => mockPendingAction("Edicion de archivo", a.lote)}
+                              onDelete={() => mockPendingAction("Eliminacion de archivo", a.lote)}
+                              onUpload={() =>
+                                setUploadTarget({
+                                  source: "archivo",
+                                  lote: a.lote,
+                                  title: `Subir archivo asociado - ${a.lote}`,
+                                  description: `Adjunta o reemplaza documentacion para "${a.nombre}".`,
+                                })
+                              }
+                            />
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -955,6 +1058,120 @@ function CultivoPage() {
         </TabsContent>
 
       </Tabs>
+
+      <Dialog open={Boolean(detailTarget)} onOpenChange={(open) => !open && setDetailTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              {detailTarget?.title ?? "Detalle de lote"}
+            </DialogTitle>
+            <DialogDescription>Informacion asociada a la fila seleccionada.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 rounded-md border bg-muted/30 p-3">
+            {detailTarget?.rows.map((row) => (
+              <div key={row.label} className="grid gap-1 text-sm sm:grid-cols-[140px_1fr]">
+                <span className="font-medium text-muted-foreground">{row.label}</span>
+                <span>{row.value || "-"}</span>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailTarget(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(uploadTarget)} onOpenChange={(open) => !open && closeUploadModal()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              {uploadTarget?.title ?? "Subir archivo"}
+            </DialogTitle>
+            <DialogDescription>
+              Selecciona un archivo para asociarlo al lote y conservar la trazabilidad documental.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-md border bg-muted/30 p-3 text-sm">
+              <p className="font-medium">Lote {uploadTarget?.lote ?? "-"}</p>
+              <p className="mt-1 text-muted-foreground">{uploadTarget?.description}</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <FormLabel htmlFor="lote-upload-file">Archivo</FormLabel>
+              <Input
+                id="lote-upload-file"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv"
+                onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Formatos sugeridos: PDF, imagen, planilla o documento tecnico.
+              </p>
+            </div>
+
+            {uploadFile ? (
+              <div className="flex items-center justify-between rounded-md border px-3 py-2 text-xs">
+                <span className="truncate font-medium">{uploadFile.name}</span>
+                <span className="shrink-0 text-muted-foreground">{Math.ceil(uploadFile.size / 1024)} KB</span>
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeUploadModal}>Cancelar</Button>
+            <Button className="gap-2" onClick={handleUploadSubmit}>
+              <Upload className="h-4 w-4" />
+              Subir archivo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function LoteRowActions({
+  onView,
+  onEdit,
+  onDelete,
+  onUpload,
+}: {
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onUpload: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreVertical className="h-4 w-4" />
+          <span className="sr-only">Abrir acciones</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onView}>
+          <Eye className="mr-2 h-4 w-4" />
+          Ver
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onEdit}>
+          <Pencil className="mr-2 h-4 w-4" />
+          Editar
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onUpload}>
+          <Upload className="mr-2 h-4 w-4" />
+          Subir
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
+          <Trash2 className="mr-2 h-4 w-4" />
+          Eliminar
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

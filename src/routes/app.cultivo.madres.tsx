@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { MoreVertical, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import { Eye, MoreVertical, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
-import { ExpandableTextCell } from "@/components/cultivation/ExpandableTextCell";
 import { CultivationStatusMessage } from "@/components/cultivation/RelationshipWarning";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,6 +72,7 @@ function MotherPlantsPage() {
   const [rooms, setRooms] = useState<GrowRoom[]>([]);
   const [beds, setBeds] = useState<GrowBed[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [detailTarget, setDetailTarget] = useState<MotherPlantWithPlantCount | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MotherPlantWithPlantCount | null>(null);
   const [form, setForm] = useState<MotherForm>(emptyForm);
   const [message, setMessage] = useState("");
@@ -196,6 +196,7 @@ function MotherPlantsPage() {
       await deleteMotherPlant(deleteTarget.id);
       setMothers((current) => current.filter((mother) => mother.id !== deleteTarget.id));
       if (editingId === deleteTarget.id) startCreate();
+      if (detailTarget?.id === deleteTarget.id) setDetailTarget(null);
       setDeleteTarget(null);
       setMessage("Madre eliminada correctamente.");
     } catch (error) {
@@ -326,7 +327,20 @@ function MotherPlantsPage() {
             <CardTitle>Listado de madres</CardTitle>
             <CardDescription>Conteos calculados desde plantas mock.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {detailTarget ? (
+              <MotherDetailSection
+                item={detailTarget}
+                roomName={roomName}
+                bedName={bedName}
+                onClose={() => setDetailTarget(null)}
+                onEdit={() => {
+                  startEdit(detailTarget);
+                  setDetailTarget(null);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
+            ) : null}
             <div className="overflow-x-auto rounded-md border [&_td]:text-center [&_th]:text-center">
               <Table>
                 <TableHeader>
@@ -339,10 +353,7 @@ function MotherPlantsPage() {
                     <SortHead label="Estado"              sortKey="status"           col={sCol} dir={sDir} onSort={sort} />
                     <TableHead>Estado sanitario</TableHead>
                     <SortHead label="Fecha inicio"        sortKey="startDate"        col={sCol} dir={sDir} onSort={sort} />
-                    <SortHead label="Fecha ultimo corte"  sortKey="lastCutDate"      col={sCol} dir={sDir} onSort={sort} />
                     <SortHead label="Esquejes disp."      sortKey="availableClones"  col={sCol} dir={sDir} onSort={sort} />
-                    <SortHead label="Origen"              sortKey="origin"           col={sCol} dir={sDir} onSort={sort} />
-                    <TableHead>Observaciones</TableHead>
                     <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -365,12 +376,7 @@ function MotherPlantsPage() {
                         />
                       </TableCell>
                       <TableCell>{item.startDate}</TableCell>
-                      <TableCell>{item.lastCutDate ?? "-"}</TableCell>
                       <TableCell className="font-mono text-xs">{item.availableClones ?? 0}</TableCell>
-                      <TableCell>{item.origin ?? "-"}</TableCell>
-                      <TableCell>
-                        <ExpandableTextCell title={`Observaciones de ${item.code}`} text={item.notes} className="max-w-[220px]" />
-                      </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -379,6 +385,10 @@ function MotherPlantsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setDetailTarget(item)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Ver
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => startEdit(item)}>
                               <Pencil className="mr-2 h-4 w-4" />
                               Editar
@@ -407,6 +417,87 @@ function MotherPlantsPage() {
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         onConfirm={handleDelete}
       />
+    </div>
+  );
+}
+
+function MotherDetailSection({
+  item,
+  roomName,
+  bedName,
+  onClose,
+  onEdit,
+}: {
+  item: MotherPlantWithPlantCount;
+  roomName: (id?: string) => string;
+  bedName: (id?: string) => string;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  return (
+    <section className="rounded-md border bg-muted/20 p-4">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs text-muted-foreground">Detalle de madre</p>
+          <h3 className="text-xl font-semibold tracking-tight">{item.code}</h3>
+          <p className="text-sm text-muted-foreground">{item.name || "Sin nombre asignado"}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>Cerrar</Button>
+          <Button type="button" size="sm" className="gap-2" onClick={onEdit}>
+            <Pencil className="h-4 w-4" />
+            Editar
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-3 rounded-md border bg-background/70 p-3">
+          <h4 className="text-sm font-semibold">Ficha principal</h4>
+          <DetailRow label="Codigo madre" value={item.code} />
+          <DetailRow label="Nombre madre" value={item.name} />
+          <DetailRow label="Genetica" value={item.geneticsName} />
+          <DetailRow label="Origen" value={item.origin} />
+        </div>
+
+        <div className="space-y-3 rounded-md border bg-background/70 p-3">
+          <h4 className="text-sm font-semibold">Ubicacion y estado</h4>
+          <DetailRow label="Sala" value={roomName(item.roomId)} />
+          <DetailRow label="Camilla" value={bedName(item.bedId)} />
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="text-muted-foreground">Estado</span>
+            <Badge variant="outline" className={STATUS_CLASS[item.status]}>{item.status}</Badge>
+          </div>
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="text-muted-foreground">Sanitario</span>
+            <Badge variant="outline" className={SANITARY_STATUS_CLASS[item.sanitaryStatus ?? "bueno"]}>
+              {SANITARY_STATUS_LABEL[item.sanitaryStatus ?? "bueno"]}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="space-y-3 rounded-md border bg-background/70 p-3">
+          <h4 className="text-sm font-semibold">Produccion</h4>
+          <DetailRow label="Fecha inicio" value={item.startDate} />
+          <DetailRow label="Ultimo corte" value={item.lastCutDate} />
+          <DetailRow label="Esquejes disp." value={`${item.availableClones ?? 0}`} />
+          <DetailRow label="Plantas asociadas" value={`${item.derivedPlantsCount}`} />
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-md border bg-background/70 p-3">
+        <h4 className="text-sm font-semibold">Observaciones</h4>
+        <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{item.notes || "Sin observaciones."}</p>
+      </div>
+    </section>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium">{value || "-"}</span>
     </div>
   );
 }

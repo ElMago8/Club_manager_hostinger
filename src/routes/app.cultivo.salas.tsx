@@ -58,6 +58,10 @@ function yesNo(value: boolean): string {
   return value ? "Si" : "No";
 }
 
+function splitRoomTypes(value: string): string[] {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
 function GrowRoomsPage() {
   const location = useLocation();
   const [rooms, setRooms] = useState<GrowRoom[]>([]);
@@ -163,7 +167,13 @@ function GrowRoomsPage() {
                   <TableRow key={room.id}>
                     <TableCell className="font-medium">{room.name}</TableCell>
                     <TableCell className="font-mono text-xs">{room.code}</TableCell>
-                    <TableCell className="capitalize">{room.type}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col items-center gap-1">
+                        {splitRoomTypes(room.type).map((type) => (
+                          <span key={type} className="capitalize leading-tight">{type}</span>
+                        ))}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={STATUS_CLASS[room.status]}>
                         {STATUS_LABEL[room.status]}
