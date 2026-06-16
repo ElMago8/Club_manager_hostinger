@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Save, Warehouse } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -204,37 +204,61 @@ function NewGrowRoomPage() {
       ) : (
       <form onSubmit={handleSubmit}>
         <Card>
-          <CardHeader>
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Warehouse className="h-6 w-6" />
-            </div>
+          <CardHeader className="pb-3">
             <CardTitle>{editId ? "Editar sala" : "Crear sala"}</CardTitle>
-            <CardDescription>La capacidad total se calcula desde sus camillas, no se carga aca.</CardDescription>
+            <CardDescription>La capacidad total se calcula desde sus camillas.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="code">Codigo de sala</Label>
-              <Input
-                id="code"
-                value={form.code}
-                onChange={(event) => setForm({ ...form, code: event.target.value })}
-                placeholder="SALA-FL-01"
-              />
+          <CardContent className="space-y-5">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="code">Codigo de sala</Label>
+                <Input
+                  id="code"
+                  value={form.code}
+                  onChange={(event) => setForm({ ...form, code: event.target.value })}
+                  placeholder="SALA-FL-01"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="name">Nombre</Label>
+                <Input
+                  id="name"
+                  value={form.name}
+                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                  placeholder="Floracion 1"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Estado</Label>
+                <Select value={form.status} onValueChange={(status) => setForm({ ...form, status: status as RoomStatus })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="activa">Activa</SelectItem>
+                    <SelectItem value="limpieza">Limpieza</SelectItem>
+                    <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
+                    <SelectItem value="fuera_de_uso">Fuera de uso</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="sensors">Sensores</Label>
+                <Input
+                  id="sensors"
+                  value={form.sensors}
+                  onChange={(event) => setForm({ ...form, sensors: event.target.value })}
+                  placeholder="temperatura, humedad, co2"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre</Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={(event) => setForm({ ...form, name: event.target.value })}
-                placeholder="Floracion 1"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tipo (Permite varias opciones)</Label>
-              <div className="grid gap-2 rounded-md border border-input bg-background/70 p-3 shadow-sm dark:bg-muted/35 dark:shadow-[0_0_0_1px_color-mix(in_oklch,var(--input)_45%,transparent)] sm:grid-cols-2">
+              <Label>Tipo (permite varias opciones)</Label>
+              <div className="grid gap-2 rounded-md border border-input bg-background/70 p-3 shadow-sm dark:bg-muted/35 sm:grid-cols-3">
                 {ROOM_TYPE_OPTIONS.map((option) => {
                   const selectedTypes = parseRoomTypes(form.type);
                   const checked = selectedTypes.includes(option.value);
@@ -255,155 +279,130 @@ function NewGrowRoomPage() {
                   );
                 })}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Seleccionadas: {parseRoomTypes(form.type).length ? parseRoomTypes(form.type).join(", ") : "ninguna"}
-              </p>
             </div>
 
-            <div className="space-y-2">
-              <Label>Estado</Label>
-              <Select value={form.status} onValueChange={(status) => setForm({ ...form, status: status as RoomStatus })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="activa">Activa</SelectItem>
-                  <SelectItem value="limpieza">Limpieza</SelectItem>
-                  <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
-                  <SelectItem value="fuera_de_uso">Fuera de uso</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="installedPowerWatts">Potencia</Label>
+                <Input
+                  id="installedPowerWatts"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.installedPowerWatts}
+                  onChange={(event) => setForm({ ...form, installedPowerWatts: event.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Riego</Label>
+                <Select
+                  value={form.irrigationSystem}
+                  onValueChange={(irrigationSystem) =>
+                    setForm({ ...form, irrigationSystem: irrigationSystem as "manual" | "automatico" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Manual</SelectItem>
+                    <SelectItem value="automatico">Automatico</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>A/C</Label>
+                <Select
+                  value={form.hasAirConditioning}
+                  onValueChange={(hasAirConditioning) =>
+                    setForm({ ...form, hasAirConditioning: hasAirConditioning as "si" | "no" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="si">Si</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Deshumidificador</Label>
+                <Select
+                  value={form.hasDehumidifier}
+                  onValueChange={(hasDehumidifier) =>
+                    setForm({ ...form, hasDehumidifier: hasDehumidifier as "si" | "no" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="si">Si</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Entorno de cultivo</Label>
+                <Select
+                  value={PRESET_ENTORNOS.includes(form.cultivationType as typeof PRESET_ENTORNOS[number]) ? form.cultivationType : form.cultivationType ? "otro" : ""}
+                  onValueChange={(v) => { if (v === "otro") { setCustomTypeInput(""); setCustomTypeOpen(true); } else setForm({ ...form, cultivationType: v }); }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar entorno">
+                      {form.cultivationType && !PRESET_ENTORNOS.includes(form.cultivationType as typeof PRESET_ENTORNOS[number]) ? form.cultivationType : undefined}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="indoor">Indoor</SelectItem>
+                    <SelectItem value="outdoor">Outdoor</SelectItem>
+                    <SelectItem value="invernadero">Invernadero</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Tipo de cultivo</Label>
+                <Select
+                  value={PRESET_MEDIOS.includes(form.growMedium as typeof PRESET_MEDIOS[number]) ? form.growMedium : form.growMedium ? "otro" : ""}
+                  onValueChange={(v) => { if (v === "otro") { setCustomMediumInput(""); setCustomMediumOpen(true); } else setForm({ ...form, growMedium: v }); }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tipo">
+                      {form.growMedium && !PRESET_MEDIOS.includes(form.growMedium as typeof PRESET_MEDIOS[number]) ? form.growMedium : undefined}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sustrato">Sustrato</SelectItem>
+                    <SelectItem value="fibra_de_coco">Fibra de coco</SelectItem>
+                    <SelectItem value="lana_de_roca">Lana de roca</SelectItem>
+                    <SelectItem value="hidroponia">Hidroponia</SelectItem>
+                    <SelectItem value="aeroponia">Aeroponia</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="installedPowerWatts">Potencia</Label>
-              <Input
-                id="installedPowerWatts"
-                type="number"
-                min="0"
-                step="1"
-                value={form.installedPowerWatts}
-                onChange={(event) => setForm({ ...form, installedPowerWatts: event.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Riego</Label>
-              <Select
-                value={form.irrigationSystem}
-                onValueChange={(irrigationSystem) =>
-                  setForm({ ...form, irrigationSystem: irrigationSystem as "manual" | "automatico" })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="manual">Manual</SelectItem>
-                  <SelectItem value="automatico">Automatico</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>A/C</Label>
-              <Select
-                value={form.hasAirConditioning}
-                onValueChange={(hasAirConditioning) =>
-                  setForm({ ...form, hasAirConditioning: hasAirConditioning as "si" | "no" })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="si">Si</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Deshumidificador</Label>
-              <Select
-                value={form.hasDehumidifier}
-                onValueChange={(hasDehumidifier) =>
-                  setForm({ ...form, hasDehumidifier: hasDehumidifier as "si" | "no" })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="si">Si</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Entorno de cultivo</Label>
-              <Select
-                value={PRESET_ENTORNOS.includes(form.cultivationType as typeof PRESET_ENTORNOS[number]) ? form.cultivationType : form.cultivationType ? "otro" : ""}
-                onValueChange={(v) => { if (v === "otro") { setCustomTypeInput(""); setCustomTypeOpen(true); } else setForm({ ...form, cultivationType: v }); }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar entorno">
-                    {form.cultivationType && !PRESET_ENTORNOS.includes(form.cultivationType as typeof PRESET_ENTORNOS[number]) ? form.cultivationType : undefined}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="indoor">Indoor</SelectItem>
-                  <SelectItem value="outdoor">Outdoor</SelectItem>
-                  <SelectItem value="invernadero">Invernadero</SelectItem>
-                  <SelectItem value="otro">Otro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tipo de cultivo</Label>
-              <Select
-                value={PRESET_MEDIOS.includes(form.growMedium as typeof PRESET_MEDIOS[number]) ? form.growMedium : form.growMedium ? "otro" : ""}
-                onValueChange={(v) => { if (v === "otro") { setCustomMediumInput(""); setCustomMediumOpen(true); } else setForm({ ...form, growMedium: v }); }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar tipo">
-                    {form.growMedium && !PRESET_MEDIOS.includes(form.growMedium as typeof PRESET_MEDIOS[number]) ? form.growMedium : undefined}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sustrato">Sustrato</SelectItem>
-                  <SelectItem value="fibra_de_coco">Fibra de coco</SelectItem>
-                  <SelectItem value="lana_de_roca">Lana de roca</SelectItem>
-                  <SelectItem value="hidroponia">Hidroponia</SelectItem>
-                  <SelectItem value="aeroponia">Aeroponia</SelectItem>
-                  <SelectItem value="otro">Otro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="sensors">Sensores</Label>
-              <Input
-                id="sensors"
-                value={form.sensors}
-                onChange={(event) => setForm({ ...form, sensors: event.target.value })}
-                placeholder="temperatura, humedad, co2"
-              />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-1.5">
               <Label htmlFor="notes">Descripcion</Label>
               <Textarea
                 id="notes"
+                rows={2}
                 value={form.notes}
                 onChange={(event) => setForm({ ...form, notes: event.target.value })}
                 placeholder="Observaciones operativas de la sala"
               />
             </div>
 
-            <div className="flex justify-end md:col-span-2">
+            <div className="flex justify-end">
               <Button type="submit" disabled={saving} className="gap-2">
                 <Save className="h-4 w-4" />
                 {saving ? "Guardando..." : editId ? "Guardar cambios" : "Guardar sala"}

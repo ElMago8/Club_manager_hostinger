@@ -442,6 +442,136 @@ async function main() {
   }
   console.log(`  ✓ ${Math.min(sociosFacturacion.length, comprobantesSeed.length)} comprobantes demo ARCA creados/actualizados`);
 
+  // ─── Fase 3.0: Productos / Stock ────────────────────────────────────────────
+
+  // Categorías
+  const CATEGORIAS_SEED = [
+    { codigoCategoria: "CAT-FLORES",    nombre: "Flores",    descripcion: "Flores secas y cogollos." },
+    { codigoCategoria: "CAT-ACEITES",   nombre: "Aceites",   descripcion: "Aceites medicinales y extractos líquidos." },
+    { codigoCategoria: "CAT-EXTRACTOS", nombre: "Extractos", descripcion: "Extractos concentrados." },
+    { codigoCategoria: "CAT-INSUMOS",   nombre: "Insumos",   descripcion: "Insumos y materiales de cultivo." },
+    { codigoCategoria: "CAT-OTROS",     nombre: "Otros",     descripcion: "Otros productos." },
+  ];
+
+  for (const cat of CATEGORIAS_SEED) {
+    await (prisma as any).categoriaProducto.upsert({
+      where: { codigoCategoria: cat.codigoCategoria },
+      update: { nombre: cat.nombre, descripcion: cat.descripcion },
+      create: { ...cat, estado: "activa" },
+    });
+  }
+  console.log(`  ✓ ${CATEGORIAS_SEED.length} categorías de producto creadas/actualizadas`);
+
+  const catFlores    = await (prisma as any).categoriaProducto.findUnique({ where: { codigoCategoria: "CAT-FLORES" } });
+  const catAceites   = await (prisma as any).categoriaProducto.findUnique({ where: { codigoCategoria: "CAT-ACEITES" } });
+  const catExtractos = await (prisma as any).categoriaProducto.findUnique({ where: { codigoCategoria: "CAT-EXTRACTOS" } });
+  const catInsumos   = await (prisma as any).categoriaProducto.findUnique({ where: { codigoCategoria: "CAT-INSUMOS" } });
+
+  // Productos
+  const PRODUCTOS_SEED = [
+    { codigoProducto: "PROD-001", categoriaProductoId: catFlores?.id,    nombre: "Flores secas",          tipoProducto: "flor",     unidadMedida: "gramos",    requiereLote: true,  requiereTrazabilidad: true,  estado: "activo" },
+    { codigoProducto: "PROD-002", categoriaProductoId: catAceites?.id,   nombre: "Aceite medicinal",      tipoProducto: "aceite",   unidadMedida: "mililitros", requiereLote: true,  requiereTrazabilidad: true,  estado: "activo" },
+    { codigoProducto: "PROD-003", categoriaProductoId: catExtractos?.id, nombre: "Extracto concentrado",  tipoProducto: "extracto", unidadMedida: "gramos",    requiereLote: true,  requiereTrazabilidad: true,  estado: "activo" },
+    { codigoProducto: "PROD-004", categoriaProductoId: catInsumos?.id,   nombre: "Sustrato",              tipoProducto: "insumo",   unidadMedida: "unidades",  requiereLote: false, requiereTrazabilidad: false, estado: "activo" },
+  ];
+
+  for (const prod of PRODUCTOS_SEED) {
+    await (prisma as any).producto.upsert({
+      where: { codigoProducto: prod.codigoProducto },
+      update: { nombre: prod.nombre, tipoProducto: prod.tipoProducto, estado: prod.estado },
+      create: prod,
+    });
+  }
+  console.log(`  ✓ ${PRODUCTOS_SEED.length} productos creados/actualizados`);
+
+  // Ubicaciones de stock
+  const UBICACIONES_SEED = [
+    { codigoUbicacion: "DEP-001", nombre: "Depósito principal",  tipo: "deposito",   descripcion: "Almacenamiento general." },
+    { codigoUbicacion: "CUR-001", nombre: "Sala de curado",      tipo: "sala_curado", descripcion: "Área de curado de flores." },
+    { codigoUbicacion: "HEL-001", nombre: "Heladera aceites",    tipo: "heladera",   descripcion: "Conservación de aceites medicinales." },
+  ];
+
+  for (const ub of UBICACIONES_SEED) {
+    await (prisma as any).ubicacionStock.upsert({
+      where: { codigoUbicacion: ub.codigoUbicacion },
+      update: { nombre: ub.nombre, descripcion: ub.descripcion },
+      create: { ...ub, estado: "activa" },
+    });
+  }
+  console.log(`  ✓ ${UBICACIONES_SEED.length} ubicaciones de stock creadas/actualizadas`);
+
+  const dep001 = await (prisma as any).ubicacionStock.findUnique({ where: { codigoUbicacion: "DEP-001" } });
+  const cur001 = await (prisma as any).ubicacionStock.findUnique({ where: { codigoUbicacion: "CUR-001" } });
+  const hel001 = await (prisma as any).ubicacionStock.findUnique({ where: { codigoUbicacion: "HEL-001" } });
+  const prod001 = await (prisma as any).producto.findUnique({ where: { codigoProducto: "PROD-001" } });
+  const prod002 = await (prisma as any).producto.findUnique({ where: { codigoProducto: "PROD-002" } });
+
+  // Lotes de producto demo (solo si no existen)
+  const lotesExistentes = await (prisma as any).loteProducto.count();
+  if (lotesExistentes === 0) {
+    const primeraGenetica = await prisma.genetica.findFirst({ orderBy: { id: "asc" } });
+
+    const LOTES_SEED = [
+      {
+        codigoLoteProducto: "PRODLOT-2026-001",
+        productoId:         prod001?.id ?? 1,
+        geneticaId:         primeraGenetica?.id ?? null,
+        ubicacionStockId:   cur001?.id ?? null,
+        cantidadInicial:    420,
+        cantidadDisponible: 420,
+        cantidadReservada:  0,
+        unidadMedida:       "gramos",
+        estado:             "disponible",
+        observaciones:      "Lote demo generado por seed.",
+      },
+      {
+        codigoLoteProducto: "PRODLOT-2026-002",
+        productoId:         prod001?.id ?? 1,
+        geneticaId:         primeraGenetica?.id ?? null,
+        ubicacionStockId:   cur001?.id ?? null,
+        cantidadInicial:    380,
+        cantidadDisponible: 260,
+        cantidadReservada:  40,
+        unidadMedida:       "gramos",
+        estado:             "disponible",
+        observaciones:      "Stock parcialmente reservado.",
+      },
+      {
+        codigoLoteProducto: "PRODLOT-2026-003",
+        productoId:         prod002?.id ?? 2,
+        ubicacionStockId:   hel001?.id ?? null,
+        cantidadInicial:    100,
+        cantidadDisponible: 80,
+        cantidadReservada:  0,
+        unidadMedida:       "mililitros",
+        estado:             "disponible",
+        observaciones:      "Aceite en refrigeración.",
+      },
+      {
+        codigoLoteProducto: "PRODLOT-2026-004",
+        productoId:         prod001?.id ?? 1,
+        ubicacionStockId:   dep001?.id ?? null,
+        cantidadInicial:    200,
+        cantidadDisponible: 0,
+        cantidadReservada:  0,
+        unidadMedida:       "gramos",
+        estado:             "agotado",
+        observaciones:      "Lote agotado.",
+      },
+    ];
+
+    for (const lote of LOTES_SEED) {
+      await (prisma as any).loteProducto.upsert({
+        where: { codigoLoteProducto: lote.codigoLoteProducto },
+        update: {},
+        create: lote,
+      });
+    }
+    console.log(`  ✓ ${LOTES_SEED.length} lotes de producto demo creados`);
+  } else {
+    console.log(`  · Lotes de producto ya existen (${lotesExistentes}), omitiendo seed`);
+  }
+
   console.log("");
   console.log("✅ Seed completado.");
   console.log("   RECORDATORIO: Cambiar contraseñas antes de producción.");

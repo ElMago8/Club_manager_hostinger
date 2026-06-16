@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -221,7 +222,7 @@ function EnvironmentalPage() {
               </div>
               <div className="space-y-2">
                 <Label>Fecha</Label>
-                <Input type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} />
+                <DateInput value={form.date} onChange={(v) => setForm({ ...form, date: v })} />
               </div>
               <div className="space-y-2">
                 <Label>Hora</Label>
@@ -273,10 +274,9 @@ function EnvironmentalPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 md:grid-cols-3">
-              <Input
-                type="date"
+              <DateInput
                 value={filters.dateFrom}
-                onChange={(event) => setFilters({ ...filters, dateFrom: event.target.value })}
+                onChange={(v) => setFilters({ ...filters, dateFrom: v })}
               />
               <Select value={filters.roomId} onValueChange={(roomId) => setFilters({ ...filters, roomId, bedId: "all" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>

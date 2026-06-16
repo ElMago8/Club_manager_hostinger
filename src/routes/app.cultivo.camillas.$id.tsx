@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -720,7 +721,7 @@ function GrowBedDetailPage() {
             </div>
             <div className="space-y-2">
               <Label>Fecha de inicio</Label>
-              <Input type="date" value={bulkForm.startDate} onChange={(e) => setBulkForm({ ...bulkForm, startDate: e.target.value })} />
+              <DateInput value={bulkForm.startDate} onChange={(v) => setBulkForm({ ...bulkForm, startDate: v })} />
             </div>
             <div className="space-y-2">
               <Label>Tamano maceta L</Label>

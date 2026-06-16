@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-r
 import { ArrowLeft, Save, Wheat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -265,11 +266,10 @@ function NewHarvestPage() {
               {/* Fecha */}
               <div className="space-y-2">
                 <Label htmlFor="harvestDate">Fecha de cosecha *</Label>
-                <Input
+                <DateInput
                   id="harvestDate"
-                  type="date"
                   value={form.harvestDate}
-                  onChange={(e) => set("harvestDate", e.target.value)}
+                  onChange={(v) => set("harvestDate", v)}
                 />
               </div>
 

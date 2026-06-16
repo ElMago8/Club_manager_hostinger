@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { RequestStatus } from "@/types/inventory";
@@ -49,17 +50,14 @@ export function RequestsFilters({ filters, onChange }: RequestsFiltersProps) {
         onChange={(e) => onChange({ ...filters, requestor: e.target.value })}
         className="h-8 w-32"
       />
-      <Input
-        type="date"
+      <DateInput
         value={filters.dateFrom}
-        onChange={(e) => onChange({ ...filters, dateFrom: e.target.value })}
+        onChange={(v) => onChange({ ...filters, dateFrom: v })}
         className="h-8 w-36"
-        aria-label="From date"
       />
-      <Input
-        type="date"
+      <DateInput
         value={filters.dateTo}
-        onChange={(e) => onChange({ ...filters, dateTo: e.target.value })}
+        onChange={(v) => onChange({ ...filters, dateTo: v })}
         className="h-8 w-36"
         aria-label="To date"
       />

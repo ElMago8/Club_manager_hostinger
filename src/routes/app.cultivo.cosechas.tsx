@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { MoreVertical, Pencil, Plus, StopCircle, Trash2, Wheat } from "lucide-react";
+import { MoreVertical, Package, Pencil, Plus, Scale, StopCircle, Timer, Trash2, Wheat, Wind } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { CultivationStatusMessage } from "@/components/cultivation/RelationshipWarning";
@@ -145,47 +145,27 @@ function HarvestsPage() {
           {message && <CultivationStatusMessage message={message} />}
 
           {/* Tarjetas de estadísticas */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{harvests.length}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">En secado</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-amber-600">{countByStatus("en_secado")}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">En curado</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-violet-600">{countByStatus("en_curado")}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Stock</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-emerald-600">{countByStatus("lista_para_stock")}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Peso seco total</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{fmt(totalDryGrams)}</p>
-              </CardContent>
-            </Card>
+          <div className="rounded-xl border border-border bg-card p-3 shadow-xs">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {([
+                { label: "Total",          value: harvests.length,                Icon: Wheat,    accent: "bg-slate-500",  panel: "bg-slate-500/10",  iconClass: "text-slate-600 dark:text-slate-400" },
+                { label: "En secado",      value: countByStatus("en_secado"),     Icon: Wind,     accent: "bg-amber-500",  panel: "bg-amber-500/10",  iconClass: "text-amber-600 dark:text-amber-400" },
+                { label: "En curado",      value: countByStatus("en_curado"),     Icon: Timer,    accent: "bg-violet-500", panel: "bg-violet-500/10", iconClass: "text-violet-600 dark:text-violet-400" },
+                { label: "Stock",          value: countByStatus("lista_para_stock"), Icon: Package, accent: "bg-emerald-500", panel: "bg-emerald-500/10", iconClass: "text-emerald-600 dark:text-emerald-400" },
+                { label: "Peso seco total", value: fmt(totalDryGrams),            Icon: Scale,    accent: "bg-teal-500",   panel: "bg-teal-500/10",   iconClass: "text-teal-600 dark:text-teal-400" },
+              ] as const).map(({ label, value, Icon, accent, panel, iconClass }) => (
+                <div key={label} className={`relative overflow-hidden rounded-lg ${panel} px-5 py-4`}>
+                  <span className={`absolute left-0 top-3 h-[calc(100%-1.5rem)] w-1 rounded-r-full ${accent}`} />
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                      <p className="mt-2 font-mono text-3xl font-semibold leading-none text-foreground">{value}</p>
+                    </div>
+                    <Icon className={`mt-1 h-5 w-5 shrink-0 ${iconClass}`} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Filtro */}

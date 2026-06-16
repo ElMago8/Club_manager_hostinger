@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { AlertCircle, AlertTriangle, Droplets, FlaskConical, Leaf, Plus, Sprout } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -278,22 +279,28 @@ function MeasurementsPage() {
         <p className="text-sm text-muted-foreground">Control quimico de liquidos, sustrato y drenaje.</p>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        {[
-          ["Ultimo PH liquido", summary.latestLiquidPH ?? "-"],
-          ["Ultimo PH sustrato", summary.latestSubstratePH ?? "-"],
-          ["Ultimo PPM liquido", summary.latestLiquidPPM ?? "-"],
-          ["Ultimo PPM sustrato", summary.latestSubstratePPM ?? "-"],
-          ["Mediciones en alerta", summary.alertsCount],
-          ["Mediciones criticas", summary.criticalCount],
-        ].map(([label, value]) => (
-          <Card key={label}>
-            <CardHeader className="pb-2">
-              <CardDescription>{label}</CardDescription>
-              <CardTitle className="font-mono text-2xl">{value}</CardTitle>
-            </CardHeader>
-          </Card>
-        ))}
+      <div className="rounded-xl border border-border bg-card p-3 shadow-xs">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+          {([
+            { label: "Ultimo PH liquido",   value: summary.latestLiquidPH ?? "-",    Icon: Droplets,      accent: "bg-sky-500",    panel: "bg-sky-500/10",    iconClass: "text-sky-600 dark:text-sky-400" },
+            { label: "Ultimo PH sustrato",  value: summary.latestSubstratePH ?? "-", Icon: Sprout,        accent: "bg-lime-500",   panel: "bg-lime-500/10",   iconClass: "text-lime-600 dark:text-lime-400" },
+            { label: "Ultimo PPM liquido",  value: summary.latestLiquidPPM ?? "-",   Icon: FlaskConical,  accent: "bg-teal-500",   panel: "bg-teal-500/10",   iconClass: "text-teal-600 dark:text-teal-400" },
+            { label: "Ultimo PPM sustrato", value: summary.latestSubstratePPM ?? "-", Icon: Leaf,         accent: "bg-emerald-500", panel: "bg-emerald-500/10", iconClass: "text-emerald-600 dark:text-emerald-400" },
+            { label: "En alerta",           value: summary.alertsCount,              Icon: AlertTriangle, accent: "bg-amber-500",  panel: "bg-amber-500/10",  iconClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Criticas",            value: summary.criticalCount,            Icon: AlertCircle,   accent: "bg-red-500",    panel: "bg-red-500/10",    iconClass: "text-red-600 dark:text-red-400" },
+          ] as const).map(({ label, value, Icon, accent, panel, iconClass }) => (
+            <div key={label} className={`relative overflow-hidden rounded-lg ${panel} px-5 py-4`}>
+              <span className={`absolute left-0 top-3 h-[calc(100%-1.5rem)] w-1 rounded-r-full ${accent}`} />
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                  <p className="mt-2 font-mono text-3xl font-semibold leading-none text-foreground">{value}</p>
+                </div>
+                <Icon className={`mt-1 h-5 w-5 shrink-0 ${iconClass}`} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[440px_1fr]">
@@ -313,7 +320,7 @@ function MeasurementsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Fecha</Label><Input type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Fecha</Label><DateInput value={form.date} onChange={(v) => setForm({ ...form, date: v })} /></div>
               <div className="space-y-2"><Label>Hora</Label><Input type="time" value={form.time} onChange={(event) => setForm({ ...form, time: event.target.value })} /></div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Sala</Label>
@@ -369,8 +376,8 @@ function MeasurementsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              <Input type="date" className="h-8 w-36 text-xs" value={filters.dateFrom} onChange={(event) => setFilters({ ...filters, dateFrom: event.target.value })} />
-              <Input type="date" className="h-8 w-36 text-xs" value={filters.dateTo} onChange={(event) => setFilters({ ...filters, dateTo: event.target.value })} />
+              <DateInput className="h-8 w-36 text-xs" value={filters.dateFrom} onChange={(v) => setFilters({ ...filters, dateFrom: v })} />
+              <DateInput className="h-8 w-36 text-xs" value={filters.dateTo} onChange={(v) => setFilters({ ...filters, dateTo: v })} />
               <Select value={filters.roomId} onValueChange={(roomId) => setFilters({ ...filters, roomId })}>
                 <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="all">Todas las salas</SelectItem>{rooms.map((room) => <SelectItem key={room.id} value={room.id}>{room.name}</SelectItem>)}</SelectContent>

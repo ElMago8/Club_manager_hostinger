@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { MoreVertical, Pencil, Plus, Snowflake, Trash2, Wind } from "lucide-react";
+import { CheckCircle2, MoreVertical, Pencil, Plus, Snowflake, Trash2, Warehouse, Wind, Zap } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { CultivationStatusMessage } from "@/components/cultivation/RelationshipWarning";
@@ -114,29 +114,25 @@ function GrowRoomsPage() {
         </Button>
       </header>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Salas registradas</CardDescription>
-            <CardTitle className="font-mono text-2xl">{rooms.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Potencia instalada</CardDescription>
-            <CardTitle className="font-mono text-2xl">
-              {rooms.reduce((total, room) => total + room.technicalConfig.installedPowerWatts, 0)} W
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Salas activas</CardDescription>
-            <CardTitle className="font-mono text-2xl">
-              {rooms.filter((room) => room.status === "activa").length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
+      <div className="rounded-xl border border-border bg-card p-3 shadow-xs">
+        <div className="grid gap-3 md:grid-cols-3">
+          {([
+            { label: "Salas registradas", value: rooms.length,                                                            Icon: Warehouse,    accent: "bg-sky-500",    panel: "bg-sky-500/10",    iconClass: "text-sky-600 dark:text-sky-400" },
+            { label: "Potencia instalada", value: `${rooms.reduce((t, r) => t + r.technicalConfig.installedPowerWatts, 0)} W`, Icon: Zap,      accent: "bg-amber-500",  panel: "bg-amber-500/10",  iconClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Salas activas",      value: rooms.filter((r) => r.status === "activa").length,                       Icon: CheckCircle2, accent: "bg-emerald-500", panel: "bg-emerald-500/10", iconClass: "text-emerald-600 dark:text-emerald-400" },
+          ] as const).map(({ label, value, Icon, accent, panel, iconClass }) => (
+            <div key={label} className={`relative overflow-hidden rounded-lg ${panel} px-5 py-4`}>
+              <span className={`absolute left-0 top-3 h-[calc(100%-1.5rem)] w-1 rounded-r-full ${accent}`} />
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                  <p className="mt-2 font-mono text-3xl font-semibold leading-none text-foreground">{value}</p>
+                </div>
+                <Icon className={`mt-1 h-5 w-5 shrink-0 ${iconClass}`} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <Card>

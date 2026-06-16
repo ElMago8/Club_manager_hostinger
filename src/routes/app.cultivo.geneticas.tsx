@@ -178,7 +178,7 @@ function GeneticsPage() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                              <Link to="/app/cultivo/geneticas/$id" params={{ id: item.id }}>
+                              <Link to="/app/cultivo/geneticas/$id" params={{ id: item.id }} search={{ mode: "edit" }}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Editar
                               </Link>

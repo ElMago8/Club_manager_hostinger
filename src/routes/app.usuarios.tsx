@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Check, Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { useSortable } from "@/hooks/useSortable";
 import { SortHead } from "@/components/ui/sort-head";
-import { useDemo } from "@/hooks/useDemo";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { createUser, deactivateUser, getAppUsers, updateUser } from "@/services/userService";
 import type { AppUser, AppUserRole } from "@/types/inventory";
 
 export const Route = createFileRoute("/app/usuarios")({
@@ -91,16 +92,40 @@ function fmtDate(iso: string) {
   return d.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
 }
 
-const EMPTY_FORM = { name: "", email: "", role: "Operador" as AppUserRole, status: "active" as AppUser["status"] };
+const EMPTY_FORM = {
+  name: "",
+  email: "",
+  password: "",
+  role: "Operador" as AppUserRole,
+  status: "active" as AppUser["status"],
+};
+
+function appRoleToSlug(role: AppUserRole) {
+  if (role === "Administrador") return "administrador";
+  if (role === "Operador") return "operador";
+  return "auditor";
+}
+
+function appStatusToApi(status: AppUser["status"]) {
+  if (status === "active") return "activo";
+  if (status === "pending") return "pendiente";
+  return "inactivo";
+}
+
+function splitFullName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return { nombre: parts[0] ?? "", apellido: "" };
+  return { nombre: parts.slice(0, -1).join(" "), apellido: parts.at(-1) ?? "" };
+}
+
+function makeUserCode() {
+  return `USR-${Date.now().toString().slice(-8)}`;
+}
 
 function UsuariosPage() {
-  const { demoStore, bumpVersion, version } = useDemo();
-
-  const users = useMemo<AppUser[]>(() => {
-    if (!demoStore) return [];
-    return demoStore.getAppUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoStore, version]);
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const { sorted, col: sCol, dir: sDir, toggle: sort } = useSortable(users);
 
@@ -121,55 +146,103 @@ function UsuariosPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
+  async function loadUsers() {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      setUsers(await getAppUsers());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudieron cargar usuarios.";
+      setLoadError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadUsers();
+  }, []);
+
   function openNew() {
     setForm(EMPTY_FORM);
     setNewOpen(true);
   }
 
   function openEdit(user: AppUser) {
-    setForm({ name: user.name, email: user.email, role: user.role, status: user.status });
+    setForm({ name: user.name, email: user.email, password: "", role: user.role, status: user.status });
     setEditTarget(user);
   }
 
-  function handleSaveNew() {
-    if (!demoStore || !form.name.trim() || !form.email.trim()) return;
+  async function handleSaveNew() {
+    if (!form.name.trim() || !form.email.trim() || form.password.length < 8) {
+      toast.error("Completa nombre, email y una contrasena de al menos 8 caracteres.");
+      return;
+    }
+
     setSaving(true);
-    setTimeout(() => {
-      demoStore.addAppUser({
-        id: crypto.randomUUID(),
-        name: form.name.trim(),
+    try {
+      const { nombre, apellido } = splitFullName(form.name);
+      const saved = await createUser({
+        codigoUsuario: makeUserCode(),
+        username: form.email.trim(),
+        nombre,
+        apellido,
         email: form.email.trim(),
-        role: form.role,
-        status: form.status,
-        lastAccessAt: new Date().toISOString(),
+        password: form.password,
+        estado: appStatusToApi(form.status),
+        roleSlugs: [appRoleToSlug(form.role)],
       });
-      bumpVersion();
+      setUsers((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
       setNewOpen(false);
+      setForm(EMPTY_FORM);
+      toast.success("Usuario creado correctamente.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo crear el usuario.");
+    } finally {
       setSaving(false);
-    }, 300);
+    }
   }
 
-  function handleSaveEdit() {
-    if (!demoStore || !editTarget || !form.name.trim() || !form.email.trim()) return;
+  async function handleSaveEdit() {
+    if (!editTarget || !form.name.trim() || !form.email.trim()) return;
+    if (form.password && form.password.length < 8) {
+      toast.error("La contrasena debe tener al menos 8 caracteres.");
+      return;
+    }
+
     setSaving(true);
-    setTimeout(() => {
-      demoStore.updateAppUser(editTarget.id, {
-        name: form.name.trim(),
+    try {
+      const { nombre, apellido } = splitFullName(form.name);
+      const saved = await updateUser(Number(editTarget.id), {
+        nombre,
+        apellido,
         email: form.email.trim(),
-        role: form.role,
-        status: form.status,
+        password: form.password || undefined,
+        estado: appStatusToApi(form.status),
+        roleSlugs: [appRoleToSlug(form.role)],
       });
-      bumpVersion();
+      setUsers((current) => current.map((item) => (item.id === saved.id ? saved : item)));
       setEditTarget(null);
+      setForm(EMPTY_FORM);
+      toast.success("Usuario actualizado correctamente.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar el usuario.");
+    } finally {
       setSaving(false);
-    }, 300);
+    }
   }
 
-  function handleDelete() {
-    if (!demoStore || !deleteTarget) return;
-    demoStore.deleteAppUser(deleteTarget.id);
-    bumpVersion();
-    setDeleteTarget(null);
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    try {
+      const saved = await deactivateUser(Number(deleteTarget.id));
+      setUsers((current) => current.map((item) => (item.id === saved.id ? saved : item)));
+      setDeleteTarget(null);
+      toast.success("Usuario desactivado correctamente.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo desactivar el usuario.");
+    }
   }
 
   return (
@@ -200,6 +273,11 @@ function UsuariosPage() {
           <CardTitle className="text-base">Equipo interno</CardTitle>
         </CardHeader>
         <CardContent>
+          {loadError ? (
+            <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              No se pudo conectar con usuarios reales: {loadError}
+            </div>
+          ) : null}
           <Table>
             <TableHeader>
               <TableRow>
@@ -264,7 +342,7 @@ function UsuariosPage() {
               {users.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    Sin usuarios cargados.
+                    {loading ? "Cargando usuarios..." : "Sin usuarios cargados."}
                   </TableCell>
                 </TableRow>
               )}
@@ -277,7 +355,7 @@ function UsuariosPage() {
         <CardHeader>
           <CardTitle className="text-base">Matriz de permisos por rol</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Vista referencial. La aplicación real de permisos se implementará con backend.
+            Vista resumida de permisos base cargados para roles internos.
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -334,7 +412,7 @@ function UsuariosPage() {
             <Button variant="ghost" onClick={() => setNewOpen(false)} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveNew} disabled={saving || !form.name.trim() || !form.email.trim()}>
+            <Button onClick={handleSaveNew} disabled={saving || !form.name.trim() || !form.email.trim() || form.password.length < 8}>
               {saving ? "Guardando…" : "Guardar"}
             </Button>
           </DialogFooter>
@@ -347,7 +425,7 @@ function UsuariosPage() {
           <DialogHeader>
             <DialogTitle>Editar usuario</DialogTitle>
           </DialogHeader>
-          <UserForm form={form} onChange={setForm} />
+          <UserForm form={form} onChange={setForm} isEditing />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditTarget(null)} disabled={saving}>
               Cancelar
@@ -373,9 +451,11 @@ function UsuariosPage() {
 function UserForm({
   form,
   onChange,
+  isEditing = false,
 }: {
   form: typeof EMPTY_FORM;
   onChange: (f: typeof EMPTY_FORM) => void;
+  isEditing?: boolean;
 }) {
   return (
     <div className="space-y-4 py-2">
@@ -394,6 +474,15 @@ function UserForm({
           value={form.email}
           onChange={(e) => onChange({ ...form, email: e.target.value })}
           placeholder="usuario@ejemplo.com"
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label>{isEditing ? "Nueva contrasena" : "Contrasena"}</Label>
+        <Input
+          type="password"
+          value={form.password}
+          onChange={(e) => onChange({ ...form, password: e.target.value })}
+          placeholder={isEditing ? "Opcional, minimo 8 caracteres" : "Minimo 8 caracteres"}
         />
       </div>
       <div className="space-y-1.5">

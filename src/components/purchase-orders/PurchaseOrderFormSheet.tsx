@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -223,7 +224,7 @@ export function PurchaseOrderFormSheet({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Expected Delivery *</FormLabel>
-                  <FormControl><Input type="date" {...field} /></FormControl>
+                  <FormControl><DateInput value={field.value ?? ""} onChange={field.onChange} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -51,15 +51,15 @@ function AppLayout() {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <DemoBanner />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1">
         <aside className="hidden w-[260px] shrink-0 border-r border-sidebar-border md:block">
           <Sidebar />
         </aside>
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col">
           <Header />
-          <main className="flex-1 overflow-y-auto p-4 pb-20 md:p-8 md:pb-8">
+          <main className="flex-1 p-4 pb-20 md:p-8 md:pb-8">
             <AnimatePresence mode="wait">
               <PageTransition routeKey={location.pathname}>
                 <Outlet />

@@ -7,6 +7,7 @@ import { CultivationStatusMessage } from "@/components/cultivation/RelationshipW
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -286,11 +287,11 @@ function MotherPlantsPage() {
             </div>
             <div className="space-y-2">
               <Label>Fecha de inicio</Label>
-              <Input type="date" value={form.startDate} onChange={(event) => setForm({ ...form, startDate: event.target.value })} />
+              <DateInput value={form.startDate} onChange={(v) => setForm({ ...form, startDate: v })} />
             </div>
             <div className="space-y-2">
               <Label>Fecha ultimo corte</Label>
-              <Input type="date" value={form.lastCutDate ?? ""} onChange={(event) => setForm({ ...form, lastCutDate: event.target.value })} />
+              <DateInput value={form.lastCutDate ?? ""} onChange={(v) => setForm({ ...form, lastCutDate: v || undefined })} />
             </div>
             <div className="space-y-2">
               <Label>Esquejes disponibles</Label>

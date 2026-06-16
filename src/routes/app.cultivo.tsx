@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,18 +15,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Label as FormLabel } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import {
+  Activity,
   AlertTriangle,
   ArrowRight,
   BarChart3,
+  Dna,
   Eye,
   FileText,
+  LayersIcon,
+  LayoutGrid,
   Leaf,
   MoreVertical,
   Pencil,
+  Plus,
+  Save,
   Sprout,
   TestTube,
   Timer,
@@ -35,6 +44,7 @@ import {
   Upload,
   Warehouse,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Cell, Label, Pie, PieChart } from "recharts";
 import { getEnvironmentalLogs } from "@/services/environmentalService";
 import { getGenetics } from "@/services/geneticsService";
@@ -42,7 +52,8 @@ import { getGrowBeds } from "@/services/growBedService";
 import { getGrowRooms } from "@/services/growRoomService";
 import { getMotherPlants, type MotherPlantWithPlantCount } from "@/services/motherPlantService";
 import { getPlants } from "@/services/plantService";
-import type { EnvironmentalLog, Genetics, GrowBed, GrowRoom, Plant } from "@/types/cultivation";
+import { createBatch, getBatches, updateBatch, type CreateBatchPayload } from "@/services/batchService";
+import type { Batch, EnvironmentalLog, Genetics, GrowBed, GrowRoom, Plant } from "@/types/cultivation";
 
 type CultivoSection = "resumen" | "trazabilidad" | "lotes" | "rendimientos" | "inventario";
 
@@ -152,6 +163,40 @@ type DetailTarget = {
   title: string;
   rows: Array<{ label: string; value: string }>;
 };
+
+const BATCH_STATUS_OPTIONS = ["activo", "floracion", "cosechado", "cerrado", "descartado"];
+
+function todayInputDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function emptyBatchForm(): CreateBatchPayload {
+  return {
+    code: "",
+    geneticsId: "",
+    roomId: "",
+    status: "activo",
+    startDate: todayInputDate(),
+    floweringStartDate: "",
+    estimatedHarvestDate: "",
+    realHarvestDate: "",
+    notes: "",
+  };
+}
+
+function batchToForm(batch: Batch): CreateBatchPayload {
+  return {
+    code: batch.code,
+    geneticsId: batch.geneticsId,
+    roomId: batch.roomId,
+    status: batch.status,
+    startDate: batch.startDate || todayInputDate(),
+    floweringStartDate: batch.floweringStartDate ?? "",
+    estimatedHarvestDate: batch.estimatedHarvestDate ?? "",
+    realHarvestDate: batch.realHarvestDate ?? "",
+    notes: batch.notes ?? "",
+  };
+}
 
 const rendimientosLote: Array<{
   lote: string;
@@ -284,7 +329,13 @@ function CultivoPage() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [genetics, setGenetics] = useState<Genetics[]>([]);
   const [mothers, setMothers] = useState<MotherPlantWithPlantCount[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [logs, setLogs] = useState<EnvironmentalLog[]>([]);
+  const [batchFormOpen, setBatchFormOpen] = useState(false);
+  const [editingBatchId, setEditingBatchId] = useState<string | null>(null);
+  const [batchSaving, setBatchSaving] = useState(false);
+  const [batchForm, setBatchForm] = useState<CreateBatchPayload>(() => emptyBatchForm());
+  const [batchDetailTarget, setBatchDetailTarget] = useState<Batch | null>(null);
   const [uploadTarget, setUploadTarget] = useState<UploadTarget | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null);
@@ -296,19 +347,21 @@ function CultivoPage() {
       getPlants(),
       getGenetics(),
       getMotherPlants(),
+      getBatches(),
       getEnvironmentalLogs(),
-    ]).then(([nextRooms, nextBeds, nextPlants, nextGenetics, nextMothers, nextLogs]) => {
+    ]).then(([nextRooms, nextBeds, nextPlants, nextGenetics, nextMothers, nextBatches, nextLogs]) => {
       setRooms(nextRooms);
       setBeds(nextBeds);
       setPlants(nextPlants);
       setGenetics(nextGenetics);
       setMothers(nextMothers);
+      setBatches(nextBatches);
       setLogs(nextLogs);
     });
   }, []);
 
   const activePlants = plants.filter((plant) => plant.status !== "descartada" && plant.status !== "cosechada");
-  const activeLots = new Set(activePlants.map((plant) => plant.batchId).filter(Boolean)).size;
+  const activeLots = batches.filter((batch) => batch.status === "activo" || batch.status === "floracion").length;
   const vpdAlerts = logs.filter((log) => log.vpdStatus && log.vpdStatus !== "optimo");
   const latestLogs = [...logs].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`)).slice(0, 5);
   const observationPlants = plants.filter((plant) => plant.status === "observacion" || plant.status === "alerta");
@@ -346,15 +399,15 @@ function CultivoPage() {
       .sort((a, b) => b.alerts - a.alerts);
   }, [rooms, vpdAlerts]);
 
-  const resumeCards = [
-    { label: "Salas activas", value: rooms.filter((room) => room.status === "activa").length },
-    { label: "Camillas activas", value: beds.filter((bed) => bed.status === "activa").length },
-    { label: "Plantas activas", value: activePlants.length },
-    { label: "Lotes activos", value: activeLots },
-    { label: "Geneticas activas", value: genetics.length },
-    { label: "Madres activas", value: activeMothers.length },
-    { label: "Alertas VPD", value: vpdAlerts.length },
-    { label: "Registros ambientales", value: logs.length },
+  const resumeCards: Array<{ label: string; value: number; Icon: LucideIcon; accent: string; panel: string; iconClass: string }> = [
+    { label: "Salas activas",        value: rooms.filter((room) => room.status === "activa").length, Icon: Warehouse,    accent: "bg-sky-500",    panel: "bg-sky-500/10",    iconClass: "text-sky-600 dark:text-sky-400" },
+    { label: "Camillas activas",     value: beds.filter((bed) => bed.status === "activa").length,   Icon: LayoutGrid,   accent: "bg-teal-500",   panel: "bg-teal-500/10",   iconClass: "text-teal-600 dark:text-teal-400" },
+    { label: "Plantas activas",      value: activePlants.length,                                     Icon: Sprout,       accent: "bg-emerald-500", panel: "bg-emerald-500/10", iconClass: "text-emerald-600 dark:text-emerald-400" },
+    { label: "Lotes activos",        value: activeLots,                                              Icon: LayersIcon,   accent: "bg-indigo-500", panel: "bg-indigo-500/10", iconClass: "text-indigo-600 dark:text-indigo-400" },
+    { label: "Geneticas activas",    value: genetics.length,                                         Icon: Dna,          accent: "bg-violet-500", panel: "bg-violet-500/10", iconClass: "text-violet-600 dark:text-violet-400" },
+    { label: "Madres activas",       value: activeMothers.length,                                    Icon: Leaf,         accent: "bg-lime-500",   panel: "bg-lime-500/10",   iconClass: "text-lime-600 dark:text-lime-400" },
+    { label: "Alertas VPD",          value: vpdAlerts.length,                                        Icon: AlertTriangle, accent: "bg-amber-500", panel: "bg-amber-500/10", iconClass: "text-amber-600 dark:text-amber-400" },
+    { label: "Registros ambientales", value: logs.length,                                            Icon: Activity,     accent: "bg-slate-500",  panel: "bg-slate-500/10",  iconClass: "text-slate-600 dark:text-slate-400" },
   ];
 
   function roomName(roomId: string): string {
@@ -379,6 +432,50 @@ function CultivoPage() {
 
     toast.success(`Archivo "${uploadFile.name}" asociado al lote ${uploadTarget.lote} (demo).`);
     closeUploadModal();
+  }
+
+  function openNewBatchForm() {
+    setEditingBatchId(null);
+    setBatchForm(emptyBatchForm());
+    setBatchDetailTarget(null);
+    setBatchFormOpen(true);
+  }
+
+  function openEditBatchForm(batch: Batch) {
+    setEditingBatchId(batch.id);
+    setBatchForm(batchToForm(batch));
+    setBatchDetailTarget(null);
+    setBatchFormOpen(true);
+  }
+
+  function closeBatchForm() {
+    setEditingBatchId(null);
+    setBatchForm(emptyBatchForm());
+    setBatchFormOpen(false);
+  }
+
+  async function handleSubmitBatch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!batchForm.code.trim() || !batchForm.geneticsId || !batchForm.roomId || !batchForm.startDate) {
+      toast.error("Completa codigo, genetica, sala y fecha de inicio.");
+      return;
+    }
+
+    setBatchSaving(true);
+    try {
+      const savedBatch = editingBatchId
+        ? await updateBatch(editingBatchId, batchForm)
+        : await createBatch(batchForm);
+      setBatches((current) => [savedBatch, ...current.filter((batch) => batch.id !== savedBatch.id)]);
+      closeBatchForm();
+      toast.success(`Lote ${savedBatch.code} ${editingBatchId ? "actualizado" : "creado"} correctamente.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo guardar el lote.";
+      toast.error(message);
+    } finally {
+      setBatchSaving(false);
+    }
   }
 
   function mockPendingAction(action: string, lote: string) {
@@ -423,15 +520,21 @@ function CultivoPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {resumeCards.map((card) => (
-              <Card key={card.label}>
-                <CardHeader className="pb-2">
-                  <CardDescription>{card.label}</CardDescription>
-                  <CardTitle className="font-mono text-2xl">{card.value}</CardTitle>
-                </CardHeader>
-              </Card>
-            ))}
+          <div className="rounded-xl border border-border bg-card p-3 shadow-xs">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {resumeCards.map(({ label, value, Icon, accent, panel, iconClass }) => (
+                <div key={label} className={`relative overflow-hidden rounded-lg ${panel} px-5 py-4`}>
+                  <span className={`absolute left-0 top-3 h-[calc(100%-1.5rem)] w-1 rounded-r-full ${accent}`} />
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                      <p className="mt-2 font-mono text-3xl font-semibold leading-none text-foreground">{value}</p>
+                    </div>
+                    <Icon className={`mt-1 h-5 w-5 shrink-0 ${iconClass}`} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
@@ -588,7 +691,7 @@ function CultivoPage() {
                 </div>
                 <CardDescription>Catálogo interno de variedades en uso o evaluación.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -626,7 +729,7 @@ function CultivoPage() {
                 </div>
                 <CardDescription>Seguimiento sanitario de plantas madre y propagación.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -660,12 +763,240 @@ function CultivoPage() {
         <TabsContent value="lotes" className="space-y-4">
           {/* === LOTES === */}
           <section className="space-y-4">
-            <div className="space-y-1 border-l-2 border-primary/60 pl-3">
-              <h2 className="text-lg font-semibold tracking-tight">Lotes</h2>
-              <p className="text-sm text-muted-foreground">
-                Trazabilidad documental, controles de calidad y rendimiento productivo por lote.
-              </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-1 border-l-2 border-primary/60 pl-3">
+                <h2 className="text-lg font-semibold tracking-tight">Lotes</h2>
+                <p className="text-sm text-muted-foreground">
+                  Trazabilidad documental, controles de calidad y rendimiento productivo por lote.
+                </p>
+              </div>
+              <Button
+                className="gap-2 self-start"
+                onClick={openNewBatchForm}
+              >
+                <Plus className="h-4 w-4" />
+                Nuevo lote
+              </Button>
             </div>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Sprout className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle>Lotes de cultivo</CardTitle>
+                </div>
+                <CardDescription>Registros reales desde backend y base de datos.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {batchFormOpen ? (
+                  <section className="rounded-md border bg-muted/20 p-4">
+                    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground">{editingBatchId ? "Edicion operativa" : "Alta operativa"}</p>
+                        <h3 className="text-xl font-semibold tracking-tight">{editingBatchId ? "Editar lote" : "Nuevo lote"}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {editingBatchId
+                            ? "Modifica los datos principales del lote seleccionado."
+                            : "Registra un lote de cultivo con sus relaciones principales."}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={closeBatchForm}
+                      >
+                        Cerrar
+                      </Button>
+                    </div>
+
+                    <form className="space-y-5" onSubmit={handleSubmitBatch}>
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                          <FormLabel htmlFor="batch-code">Codigo de lote</FormLabel>
+                          <Input
+                            id="batch-code"
+                            value={batchForm.code}
+                            onChange={(event) => setBatchForm((current) => ({ ...current, code: event.target.value }))}
+                            placeholder="LOT-2026-001"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <FormLabel>Genetica</FormLabel>
+                          <Select
+                            value={batchForm.geneticsId || undefined}
+                            onValueChange={(value) => setBatchForm((current) => ({ ...current, geneticsId: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona genetica" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {genetics.map((item) => (
+                                <SelectItem key={item.id} value={item.id}>
+                                  {item.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <FormLabel>Sala</FormLabel>
+                          <Select
+                            value={batchForm.roomId || undefined}
+                            onValueChange={(value) => setBatchForm((current) => ({ ...current, roomId: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona sala" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {rooms.map((room) => (
+                                <SelectItem key={room.id} value={room.id}>
+                                  {room.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <FormLabel htmlFor="batch-start">Fecha inicio</FormLabel>
+                          <DateInput
+                            id="batch-start"
+                            value={batchForm.startDate}
+                            onChange={(v) => setBatchForm((current) => ({ ...current, startDate: v }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <FormLabel htmlFor="batch-flowering">Inicio floracion</FormLabel>
+                          <DateInput
+                            id="batch-flowering"
+                            value={batchForm.floweringStartDate}
+                            onChange={(v) => setBatchForm((current) => ({ ...current, floweringStartDate: v }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <FormLabel htmlFor="batch-estimated">Cosecha estimada</FormLabel>
+                          <DateInput
+                            id="batch-estimated"
+                            value={batchForm.estimatedHarvestDate}
+                            onChange={(v) => setBatchForm((current) => ({ ...current, estimatedHarvestDate: v }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <FormLabel htmlFor="batch-real">Cosecha real</FormLabel>
+                          <DateInput
+                            id="batch-real"
+                            value={batchForm.realHarvestDate}
+                            onChange={(v) => setBatchForm((current) => ({ ...current, realHarvestDate: v }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <FormLabel>Estado</FormLabel>
+                          <Select
+                            value={batchForm.status}
+                            onValueChange={(value) => setBatchForm((current) => ({ ...current, status: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {BATCH_STATUS_OPTIONS.map((status) => (
+                                <SelectItem key={status} value={status}>
+                                  {status}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2 md:col-span-3">
+                          <FormLabel htmlFor="batch-notes">Observaciones</FormLabel>
+                          <Textarea
+                            id="batch-notes"
+                            value={batchForm.notes}
+                            onChange={(event) => setBatchForm((current) => ({ ...current, notes: event.target.value }))}
+                            placeholder="Notas operativas del lote"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={closeBatchForm}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button type="submit" className="gap-2" disabled={batchSaving}>
+                          <Save className="h-4 w-4" />
+                          {batchSaving ? "Guardando..." : editingBatchId ? "Guardar cambios" : "Guardar lote"}
+                        </Button>
+                      </div>
+                    </form>
+                  </section>
+                ) : null}
+
+                {batchDetailTarget ? (
+                  <BatchDetailSection
+                    item={batchDetailTarget}
+                    geneticsName={batchDetailTarget.geneticsName ?? genetics.find((item) => item.id === batchDetailTarget.geneticsId)?.name ?? "-"}
+                    roomName={batchDetailTarget.roomName ?? roomName(batchDetailTarget.roomId)}
+                    onClose={() => setBatchDetailTarget(null)}
+                    onEdit={() => openEditBatchForm(batchDetailTarget)}
+                  />
+                ) : null}
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Lote</TableHead>
+                        <TableHead>Genetica</TableHead>
+                        <TableHead>Sala</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Inicio</TableHead>
+                        <TableHead>Inicio flora</TableHead>
+                        <TableHead>Cosecha est.</TableHead>
+                        <TableHead className="w-[80px] text-center">Accion</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {batches.length > 0 ? (
+                        batches.map((batch) => (
+                          <TableRow key={batch.id}>
+                            <TableCell className="font-mono text-xs font-medium">{batch.code}</TableCell>
+                            <TableCell>{batch.geneticsName ?? genetics.find((item) => item.id === batch.geneticsId)?.name ?? "-"}</TableCell>
+                            <TableCell>{batch.roomName ?? roomName(batch.roomId)}</TableCell>
+                            <TableCell>
+                              <Badge variant={batch.status === "descartado" ? "destructive" : "secondary"}>{batch.status}</Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">{batch.startDate || "-"}</TableCell>
+                            <TableCell className="text-muted-foreground">{batch.floweringStartDate || "-"}</TableCell>
+                            <TableCell className="text-muted-foreground">{batch.estimatedHarvestDate || "-"}</TableCell>
+                            <TableCell className="text-center">
+                              <LoteRowActions
+                                onView={() => {
+                                  setEditingBatchId(null);
+                                  setBatchFormOpen(false);
+                                  setBatchDetailTarget(batch);
+                                }}
+                                onEdit={() => openEditBatchForm(batch)}
+                                onDelete={() => mockPendingAction("Eliminacion", batch.code)}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-20 text-center text-sm text-muted-foreground">
+                            Todavia no hay lotes registrados.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader>
@@ -1102,12 +1433,25 @@ function CultivoPage() {
 
             <div className="space-y-1.5">
               <FormLabel htmlFor="lote-upload-file">Archivo</FormLabel>
-              <Input
-                id="lote-upload-file"
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv"
-                onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
-              />
+              <div className="flex min-h-10 items-center gap-2 rounded-md border border-input bg-background/70 px-2 py-1.5 shadow-sm dark:bg-muted/35">
+                <Input
+                  id="lote-upload-file"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv"
+                  className="sr-only"
+                  onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
+                />
+                <FormLabel
+                  htmlFor="lote-upload-file"
+                  className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  Seleccionar archivo
+                </FormLabel>
+                <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+                  {uploadFile ? uploadFile.name : "Sin archivos seleccionados"}
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Formatos sugeridos: PDF, imagen, planilla o documento tecnico.
               </p>
@@ -1143,7 +1487,7 @@ function LoteRowActions({
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onUpload: () => void;
+  onUpload?: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -1162,10 +1506,12 @@ function LoteRowActions({
           <Pencil className="mr-2 h-4 w-4" />
           Editar
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onUpload}>
-          <Upload className="mr-2 h-4 w-4" />
-          Subir
-        </DropdownMenuItem>
+        {onUpload ? (
+          <DropdownMenuItem onClick={onUpload}>
+            <Upload className="mr-2 h-4 w-4" />
+            Subir
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={onDelete}>
           <Trash2 className="mr-2 h-4 w-4" />
@@ -1173,5 +1519,79 @@ function LoteRowActions({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function BatchDetailSection({
+  item,
+  geneticsName,
+  roomName,
+  onClose,
+  onEdit,
+}: {
+  item: Batch;
+  geneticsName: string;
+  roomName: string;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  return (
+    <section className="rounded-md border bg-muted/20 p-4">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs text-muted-foreground">Detalle de lote</p>
+          <h3 className="text-xl font-semibold tracking-tight">{item.code}</h3>
+          <p className="text-sm text-muted-foreground">{geneticsName} - {roomName}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>Cerrar</Button>
+          <Button type="button" size="sm" className="gap-2" onClick={onEdit}>
+            <Pencil className="h-4 w-4" />
+            Editar
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-3 rounded-md border bg-background/70 p-3">
+          <h4 className="text-sm font-semibold">Ficha principal</h4>
+          <BatchDetailRow label="Codigo lote" value={item.code} />
+          <BatchDetailRow label="Genetica" value={geneticsName} />
+          <BatchDetailRow label="Sala" value={roomName} />
+        </div>
+
+        <div className="space-y-3 rounded-md border bg-background/70 p-3">
+          <h4 className="text-sm font-semibold">Estado</h4>
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="text-muted-foreground">Estado</span>
+            <Badge variant={item.status === "descartado" ? "destructive" : "secondary"}>{item.status}</Badge>
+          </div>
+          <BatchDetailRow label="ID genetica" value={item.geneticsId} />
+          <BatchDetailRow label="ID sala" value={item.roomId} />
+        </div>
+
+        <div className="space-y-3 rounded-md border bg-background/70 p-3">
+          <h4 className="text-sm font-semibold">Fechas</h4>
+          <BatchDetailRow label="Inicio" value={item.startDate} />
+          <BatchDetailRow label="Inicio flora" value={item.floweringStartDate} />
+          <BatchDetailRow label="Cosecha est." value={item.estimatedHarvestDate} />
+          <BatchDetailRow label="Cosecha real" value={item.realHarvestDate} />
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-md border bg-background/70 p-3">
+        <h4 className="text-sm font-semibold">Observaciones</h4>
+        <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{item.notes || "Sin observaciones."}</p>
+      </div>
+    </section>
+  );
+}
+
+function BatchDetailRow({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium">{value || "-"}</span>
+    </div>
   );
 }

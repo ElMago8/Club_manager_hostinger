@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -82,20 +83,18 @@ function FilterControls({ filters, onChange, items, performers }: MovementsFilte
       <div className="flex gap-2">
         <div className="flex-1">
           <Label className="mb-1.5 block text-xs text-muted-foreground">Desde</Label>
-          <Input
-            type="date"
+          <DateInput
             className="h-8 text-xs"
             value={filters.dateFrom ?? ""}
-            onChange={(e) => onChange({ ...filters, dateFrom: e.target.value || null })}
+            onChange={(v) => onChange({ ...filters, dateFrom: v || null })}
           />
         </div>
         <div className="flex-1">
           <Label className="mb-1.5 block text-xs text-muted-foreground">Hasta</Label>
-          <Input
-            type="date"
+          <DateInput
             className="h-8 text-xs"
             value={filters.dateTo ?? ""}
-            onChange={(e) => onChange({ ...filters, dateTo: e.target.value || null })}
+            onChange={(v) => onChange({ ...filters, dateTo: v || null })}
           />
         </div>
       </div>
@@ -203,17 +202,15 @@ export function MovementsFilters(props: MovementsFiltersProps) {
         <div>
           <Label className="mb-1.5 block text-xs text-muted-foreground">Rango de fechas</Label>
           <div className="flex gap-1">
-            <Input
-              type="date"
+            <DateInput
               className="h-8 text-xs"
               value={props.filters.dateFrom ?? ""}
-              onChange={(e) => props.onChange({ ...props.filters, dateFrom: e.target.value || null })}
+              onChange={(v) => props.onChange({ ...props.filters, dateFrom: v || null })}
             />
-            <Input
-              type="date"
+            <DateInput
               className="h-8 text-xs"
               value={props.filters.dateTo ?? ""}
-              onChange={(e) => props.onChange({ ...props.filters, dateTo: e.target.value || null })}
+              onChange={(v) => props.onChange({ ...props.filters, dateTo: v || null })}
             />
           </div>
         </div>

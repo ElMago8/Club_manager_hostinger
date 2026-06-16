@@ -271,7 +271,9 @@ export interface Batch {
   roomName?: string;
   status: string;
   startDate: string;
+  floweringStartDate?: string;
   estimatedHarvestDate?: string;
+  realHarvestDate?: string;
   notes?: string;
 }
 

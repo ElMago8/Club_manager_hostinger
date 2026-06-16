@@ -659,6 +659,57 @@ const loteCultivoSchema = z.object({
   observaciones: optionalText,
 });
 
+function loteCultivoRoutes() {
+  const router = Router();
+  const include = { genetica: true, salaCultivo: true };
+
+  router.get("/", async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await prisma.loteCultivo.findMany({ include, orderBy: { id: "desc" } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = loteCultivoSchema.parse(req.body);
+      res.status(201).json(await prisma.loteCultivo.create({ data, include }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const record = await prisma.loteCultivo.findUnique({ where: { id: parseId(req) }, include });
+      if (!record) throw new ApiError(404, "Lote no encontrado.");
+      res.json(record);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const data = loteCultivoSchema.partial().parse(req.body);
+      res.json(await prisma.loteCultivo.update({ where: { id: parseId(req) }, data, include }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await prisma.loteCultivo.delete({ where: { id: parseId(req) } }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  return router;
+}
+
 const plantaSchema = z.object({
   codigoPlanta: z.string().trim().min(1),
   nombrePlanta: z.string().trim().min(1),
@@ -1134,7 +1185,7 @@ cultivationRoutes.use("/rooms", salaRoutes());
 cultivationRoutes.use("/beds", camillaRoutes());
 cultivationRoutes.use("/genetics", crudRoutes(prisma.genetica, geneticaSchema));
 cultivationRoutes.use("/mothers", madreRoutes());
-cultivationRoutes.use("/batches", crudRoutes(prisma.loteCultivo, loteCultivoSchema));
+cultivationRoutes.use("/batches", loteCultivoRoutes());
 cultivationRoutes.use("/plants", plantaRoutes());
 cultivationRoutes.use("/environmental-logs", registroAmbientalRoutes());
 cultivationRoutes.post("/vpd/preview", (req: Request, res: Response, next: NextFunction) => {

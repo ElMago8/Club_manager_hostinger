@@ -4,6 +4,7 @@ dist/
 server/dist/
 server/prisma/*.db
 server/prisma/*.db-journal
+server/prisma/backups/*.db
 .tanstack/
 .wrangler/
 

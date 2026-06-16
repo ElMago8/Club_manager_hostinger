@@ -78,7 +78,7 @@ function NewGeneticsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1000px] space-y-6">
+    <div className="mx-auto max-w-[1180px] space-y-4">
       <div className="space-y-1">
         <Button asChild variant="ghost" size="sm" className="-ml-2">
           <Link to="/app/cultivo/geneticas">
@@ -96,14 +96,20 @@ function NewGeneticsPage() {
 
       <form onSubmit={handleSubmit}>
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle>Crear genética</CardTitle>
             <CardDescription>Completá las especificaciones principales de la variedad.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-3 lg:grid-cols-[minmax(0,0.575fr)_minmax(0,0.575fr)_minmax(320px,0.85fr)]">
+              <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:col-span-2 lg:col-start-1">
+                Datos de variedad
+              </div>
+              <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:col-start-3 lg:row-start-1">
+                Medicion
+              </div>
 
-              <div className="md:col-span-2 space-y-1.5">
+              <div className="md:col-span-2 space-y-1 lg:col-span-2 lg:col-start-1 lg:row-start-2">
                 <Label htmlFor="name" className="flex items-center gap-1.5 text-sm font-semibold">
                   <Leaf className="h-3.5 w-3.5 text-muted-foreground" />
                   Genética
@@ -116,7 +122,7 @@ function NewGeneticsPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1 lg:col-span-2 lg:col-start-1 lg:row-start-3">
                 <Label htmlFor="breeder" className="flex items-center gap-1.5 text-sm font-semibold">
                   <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                   Breeder
@@ -128,7 +134,7 @@ function NewGeneticsPage() {
                   placeholder="Banco o criador"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1 lg:col-start-1 lg:row-start-4">
                 <Label className="flex items-center gap-1.5 text-sm font-semibold">
                   <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                   Origen
@@ -146,7 +152,7 @@ function NewGeneticsPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1 lg:col-start-3 lg:row-start-2">
                 <Label htmlFor="thcPercent" className="flex items-center gap-1.5 text-sm font-semibold">
                   <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
                   THC %
@@ -162,7 +168,7 @@ function NewGeneticsPage() {
                   placeholder="26"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1 lg:col-start-3 lg:row-start-3">
                 <Label htmlFor="cbdPercent" className="flex items-center gap-1.5 text-sm font-semibold">
                   <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
                   CBD %
@@ -179,7 +185,7 @@ function NewGeneticsPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1 lg:col-start-3 lg:row-start-4">
                 <Label htmlFor="floweringTimeDays" className="flex items-center gap-1.5 text-sm font-semibold">
                   <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
                   Tiempo de floración (días)
@@ -195,7 +201,7 @@ function NewGeneticsPage() {
                   placeholder="Ej: 63"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1 lg:col-start-2 lg:row-start-4">
                 <Label className="flex items-center gap-1.5 text-sm font-semibold">
                   <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                   Tipo
@@ -212,7 +218,7 @@ function NewGeneticsPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1 lg:col-start-1 lg:row-start-5">
                 <Label className="flex items-center gap-1.5 text-sm font-semibold">
                   <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
                   Perfil cannabinoide
@@ -231,7 +237,7 @@ function NewGeneticsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1 lg:col-start-2 lg:row-start-5">
                 <Label htmlFor="aroma" className="flex items-center gap-1.5 text-sm font-semibold">
                   <Wind className="h-3.5 w-3.5 text-muted-foreground" />
                   Aroma
@@ -244,7 +250,7 @@ function NewGeneticsPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1 lg:col-start-1 lg:row-start-6">
                 <Label htmlFor="taste" className="flex items-center gap-1.5 text-sm font-semibold">
                   <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                   Sabor
@@ -256,7 +262,7 @@ function NewGeneticsPage() {
                   placeholder="Dulce, terroso, cítrico"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1 lg:col-start-2 lg:row-start-6">
                 <Label htmlFor="effect" className="flex items-center gap-1.5 text-sm font-semibold">
                   <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
                   Efecto
@@ -269,7 +275,7 @@ function NewGeneticsPage() {
                 />
               </div>
 
-              <div className="md:col-span-2 space-y-1.5">
+              <div className="space-y-1 lg:col-start-3 lg:row-start-5 lg:row-span-2">
                 <Label className="flex items-center gap-1.5 text-sm font-semibold">
                   <Leaf className="h-3.5 w-3.5 text-muted-foreground" />
                   Perfil Sativa / Indica
@@ -281,7 +287,11 @@ function NewGeneticsPage() {
                 />
               </div>
 
-              <div className="md:col-span-2 space-y-1.5">
+              <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:col-span-2 lg:col-span-3 lg:col-start-1 lg:row-start-7">
+                Detalle
+              </div>
+
+              <div className="space-y-1 md:col-span-2 lg:col-span-3 lg:col-start-1">
                 <Label htmlFor="description" className="flex items-center gap-1.5 text-sm font-semibold">
                   <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                   Descripción
@@ -295,7 +305,7 @@ function NewGeneticsPage() {
                 />
               </div>
 
-              <div className="md:col-span-2 space-y-1.5">
+              <div className="space-y-1 md:col-span-2 lg:col-span-3 lg:col-start-1">
                 <Label htmlFor="notes" className="flex items-center gap-1.5 text-sm font-semibold">
                   <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
                   Observación
@@ -309,7 +319,7 @@ function NewGeneticsPage() {
                 />
               </div>
 
-              <div className="md:col-span-2 flex justify-end pt-2">
+              <div className="md:col-span-2 flex justify-end pt-1 lg:col-span-3">
                 <Button type="submit" disabled={saving} className="gap-2">
                   <Save className="h-4 w-4" />
                   {saving ? "Guardando..." : "Guardar genética"}

@@ -101,9 +101,10 @@ model Genetica {
   creadoEn            DateTime @default(now()) @map("creado_en")
   actualizadoEn       DateTime @updatedAt @map("actualizado_en")
 
-  madres       Madre[]
-  lotesCultivo LoteCultivo[]
-  plantas      Planta[]
+  madres        Madre[]
+  lotesCultivo  LoteCultivo[]
+  plantas       Planta[]
+  lotesProducto LoteProducto[]
 
   @@map("geneticas")
 }
@@ -158,6 +159,7 @@ model LoteCultivo {
   riegos                Riego[]
   tareasCultivo         TareaCultivo[]
   cosechas              Cosecha[]
+  lotesProducto         LoteProducto[]
 
   @@index([geneticaId])
   @@index([salaCultivoId])
@@ -461,8 +463,9 @@ model Cosecha {
   creadoEn          DateTime  @default(now()) @map("creado_en")
   actualizadoEn     DateTime  @updatedAt @map("actualizado_en")
 
-  loteCultivo LoteCultivo  @relation(fields: [loteCultivoId], references: [id], onDelete: Restrict)
-  salaCultivo SalaCultivo? @relation(fields: [salaCultivoId], references: [id], onDelete: SetNull)
+  loteCultivo   LoteCultivo   @relation(fields: [loteCultivoId], references: [id], onDelete: Restrict)
+  salaCultivo   SalaCultivo?  @relation(fields: [salaCultivoId], references: [id], onDelete: SetNull)
+  lotesProducto LoteProducto[]
 
   @@index([loteCultivoId])
   @@index([salaCultivoId])
@@ -545,4 +548,89 @@ model RolPermiso {
   @@index([rolId])
   @@index([permisoId])
   @@map("rol_permisos")
+}
+
+// ─── Fase 3.0: Productos / Stock ─────────────────────────────────────────────
+
+model CategoriaProducto {
+  id              Int      @id @default(autoincrement())
+  codigoCategoria String   @unique @map("codigo_categoria")
+  nombre          String
+  descripcion     String?
+  estado          String   @default("activa")
+  creadoEn        DateTime @default(now()) @map("creado_en")
+  actualizadoEn   DateTime @updatedAt @map("actualizado_en")
+
+  productos Producto[]
+
+  @@map("categorias_producto")
+}
+
+model Producto {
+  id                   Int      @id @default(autoincrement())
+  codigoProducto       String   @unique @map("codigo_producto")
+  categoriaProductoId  Int?     @map("categoria_producto_id")
+  nombre               String
+  tipoProducto         String   @map("tipo_producto")
+  unidadMedida         String   @default("gramos") @map("unidad_medida")
+  descripcion          String?
+  estado               String   @default("activo")
+  requiereLote         Boolean  @default(true) @map("requiere_lote")
+  requiereTrazabilidad Boolean  @default(true) @map("requiere_trazabilidad")
+  creadoEn             DateTime @default(now()) @map("creado_en")
+  actualizadoEn        DateTime @updatedAt @map("actualizado_en")
+
+  categoria CategoriaProducto? @relation(fields: [categoriaProductoId], references: [id], onDelete: SetNull)
+  lotes     LoteProducto[]
+
+  @@index([categoriaProductoId])
+  @@map("productos")
+}
+
+model UbicacionStock {
+  id              Int      @id @default(autoincrement())
+  codigoUbicacion String   @unique @map("codigo_ubicacion")
+  nombre          String
+  tipo            String
+  descripcion     String?
+  estado          String   @default("activa")
+  creadoEn        DateTime @default(now()) @map("creado_en")
+  actualizadoEn   DateTime @updatedAt @map("actualizado_en")
+
+  lotes LoteProducto[]
+
+  @@map("ubicaciones_stock")
+}
+
+model LoteProducto {
+  id                 Int       @id @default(autoincrement())
+  codigoLoteProducto String    @unique @map("codigo_lote_producto")
+  productoId         Int       @map("producto_id")
+  cosechaId          Int?      @map("cosecha_id")
+  loteCultivoId      Int?      @map("lote_cultivo_id")
+  geneticaId         Int?      @map("genetica_id")
+  ubicacionStockId   Int?      @map("ubicacion_stock_id")
+  fechaIngreso       DateTime  @default(now()) @map("fecha_ingreso")
+  fechaVencimiento   DateTime? @map("fecha_vencimiento")
+  cantidadInicial    Float     @default(0) @map("cantidad_inicial")
+  cantidadDisponible Float     @default(0) @map("cantidad_disponible")
+  cantidadReservada  Float     @default(0) @map("cantidad_reservada")
+  unidadMedida       String    @default("gramos") @map("unidad_medida")
+  estado             String    @default("disponible")
+  observaciones      String?
+  creadoEn           DateTime  @default(now()) @map("creado_en")
+  actualizadoEn      DateTime  @updatedAt @map("actualizado_en")
+
+  producto       Producto        @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  cosecha        Cosecha?        @relation(fields: [cosechaId], references: [id], onDelete: SetNull)
+  loteCultivo    LoteCultivo?    @relation(fields: [loteCultivoId], references: [id], onDelete: SetNull)
+  genetica       Genetica?       @relation(fields: [geneticaId], references: [id], onDelete: SetNull)
+  ubicacionStock UbicacionStock? @relation(fields: [ubicacionStockId], references: [id], onDelete: SetNull)
+
+  @@index([productoId])
+  @@index([cosechaId])
+  @@index([loteCultivoId])
+  @@index([geneticaId])
+  @@index([ubicacionStockId])
+  @@map("lotes_producto")
 }

@@ -449,24 +449,46 @@ function FacturacionPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <SummaryCard title="Comprobantes del mes" value={String(stats.count)} description={`${stats.socios} socios facturados`} icon={<FileText className="h-4 w-4" />} />
-        <SummaryCard
-          title="Facturado del mes"
-          value={showFacturado ? formatCurrency(stats.totalFacturado) : "••••"}
-          description="Total bruto emitido"
-          icon={<TrendingUp className="h-4 w-4 text-emerald-500" />}
-          action={<VisibilityButton visible={showFacturado} label="facturado del mes" onToggle={() => setShowFacturado((current) => !current)} />}
-        />
-        <SummaryCard
-          title="Pendiente de cobro"
-          value={showPendiente ? formatCurrency(stats.pendienteCobro) : "••••"}
-          description="Impago + parcial + vencido"
-          icon={<TrendingDown className="h-4 w-4 text-amber-500" />}
-          action={<VisibilityButton visible={showPendiente} label="pendiente de cobro" onToggle={() => setShowPendiente((current) => !current)} />}
-        />
-        <SummaryCard title="Observados ARCA" value={String(stats.observados)} description="Requieren revision" icon={<AlertCircle className="h-4 w-4 text-amber-500" />} />
-        <SummaryCard title="Socios facturados" value={String(stats.socios)} description="Unicos del periodo" icon={<Users className="h-4 w-4" />} />
+      <div className="rounded-xl border border-border bg-card p-3 shadow-xs">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+          <SummaryCard
+            title="Comprobantes del mes"
+            value={String(stats.count)}
+            description={`${stats.socios} socios facturados`}
+            icon={<FileText className="h-5 w-5 text-sky-600 dark:text-sky-400" />}
+            accent="bg-sky-500" panel="bg-sky-500/10"
+          />
+          <SummaryCard
+            title="Facturado del mes"
+            value={showFacturado ? formatCurrency(stats.totalFacturado) : "••••"}
+            description="Total bruto emitido"
+            icon={<TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+            action={<VisibilityButton visible={showFacturado} label="facturado del mes" onToggle={() => setShowFacturado((current) => !current)} />}
+            accent="bg-emerald-500" panel="bg-emerald-500/10"
+          />
+          <SummaryCard
+            title="Pendiente de cobro"
+            value={showPendiente ? formatCurrency(stats.pendienteCobro) : "••••"}
+            description="Impago + parcial + vencido"
+            icon={<TrendingDown className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
+            action={<VisibilityButton visible={showPendiente} label="pendiente de cobro" onToggle={() => setShowPendiente((current) => !current)} />}
+            accent="bg-amber-500" panel="bg-amber-500/10"
+          />
+          <SummaryCard
+            title="Observados ARCA"
+            value={String(stats.observados)}
+            description="Requieren revision"
+            icon={<AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />}
+            accent="bg-red-500" panel="bg-red-500/10"
+          />
+          <SummaryCard
+            title="Socios facturados"
+            value={String(stats.socios)}
+            description="Unicos del periodo"
+            icon={<Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />}
+            accent="bg-violet-500" panel="bg-violet-500/10"
+          />
+        </div>
       </div>
 
       <Card>
@@ -570,13 +592,13 @@ function FacturacionPage() {
                           <DropdownMenuItem onClick={() => setDetailItem(c)}><Eye className="mr-2 h-4 w-4" />Ver detalle</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => toast.info("PDF real pendiente de integracion.")}><Download className="mr-2 h-4 w-4" />Descargar PDF</DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => void updateInvoice(() => createCreditNote(c.id), "Nota de credito demo generada.")}><FileMinus2 className="mr-2 h-4 w-4" />Generar nota de credito</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => void updateInvoice(() => createDebitNote(c.id), "Nota de debito demo generada.")}><FilePlus2 className="mr-2 h-4 w-4" />Generar nota de debito</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void updateInvoice(() => createCreditNote(c.id), "Nota de credito generada correctamente.")}><FileMinus2 className="mr-2 h-4 w-4" />Generar nota de credito</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void updateInvoice(() => createDebitNote(c.id), "Nota de debito generada correctamente.")}><FilePlus2 className="mr-2 h-4 w-4" />Generar nota de debito</DropdownMenuItem>
                           {c.estadoCobro !== "pagado" && (
                             <DropdownMenuItem onClick={() => void updateInvoice(() => markBillingInvoicePaid(c.id), "Comprobante marcado como pagado.")}><CheckCircle2 className="mr-2 h-4 w-4" />Marcar como pagado</DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => toast.info("Baja fisica deshabilitada para conservar trazabilidad.")}><Trash2 className="mr-2 h-4 w-4" />Eliminar demo</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => toast.info("Baja fisica deshabilitada para conservar trazabilidad.")}><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -800,23 +822,22 @@ function VisibilityButton({ visible, label, onToggle }: { visible: boolean; labe
   );
 }
 
-function SummaryCard({ title, value, description, icon, action }: { title: string; value: string; description: string; icon: React.ReactNode; action?: React.ReactNode }) {
+function SummaryCard({ title, value, description, icon, action, accent, panel }: { title: string; value: string; description: string; icon: React.ReactNode; action?: React.ReactNode; accent: string; panel: string }) {
   return (
-    <Card>
-      <CardHeader className="pb-2 pt-4">
-        <CardTitle className="flex items-center justify-between gap-2 text-xs font-medium text-muted-foreground">
-          <span>{title}</span>
-          <span className="flex items-center gap-1">
+    <div className={`relative overflow-hidden rounded-lg ${panel} px-5 py-4`}>
+      <span className={`absolute left-0 top-3 h-[calc(100%-1.5rem)] w-1 rounded-r-full ${accent}`} />
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
             {action}
-            {icon}
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pb-4">
-        <p className="text-2xl font-bold">{value}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
+          </div>
+          <p className="mt-2 font-mono text-3xl font-semibold leading-none text-foreground">{value}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+        </div>
+        <div className="mt-1 shrink-0">{icon}</div>
+      </div>
+    </div>
   );
 }
 

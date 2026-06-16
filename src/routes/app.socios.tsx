@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, ExternalLink, Plus, Search, UploadCloud, Users, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, Plus, Search, ShieldAlert, UploadCloud, UserCheck, UserPlus, Users, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -212,10 +212,19 @@ function SociosPage() {
   const [showQuotaCol, setShowQuotaCol] = useState(false);
 
   useEffect(() => {
-    void getMembers().then((data) => {
-      setMembers(data);
-      setLoading(false);
-    });
+    void getMembers()
+      .then((data) => {
+        setMembers(data);
+        setMessage("");
+      })
+      .catch((error) => {
+        const text = error instanceof Error ? error.message : "No se pudieron cargar los socios.";
+        setMessage(`No se pudo conectar con socios reales: ${text}`);
+        setMembers([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   const stats = useMemo(() => {
@@ -299,19 +308,66 @@ function SociosPage() {
         </p>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        {[
-          { label: "Total de socios", value: stats.total },
-          { label: "Activos", value: stats.active },
-          { label: "Pendientes", value: stats.pending },
-          { label: "Doc. por vencer", value: stats.expiring },
-          { label: "Cupos al límite", value: stats.nearQuota },
-        ].map((c) => (
-          <div key={c.label} className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs text-muted-foreground">{c.label}</p>
-            <p className="mt-1 font-mono text-2xl font-semibold text-foreground">{c.value}</p>
-          </div>
-        ))}
+      <div className="rounded-xl border border-border bg-card p-3 shadow-xs">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {[
+            {
+              label: "Total de socios",
+              value: stats.total,
+              icon: Users,
+              accent: "bg-sky-500",
+              panel: "bg-sky-500/10",
+              iconClass: "text-sky-600 dark:text-sky-400",
+            },
+            {
+              label: "Socios activos",
+              value: stats.active,
+              icon: UserCheck,
+              accent: "bg-emerald-500",
+              panel: "bg-emerald-500/10",
+              iconClass: "text-emerald-600 dark:text-emerald-400",
+            },
+            {
+              label: "Socios pendientes",
+              value: stats.pending,
+              icon: UserPlus,
+              accent: "bg-amber-500",
+              panel: "bg-amber-500/10",
+              iconClass: "text-amber-600 dark:text-amber-400",
+            },
+            {
+              label: "Doc. por vencer",
+              value: stats.expiring,
+              icon: ShieldAlert,
+              accent: "bg-yellow-500",
+              panel: "bg-yellow-500/10",
+              iconClass: "text-yellow-600 dark:text-yellow-400",
+            },
+            {
+              label: "Cupos al limite",
+              value: stats.nearQuota,
+              icon: AlertTriangle,
+              accent: "bg-red-500",
+              panel: "bg-red-500/10",
+              iconClass: "text-red-600 dark:text-red-400",
+            },
+          ].map((card) => {
+            const Icon = card.icon;
+
+            return (
+              <div key={card.label} className={`relative overflow-hidden rounded-lg ${card.panel} px-5 py-4`}>
+                <span className={`absolute left-0 top-3 h-[calc(100%-1.5rem)] w-1 rounded-r-full ${card.accent}`} />
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
+                    <p className="mt-2 font-mono text-3xl font-semibold leading-none text-foreground">{card.value}</p>
+                  </div>
+                  <Icon className={`mt-1 h-5 w-5 ${card.iconClass}`} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="rounded-lg border border-border bg-card p-4">

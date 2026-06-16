@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Item, StockMovement } from "@/types/inventory";
@@ -166,8 +167,8 @@ export function ClubRecentMovements({ movements, items }: Props) {
               <Input type="number" placeholder="Cant. min" value={filters.cantidadMin} onChange={(e) => setFilters((current) => ({ ...current, cantidadMin: e.target.value }))} />
               <Input type="number" placeholder="Cant. max" value={filters.cantidadMax} onChange={(e) => setFilters((current) => ({ ...current, cantidadMax: e.target.value }))} />
             </div>
-            <Input type="date" value={filters.fechaDesde} onChange={(e) => setFilters((current) => ({ ...current, fechaDesde: e.target.value }))} />
-            <Input type="date" value={filters.fechaHasta} onChange={(e) => setFilters((current) => ({ ...current, fechaHasta: e.target.value }))} />
+            <DateInput value={filters.fechaDesde} onChange={(v) => setFilters((current) => ({ ...current, fechaDesde: v }))} />
+            <DateInput value={filters.fechaHasta} onChange={(v) => setFilters((current) => ({ ...current, fechaHasta: v }))} />
             <Button variant="outline" onClick={() => setFilters(EMPTY_FILTERS)}>Limpiar filtros</Button>
             <div className="flex items-center text-sm text-muted-foreground">{expandedRows.length} movimientos</div>
           </div>

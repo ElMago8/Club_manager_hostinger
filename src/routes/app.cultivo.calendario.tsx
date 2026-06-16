@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, Clock, Plus } from "lucide-react";
+import { AlertCircle, AlertTriangle, CalendarDays, CheckCircle2, Clock, PlayCircle, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -200,22 +201,28 @@ function OperationalCalendarPage() {
         <p className="text-sm text-muted-foreground">Tareas reales del backend para cultivo, camillas, plantas y controles internos.</p>
       </header>
 
-      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-        {[
-          ["Pendientes", cards.pending],
-          ["En curso", cards.inProgress],
-          ["Completadas hoy", cards.completedToday],
-          ["Vencidas", cards.overdue],
-          ["Criticas", cards.critical],
-          ["Esta semana", cards.thisWeek],
-        ].map(([label, value]) => (
-          <Card key={label}>
-            <CardHeader className="pb-2">
-              <CardDescription>{label}</CardDescription>
-              <CardTitle className="font-mono text-2xl">{value}</CardTitle>
-            </CardHeader>
-          </Card>
-        ))}
+      <div className="rounded-xl border border-border bg-card p-3 shadow-xs">
+        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {([
+            { label: "Pendientes",      value: cards.pending,        Icon: Clock,         accent: "bg-slate-500",  panel: "bg-slate-500/10",  iconClass: "text-slate-600 dark:text-slate-400" },
+            { label: "En curso",        value: cards.inProgress,     Icon: PlayCircle,    accent: "bg-sky-500",    panel: "bg-sky-500/10",    iconClass: "text-sky-600 dark:text-sky-400" },
+            { label: "Completadas hoy", value: cards.completedToday, Icon: CheckCircle2,  accent: "bg-emerald-500", panel: "bg-emerald-500/10", iconClass: "text-emerald-600 dark:text-emerald-400" },
+            { label: "Vencidas",        value: cards.overdue,        Icon: AlertCircle,   accent: "bg-red-500",    panel: "bg-red-500/10",    iconClass: "text-red-600 dark:text-red-400" },
+            { label: "Criticas",        value: cards.critical,       Icon: AlertTriangle, accent: "bg-amber-500",  panel: "bg-amber-500/10",  iconClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Esta semana",     value: cards.thisWeek,       Icon: CalendarDays,  accent: "bg-violet-500", panel: "bg-violet-500/10", iconClass: "text-violet-600 dark:text-violet-400" },
+          ] as const).map(({ label, value, Icon, accent, panel, iconClass }) => (
+            <div key={label} className={`relative overflow-hidden rounded-lg ${panel} px-5 py-4`}>
+              <span className={`absolute left-0 top-3 h-[calc(100%-1.5rem)] w-1 rounded-r-full ${accent}`} />
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                  <p className="mt-2 font-mono text-3xl font-semibold leading-none text-foreground">{value}</p>
+                </div>
+                <Icon className={`mt-1 h-5 w-5 shrink-0 ${iconClass}`} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
@@ -242,7 +249,7 @@ function OperationalCalendarPage() {
                   <SelectContent>{Object.entries(PRIORITY_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Fecha limite</Label><Input type="date" value={form.dueDate} onChange={(event) => setForm({ ...form, dueDate: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Fecha limite</Label><DateInput value={form.dueDate} onChange={(v) => setForm({ ...form, dueDate: v })} /></div>
               <div className="space-y-2"><Label>Hora limite</Label><Input type="time" value={form.dueTime} onChange={(event) => setForm({ ...form, dueTime: event.target.value })} /></div>
               <div className="space-y-2"><Label>Responsable</Label><Input value={form.assignedToName} onChange={(event) => setForm({ ...form, assignedToName: event.target.value })} /></div>
               <div className="space-y-2"><Label>Lote</Label><Input value={form.batchId} onChange={(event) => setForm({ ...form, batchId: event.target.value })} /></div>
@@ -278,8 +285,8 @@ function OperationalCalendarPage() {
               <Select value={filters.priority} onValueChange={(priority) => setFilters({ ...filters, priority })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas las prioridades</SelectItem>{Object.entries(PRIORITY_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
               <Select value={filters.taskType} onValueChange={(taskType) => setFilters({ ...filters, taskType })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos los tipos</SelectItem>{Object.entries(TASK_TYPE_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
               <Input placeholder="Responsable" value={filters.assignedToName} onChange={(event) => setFilters({ ...filters, assignedToName: event.target.value })} />
-              <Input type="date" value={filters.dateFrom} onChange={(event) => setFilters({ ...filters, dateFrom: event.target.value })} />
-              <Input type="date" value={filters.dateTo} onChange={(event) => setFilters({ ...filters, dateTo: event.target.value })} />
+              <DateInput value={filters.dateFrom} onChange={(v) => setFilters({ ...filters, dateFrom: v })} />
+              <DateInput value={filters.dateTo} onChange={(v) => setFilters({ ...filters, dateTo: v })} />
               <Select value={filters.bedId} onValueChange={(bedId) => setFilters({ ...filters, bedId })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas las camillas</SelectItem>{beds.map((bed) => <SelectItem key={bed.id} value={bed.id}>{bed.name}</SelectItem>)}</SelectContent></Select>
               <div className="flex items-center gap-2 rounded-md border px-3">
                 <Checkbox checked={filters.overdueOnly} onCheckedChange={(checked) => setFilters({ ...filters, overdueOnly: checked === true })} />

@@ -1,4 +1,3 @@
-import { getMockStore } from "./_mockStore";
 import type {
   DocumentStatus,
   DocumentType,
@@ -167,25 +166,15 @@ export interface CreateDocumentPayload {
 // ─── Servicios de socios ──────────────────────────────────────────────────────
 
 export async function getMembers(filters: { estado?: MemberStatus; search?: string } = {}): Promise<Member[]> {
-  try {
-    const params = new URLSearchParams();
-    if (filters.estado) params.set("estado", STATUS_REVERSE[filters.estado]);
-    if (filters.search) params.set("search", filters.search);
-    const qs = params.toString();
-    return (await apiRequest<ApiSocio[]>(`/api/members${qs ? `?${qs}` : ""}`)).map(mapApiSocio);
-  } catch (error) {
-    if (import.meta.env.DEV) console.warn("Members API unavailable, using mock data.", error);
-    return getMockStore().getMembers();
-  }
+  const params = new URLSearchParams();
+  if (filters.estado) params.set("estado", STATUS_REVERSE[filters.estado]);
+  if (filters.search) params.set("search", filters.search);
+  const qs = params.toString();
+  return (await apiRequest<ApiSocio[]>(`/api/members${qs ? `?${qs}` : ""}`)).map(mapApiSocio);
 }
 
 export async function getMemberById(id: string): Promise<Member | null> {
-  try {
-    return mapApiSocio(await apiRequest<ApiSocio>(`/api/members/${id}`));
-  } catch (error) {
-    if (import.meta.env.DEV) console.warn("Members API unavailable, using mock data.", error);
-    return getMockStore().getMembers().find((m) => m.id === id) ?? null;
-  }
+  return mapApiSocio(await apiRequest<ApiSocio>(`/api/members/${id}`));
 }
 
 export async function createMember(payload: CreateMemberPayload): Promise<Member> {

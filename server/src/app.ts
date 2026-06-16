@@ -11,6 +11,7 @@ import { roleRoutes } from "./modules/roles/role.routes.js";
 import { permissionRoutes } from "./modules/roles/permission.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { billingRoutes } from "./modules/billing/billing.routes.js";
+import { productsRoutes, stockLocationsRoutes, productBatchesRoutes } from "./modules/products/products.routes.js";
 
 export const app = express();
 
@@ -38,5 +39,8 @@ app.use("/api/roles", roleRoutes);
 app.use("/api/permissions", permissionRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/billing", billingRoutes);
+app.use("/api/products", productsRoutes);
+app.use("/api/stock/locations", stockLocationsRoutes);
+app.use("/api/product-batches", productBatchesRoutes);
 
 app.use(errorHandler);

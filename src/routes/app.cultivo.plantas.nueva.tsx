@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateInput } from "@/components/ui/date-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -413,21 +414,19 @@ function NewPlantPage() {
 
             <div className="space-y-2">
               <Label htmlFor="startDate">Fecha de inicio</Label>
-              <Input
+              <DateInput
                 id="startDate"
-                type="date"
                 value={form.startDate}
-                onChange={(event) => setForm({ ...form, startDate: event.target.value })}
+                onChange={(v) => setForm({ ...form, startDate: v })}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="stageStartDate">Inicio de etapa</Label>
-              <Input
+              <DateInput
                 id="stageStartDate"
-                type="date"
                 value={form.stageStartDate}
-                onChange={(event) => setForm({ ...form, stageStartDate: event.target.value })}
+                onChange={(v) => setForm({ ...form, stageStartDate: v })}
               />
             </div>
 

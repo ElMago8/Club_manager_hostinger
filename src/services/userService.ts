@@ -2,10 +2,9 @@
  * userService — Fase 2.1
  *
  * Consume la API real del backend (GET /api/users).
- * Si el servidor no está disponible, cae en modo mock para no romper demo mode.
+ * Si el servidor no está disponible, la pantalla debe mostrar el error.
  */
 
-import { getMockStore } from "./_mockStore";
 import type { AppUser } from "@/types/inventory";
 
 const API_BASE = "http://localhost:4000/api";
@@ -42,15 +41,10 @@ function mapApiUser(u: ApiUser): AppUser {
 }
 
 export async function getAppUsers(): Promise<AppUser[]> {
-  try {
-    const res = await fetch(`${API_BASE}/users`, { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data: ApiUser[] = await res.json();
-    return data.map(mapApiUser);
-  } catch {
-    // Backend no disponible → fallback a mock (demo mode)
-    return getMockStore().getAppUsers();
-  }
+  const res = await fetch(`${API_BASE}/users`, { signal: AbortSignal.timeout(3000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data: ApiUser[] = await res.json();
+  return data.map(mapApiUser);
 }
 
 export async function createUser(payload: {
