@@ -53,6 +53,7 @@ model Camilla {
   tareasCultivo        TareaCultivo[]
   registrosAmbientales RegistroAmbiental[]
   medicionesCultivo    MedicionCultivo[]
+  sistemasRiego        SistemaRiego[]
 
   @@index([salaCultivoId])
   @@map("camillas")
@@ -253,6 +254,27 @@ model Riego {
   @@index([loteCultivoId])
   @@index([fechaRiego])
   @@map("riegos")
+}
+
+model SistemaRiego {
+  id                   Int      @id @default(autoincrement())
+  codigoRiego          String   @unique @map("codigo_riego")
+  camillaId            Int      @map("camilla_id")
+  picosPorPlanta       Float?   @map("picos_por_planta")
+  horarioApertura      String?  @map("horario_apertura")
+  cantidadLitros       Float?   @map("cantidad_litros")
+  tanque               String?
+  frecuenciaTiempo     String?  @map("frecuencia_tiempo")
+  sistemaRegado        String   @map("sistema_regado")
+  sistemaRegadoCustom  String?  @map("sistema_regado_custom")
+  notas                String?
+  creadoEn             DateTime @default(now()) @map("creado_en")
+  actualizadoEn        DateTime @updatedAt @map("actualizado_en")
+
+  camilla Camilla @relation(fields: [camillaId], references: [id], onDelete: Cascade)
+
+  @@index([camillaId])
+  @@map("sistemas_riego")
 }
 
 model MedicionCultivo {

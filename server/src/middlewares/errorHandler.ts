@@ -26,8 +26,11 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
       return res.status(404).json({ error: "Record not found" });
     }
     if (prismaError.code === "P2003") {
+      const meta = prismaError.meta as Record<string, unknown> | undefined;
+      const field = meta?.field_name ?? meta?.modelName ?? "desconocido";
+      console.error("[P2003] FK constraint failed:", prismaError.meta);
       return res.status(409).json({
-        error: "No se puede eliminar el registro porque tiene datos relacionados. Borra o reasigna esos datos antes de eliminarlo.",
+        error: `Violación de clave foránea en el campo "${field}". Verificá que los datos relacionados (genética, madre, lote) existan.`,
         details: prismaError.meta,
       });
     }

@@ -69,14 +69,7 @@ function GrowBedsPage() {
   const [status, setStatus] = useState<"all" | BedStatus>("all");
   const [capacity, setCapacity] = useState("");
   const [occupancy, setOccupancy] = useState<"all" | "with_plants" | "empty">("all");
-  const [visibleMeasurementColumns, setVisibleMeasurementColumns] = useState<MeasurementColumnKey[]>([
-    "substratePH",
-    "substratePPM",
-    "liquidPH",
-    "liquidPPM",
-    "runoffPH",
-    "runoffPPM",
-  ]);
+  const [visibleMeasurementColumns, setVisibleMeasurementColumns] = useState<MeasurementColumnKey[]>([]);
 
   useEffect(() => {
     void Promise.all([getGrowBeds(), getGrowRooms(), getMeasurements()]).then(([nextBeds, nextRooms, nextMeasurements]) => {

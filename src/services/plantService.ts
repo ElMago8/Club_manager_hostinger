@@ -1,10 +1,11 @@
 import { growBeds, plants } from "@/data/cultivationMockData";
 import { apiRequest, withMockFallback } from "@/services/cultivationApi";
-import type { Plant, PlantStage, PlantStatus } from "@/types/cultivation";
+import type { Plant, PlantOrigin, PlantStage, PlantStatus } from "@/types/cultivation";
 
 export interface PlantFilters {
   roomId?: string;
   bedId?: string;
+  clonadorId?: string;
   geneticsId?: string;
   batchId?: string;
   motherPlantId?: string;
@@ -56,10 +57,15 @@ interface ApiPlant {
   sustrato?: string | null;
   notes?: string | null;
   observaciones?: string | null;
+  clonadorId?: number | null;
+  posicionClonador?: number | null;
   bed?: {
     roomId?: string | null;
   } | null;
   camilla?: {
+    salaCultivoId?: number | null;
+  } | null;
+  clonador?: {
     salaCultivoId?: number | null;
   } | null;
   genetics?: {
@@ -215,9 +221,12 @@ function mapApiPlant(plant: ApiPlant): Plant {
     id: plant.id,
     internalCode: plant.codigoPlanta ?? plant.internalCode ?? "",
     plantName: plant.nombrePlanta ?? undefined,
-    roomId: plant.bed?.roomId ?? (plant.camilla?.salaCultivoId ? String(plant.camilla.salaCultivoId) : "room-sin-asignar"),
-    bedId: plant.bedId ?? String(plant.camillaId ?? ""),
-    bedPosition: plant.bedPosition ?? plant.posicionCamilla ?? 0,
+    roomId:
+      plant.bed?.roomId ??
+      (plant.camilla?.salaCultivoId ? String(plant.camilla.salaCultivoId) : undefined) ??
+      (plant.clonador?.salaCultivoId ? String(plant.clonador.salaCultivoId) : "room-sin-asignar"),
+    bedId: plant.bedId ?? String(plant.camillaId ?? plant.clonadorId ?? ""),
+    bedPosition: plant.bedPosition ?? plant.posicionCamilla ?? plant.posicionClonador ?? 0,
     batchId: plant.batchId ?? (plant.loteCultivoId ? String(plant.loteCultivoId) : undefined),
     geneticsId: plant.geneticsId ?? (plant.geneticaId ? String(plant.geneticaId) : undefined),
     geneticsName: plant.genetics?.name ?? plant.genetica?.nombre,
@@ -264,6 +273,7 @@ function toApiPlantFilters(filters: PlantFilters): Record<string, string> {
   return Object.fromEntries(
     Object.entries({
       bedId: filters.bedId,
+      clonadorId: filters.clonadorId,
       geneticsId: filters.geneticsId,
       batchId: filters.batchId,
       motherPlantId: filters.motherPlantId,
@@ -443,6 +453,42 @@ export async function bulkCreatePlantsForBed(payload: BulkCreatePlantsForBedPayl
       return createdPlants;
     },
   );
+}
+
+export interface BulkCreatePlantsForClonadorPayload {
+  clonadorId: string;
+  count: number;
+  geneticsId?: string;
+  motherPlantId?: string;
+  batchId?: string;
+  origin?: PlantOrigin;
+  stage?: PlantStage;
+  status?: PlantStatus;
+  startDate: string;
+  notes?: string;
+  internalCodePrefix?: string;
+}
+
+export async function bulkCreatePlantsForClonador(
+  payload: BulkCreatePlantsForClonadorPayload,
+): Promise<Plant[]> {
+  return (
+    await apiRequest<ApiPlant[]>(`/cultivation/clonadores/${payload.clonadorId}/bulk`, {
+      method: "POST",
+      body: JSON.stringify({
+        count: payload.count,
+        internalCodePrefix: payload.internalCodePrefix ?? "ESQ",
+        geneticsId: payload.geneticsId ? Number(payload.geneticsId) : undefined,
+        motherPlantId: payload.motherPlantId ? Number(payload.motherPlantId) : undefined,
+        batchId: payload.batchId ? Number(payload.batchId) : undefined,
+        origin: payload.origin ?? "esqueje",
+        stage: payload.stage ?? "vegetativo",
+        status: payload.status ?? "normal",
+        startDate: payload.startDate,
+        notes: payload.notes,
+      }),
+    })
+  ).map(mapApiPlant);
 }
 
 export async function updatePlantStage(

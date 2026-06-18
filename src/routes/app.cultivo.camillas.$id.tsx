@@ -1,29 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Droplets, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { BulkCreatePlantsDialog } from "@/components/cultivation/BulkCreatePlantsDialog";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { RelationshipWarning } from "@/components/cultivation/RelationshipWarning";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DateInput } from "@/components/ui/date-input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { getGenetics } from "@/services/geneticsService";
+import {
+  createSistemaRiego,
+  deleteSistemaRiego,
+  getSistemaRiegoByCamilla,
+  updateSistemaRiego,
+  type SistemaRegadoTipo,
+  type SistemaRiego,
+} from "@/services/irrigationSystemService";
 import { deleteGrowBed, getGrowBedById, getGrowBedOccupancy, updateGrowBedCapacity, type GrowBedOccupancy } from "@/services/growBedService";
 import { getGrowRoomById } from "@/services/growRoomService";
 import { getMeasurements } from "@/services/measurementService";
 import { getMotherPlants } from "@/services/motherPlantService";
-import { bulkCreatePlantsForBed, getPlantsByBed, updatePlantStage, updatePlantStatus } from "@/services/plantService";
+import { getPlantsByBed, updatePlantStage, updatePlantStatus } from "@/services/plantService";
 import type {
   BedStatus,
   CultivationMeasurement,
@@ -103,35 +114,38 @@ const PLANT_ORIGIN_LABEL: Record<PlantOrigin, string> = {
   planta: "Planta",
 };
 
-type BulkForm = {
-  count: string;
-  geneticsId: string;
-  batchId: string;
-  motherPlantId: string;
-  origin: PlantOrigin;
-  stage: PlantStage;
-  status: PlantStatus;
-  startDate: string;
-  notes: string;
-  potSizeLiters: string;
-  potType: string;
-  substrate: string;
+
+const SISTEMA_REGADO_LABEL: Record<SistemaRegadoTipo, string> = {
+  goteo: "Por goteo",
+  continuo_intermitente: "Riego continuo intermitente",
+  otro: "Otro",
 };
 
-const initialBulkForm: BulkForm = {
-  count: "1",
-  geneticsId: "none",
-  batchId: "",
-  motherPlantId: "none",
-  origin: "esqueje",
-  stage: "vegetativo",
-  status: "normal",
-  startDate: "2026-05-26",
-  notes: "",
-  potSizeLiters: "",
-  potType: "",
-  substrate: "",
+type RiegoForm = {
+  codigoRiego: string;
+  picosPorPlanta: string;
+  horarioApertura: string;
+  cantidadLitros: string;
+  tanque: string;
+  frecuenciaTiempo: string;
+  sistemaRegado: SistemaRegadoTipo;
+  sistemaRegadoCustom: string;
+  notas: string;
 };
+
+function initialRiegoForm(): RiegoForm {
+  return {
+    codigoRiego: "",
+    picosPorPlanta: "",
+    horarioApertura: "",
+    cantidadLitros: "",
+    tanque: "",
+    frecuenciaTiempo: "",
+    sistemaRegado: "goteo" as SistemaRegadoTipo,
+    sistemaRegadoCustom: "",
+    notas: "",
+  };
+}
 
 function shortCode(code: string): string {
   const parts = code.split("-");
@@ -149,9 +163,17 @@ function GrowBedDetailPage() {
   const [mothers, setMothers] = useState<MotherPlant[]>([]);
   const [measurements, setMeasurements] = useState<CultivationMeasurement[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkForm, setBulkForm] = useState<BulkForm>(initialBulkForm);
-  const [bulkError, setBulkError] = useState("");
-  const [bulkMessage, setBulkMessage] = useState("");
+  // ─── Sistema de Riego ────────────────────────────────────────────────────────
+  const [riegos, setRiegos] = useState<SistemaRiego[]>([]);
+  const [riegoForm, setRiegoForm] = useState(initialRiegoForm());
+  const [riegoSaving, setRiegoSaving] = useState(false);
+  const [riegoError, setRiegoError] = useState("");
+  const [editRiego, setEditRiego] = useState<SistemaRiego | null>(null);
+  const [editRiegoForm, setEditRiegoForm] = useState(initialRiegoForm());
+  const [editRiegoSaving, setEditRiegoSaving] = useState(false);
+  const [editRiegoError, setEditRiegoError] = useState("");
+  const [deleteRiegoId, setDeleteRiegoId] = useState<string | null>(null);
+  // ─────────────────────────────────────────────────────────────────────────────
   const [capacityValue, setCapacityValue] = useState("");
   const [capacityError, setCapacityError] = useState("");
   const [detailPlant, setDetailPlant] = useState<Plant | null>(null);
@@ -168,14 +190,16 @@ function GrowBedDetailPage() {
     setOccupancy(nextBed ? await getGrowBedOccupancy(nextBed.id) : null);
     setCapacityValue(nextBed ? String(nextBed.maxPlants) : "");
     setRoom(nextBed ? await getGrowRoomById(nextBed.roomId) : null);
-    const nextGenetics = await getGenetics();
+    const [nextGenetics, nextMothers, nextMeasurements, nextRiegos] = await Promise.all([
+      getGenetics(),
+      getMotherPlants(),
+      nextBed ? getMeasurements({ bedId: nextBed.id }) : Promise.resolve([]),
+      nextBed ? getSistemaRiegoByCamilla(nextBed.id) : Promise.resolve([]),
+    ]);
     setGenetics(nextGenetics);
-    setBulkForm((current) => ({
-      ...current,
-      geneticsId: current.geneticsId === "none" ? nextGenetics[0]?.id ?? "none" : current.geneticsId,
-    }));
-    setMothers(await getMotherPlants());
-    setMeasurements(nextBed ? await getMeasurements({ bedId: nextBed.id }) : []);
+    setMothers(nextMothers);
+    setMeasurements(nextMeasurements);
+    setRiegos(nextRiegos);
   }
 
   useEffect(() => {
@@ -201,59 +225,75 @@ function GrowBedDetailPage() {
   const freePositions = bed ? Math.max(Math.min(bed.maxPlants, 100) - plants.filter((p) => p.status !== "descartada").length, 0) : 0;
   const latestMeasurement = measurements[0];
 
-  async function handleBulkCreate() {
+
+  async function handleRiegoCreate() {
     if (!bed) return;
-    setBulkError("");
-    setBulkMessage("");
-
-    if (bed.status === "fuera_de_uso") {
-      setBulkError("No se puede cargar plantas en una camilla fuera de uso.");
-      return;
+    setRiegoError("");
+    if (!riegoForm.codigoRiego.trim()) { setRiegoError("El código de riego es requerido."); return; }
+    if (!riegoForm.sistemaRegado) { setRiegoError("Seleccioná un sistema de regado."); return; }
+    if (riegoForm.sistemaRegado === "otro" && !riegoForm.sistemaRegadoCustom.trim()) {
+      setRiegoError("Describí el sistema de regado personalizado."); return;
     }
-
-    const count = Number(bulkForm.count);
-    if (!Number.isFinite(count) || count < 1 || count > 100) {
-      setBulkError("La cantidad debe estar entre 1 y 100 plantas.");
-      return;
-    }
-
-    const selectedGenetics = genetics.find((item) => item.id === bulkForm.geneticsId);
-    const selectedMother = mothers.find((item) => item.id === bulkForm.motherPlantId);
-
-    if (!selectedGenetics) {
-      setBulkError("Selecciona una genetica para crear plantas en la camilla.");
-      return;
-    }
-
+    setRiegoSaving(true);
     try {
-      await bulkCreatePlantsForBed({
-        bedId: bed.id,
-        count,
-        plant: {
-          roomId: bed.roomId,
-          batchId: bulkForm.batchId || undefined,
-          cycleId: undefined,
-          geneticsId: selectedGenetics.id,
-          geneticsName: selectedGenetics.name,
-          motherPlantId: selectedMother?.id,
-          motherPlantCode: selectedMother?.code,
-          origin: bulkForm.origin,
-          stage: bulkForm.stage,
-          status: bulkForm.status,
-          startDate: bulkForm.startDate,
-          stageStartDate: bulkForm.startDate,
-          notes: bulkForm.notes || undefined,
-          potSizeLiters: bulkForm.potSizeLiters ? Number(bulkForm.potSizeLiters) : undefined,
-          potType: bulkForm.potType || undefined,
-          substrate: bulkForm.substrate || undefined,
-          internalCodePrefix: `PL-${bed.code}`,
-        },
+      await createSistemaRiego({
+        codigoRiego: riegoForm.codigoRiego.trim(),
+        camillaId: bed.id,
+        picosPorPlanta: riegoForm.picosPorPlanta ? Number(riegoForm.picosPorPlanta) : undefined,
+        horarioApertura: riegoForm.horarioApertura || undefined,
+        cantidadLitros: riegoForm.cantidadLitros ? Number(riegoForm.cantidadLitros) : undefined,
+        tanque: riegoForm.tanque || undefined,
+        frecuenciaTiempo: riegoForm.frecuenciaTiempo || undefined,
+        sistemaRegado: riegoForm.sistemaRegado,
+        sistemaRegadoCustom: riegoForm.sistemaRegado === "otro" ? riegoForm.sistemaRegadoCustom : undefined,
+        notas: riegoForm.notas || undefined,
       });
-      await loadData();
-      setBulkMessage("Carga masiva creada correctamente en posiciones libres.");
-      setBulkOpen(false);
-    } catch (error) {
-      setBulkError(error instanceof Error ? error.message : "No se pudo crear la carga masiva.");
+      setRiegos(await getSistemaRiegoByCamilla(bed.id));
+      setRiegoForm(initialRiegoForm());
+    } catch (err) {
+      setRiegoError(err instanceof Error ? err.message : "No se pudo crear el sistema de riego.");
+    } finally {
+      setRiegoSaving(false);
+    }
+  }
+
+  async function handleRiegoEdit() {
+    if (!editRiego) return;
+    setEditRiegoError("");
+    if (!editRiegoForm.codigoRiego.trim()) { setEditRiegoError("El código de riego es requerido."); return; }
+    if (editRiegoForm.sistemaRegado === "otro" && !editRiegoForm.sistemaRegadoCustom.trim()) {
+      setEditRiegoError("Describí el sistema de regado personalizado."); return;
+    }
+    setEditRiegoSaving(true);
+    try {
+      await updateSistemaRiego(editRiego.id, {
+        codigoRiego: editRiegoForm.codigoRiego.trim(),
+        picosPorPlanta: editRiegoForm.picosPorPlanta ? Number(editRiegoForm.picosPorPlanta) : undefined,
+        horarioApertura: editRiegoForm.horarioApertura || undefined,
+        cantidadLitros: editRiegoForm.cantidadLitros ? Number(editRiegoForm.cantidadLitros) : undefined,
+        tanque: editRiegoForm.tanque || undefined,
+        frecuenciaTiempo: editRiegoForm.frecuenciaTiempo || undefined,
+        sistemaRegado: editRiegoForm.sistemaRegado,
+        sistemaRegadoCustom: editRiegoForm.sistemaRegado === "otro" ? editRiegoForm.sistemaRegadoCustom : undefined,
+        notas: editRiegoForm.notas || undefined,
+      });
+      setRiegos(await getSistemaRiegoByCamilla(bed!.id));
+      setEditRiego(null);
+    } catch (err) {
+      setEditRiegoError(err instanceof Error ? err.message : "No se pudo actualizar.");
+    } finally {
+      setEditRiegoSaving(false);
+    }
+  }
+
+  async function handleRiegoDelete() {
+    if (!deleteRiegoId || !bed) return;
+    try {
+      await deleteSistemaRiego(deleteRiegoId);
+      setRiegos(await getSistemaRiegoByCamilla(bed.id));
+      setDeleteRiegoId(null);
+    } catch (err) {
+      setDeleteRiegoId(null);
     }
   }
 
@@ -352,7 +392,6 @@ function GrowBedDetailPage() {
         </div>
       </div>
 
-      {bulkMessage ? <p className="rounded-md border border-emerald-200 bg-emerald-500/10 p-3 text-sm text-emerald-700">{bulkMessage}</p> : null}
       {deleteMessage ? <RelationshipWarning message={deleteMessage} /> : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
@@ -444,6 +483,193 @@ function GrowBedDetailPage() {
               Registrar medicion
             </Link>
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* ── Sistema de Riego ──────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Droplets className="h-5 w-5" />
+            Sistema de riego
+          </CardTitle>
+          <CardDescription>Configuraciones de riego asociadas a esta camilla.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Formulario de nuevo riego */}
+          <div className="space-y-3">
+            <p className="text-sm font-medium">Nuevo sistema de riego</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-1">
+                <Label>Código de riego *</Label>
+                <Input
+                  placeholder="Ej: RIE-001"
+                  value={riegoForm.codigoRiego}
+                  onChange={(e) => setRiegoForm((f) => ({ ...f, codigoRiego: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Picos por planta</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="Ej: 2"
+                  value={riegoForm.picosPorPlanta}
+                  onChange={(e) => setRiegoForm((f) => ({ ...f, picosPorPlanta: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Horario de apertura</Label>
+                <Input
+                  type="time"
+                  value={riegoForm.horarioApertura}
+                  onChange={(e) => setRiegoForm((f) => ({ ...f, horarioApertura: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Cantidad de litros</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  placeholder="Ej: 1.5"
+                  value={riegoForm.cantidadLitros}
+                  onChange={(e) => setRiegoForm((f) => ({ ...f, cantidadLitros: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Tanque</Label>
+                <Input
+                  placeholder="Nombre o código del tanque"
+                  value={riegoForm.tanque}
+                  onChange={(e) => setRiegoForm((f) => ({ ...f, tanque: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Frecuencia de tiempo</Label>
+                <Input
+                  placeholder="Ej: cada 6 hs"
+                  value={riegoForm.frecuenciaTiempo}
+                  onChange={(e) => setRiegoForm((f) => ({ ...f, frecuenciaTiempo: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Sistema de regado *</Label>
+                <Select
+                  value={riegoForm.sistemaRegado}
+                  onValueChange={(v) => setRiegoForm((f) => ({ ...f, sistemaRegado: v as SistemaRegadoTipo, sistemaRegadoCustom: "" }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="goteo">Por goteo</SelectItem>
+                    <SelectItem value="continuo_intermitente">Riego continuo intermitente</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {riegoForm.sistemaRegado === "otro" ? (
+                <div className="space-y-1">
+                  <Label>Descripción del sistema *</Label>
+                  <Input
+                    placeholder="Describí el sistema"
+                    value={riegoForm.sistemaRegadoCustom}
+                    onChange={(e) => setRiegoForm((f) => ({ ...f, sistemaRegadoCustom: e.target.value }))}
+                  />
+                </div>
+              ) : null}
+              <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+                <Label>Notas</Label>
+                <Textarea
+                  placeholder="Observaciones adicionales"
+                  value={riegoForm.notas}
+                  onChange={(e) => setRiegoForm((f) => ({ ...f, notas: e.target.value }))}
+                />
+              </div>
+            </div>
+            {riegoError ? (
+              <p className="rounded-md border border-red-200 bg-red-500/10 p-3 text-sm text-red-700">{riegoError}</p>
+            ) : null}
+            <Button onClick={() => void handleRiegoCreate()} disabled={riegoSaving} className="gap-2">
+              <Plus className="h-4 w-4" />
+              {riegoSaving ? "Guardando…" : "Agregar sistema de riego"}
+            </Button>
+          </div>
+
+          {/* Tabla */}
+          {riegos.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Picos/planta</TableHead>
+                    <TableHead>Horario apertura</TableHead>
+                    <TableHead>Litros</TableHead>
+                    <TableHead>Tanque</TableHead>
+                    <TableHead>Frecuencia</TableHead>
+                    <TableHead>Sistema</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {riegos.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-mono text-sm font-medium">{r.codigoRiego}</TableCell>
+                      <TableCell>{r.picosPorPlanta ?? "—"}</TableCell>
+                      <TableCell>{r.horarioApertura ?? "—"}</TableCell>
+                      <TableCell>{r.cantidadLitros != null ? `${r.cantidadLitros} L` : "—"}</TableCell>
+                      <TableCell>{r.tanque ?? "—"}</TableCell>
+                      <TableCell>{r.frecuenciaTiempo ?? "—"}</TableCell>
+                      <TableCell>
+                        {r.sistemaRegado === "otro"
+                          ? r.sistemaRegadoCustom ?? "Otro"
+                          : SISTEMA_REGADO_LABEL[r.sistemaRegado]}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditRiegoForm({
+                                  codigoRiego: r.codigoRiego,
+                                  picosPorPlanta: r.picosPorPlanta != null ? String(r.picosPorPlanta) : "",
+                                  horarioApertura: r.horarioApertura ?? "",
+                                  cantidadLitros: r.cantidadLitros != null ? String(r.cantidadLitros) : "",
+                                  tanque: r.tanque ?? "",
+                                  frecuenciaTiempo: r.frecuenciaTiempo ?? "",
+                                  sistemaRegado: r.sistemaRegado,
+                                  sistemaRegadoCustom: r.sistemaRegadoCustom ?? "",
+                                  notas: r.notas ?? "",
+                                });
+                                setEditRiego(r);
+                              }}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600 focus:text-red-600"
+                              onClick={() => setDeleteRiegoId(r.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No hay sistemas de riego registrados para esta camilla.</p>
+          )}
         </CardContent>
       </Card>
 
@@ -643,110 +869,132 @@ function GrowBedDetailPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+      {/* Dialog Editar Riego */}
+      <Dialog open={Boolean(editRiego)} onOpenChange={(open) => { if (!open) setEditRiego(null); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Carga masiva de plantas</DialogTitle>
-            <DialogDescription>Crea plantas en posiciones libres sin superar la capacidad disponible.</DialogDescription>
+            <DialogTitle>Editar sistema de riego</DialogTitle>
+            <DialogDescription>Modificá los datos del sistema de riego.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Cantidad</Label>
-              <Input type="number" min={1} max={100} value={bulkForm.count} onChange={(e) => setBulkForm({ ...bulkForm, count: e.target.value })} />
+          {editRiego ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label>Código de riego *</Label>
+                <Input
+                  value={editRiegoForm.codigoRiego}
+                  onChange={(e) => setEditRiegoForm((f) => ({ ...f, codigoRiego: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Picos por planta</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={editRiegoForm.picosPorPlanta}
+                  onChange={(e) => setEditRiegoForm((f) => ({ ...f, picosPorPlanta: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Horario de apertura</Label>
+                <Input
+                  type="time"
+                  value={editRiegoForm.horarioApertura}
+                  onChange={(e) => setEditRiegoForm((f) => ({ ...f, horarioApertura: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Cantidad de litros</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  value={editRiegoForm.cantidadLitros}
+                  onChange={(e) => setEditRiegoForm((f) => ({ ...f, cantidadLitros: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Tanque</Label>
+                <Input
+                  value={editRiegoForm.tanque}
+                  onChange={(e) => setEditRiegoForm((f) => ({ ...f, tanque: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Frecuencia de tiempo</Label>
+                <Input
+                  value={editRiegoForm.frecuenciaTiempo}
+                  onChange={(e) => setEditRiegoForm((f) => ({ ...f, frecuenciaTiempo: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Sistema de regado *</Label>
+                <Select
+                  value={editRiegoForm.sistemaRegado}
+                  onValueChange={(v) => setEditRiegoForm((f) => ({ ...f, sistemaRegado: v as SistemaRegadoTipo, sistemaRegadoCustom: "" }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="goteo">Por goteo</SelectItem>
+                    <SelectItem value="continuo_intermitente">Riego continuo intermitente</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {editRiegoForm.sistemaRegado === "otro" ? (
+                <div className="space-y-1">
+                  <Label>Descripción del sistema *</Label>
+                  <Input
+                    value={editRiegoForm.sistemaRegadoCustom}
+                    onChange={(e) => setEditRiegoForm((f) => ({ ...f, sistemaRegadoCustom: e.target.value }))}
+                  />
+                </div>
+              ) : null}
+              <div className="space-y-1 sm:col-span-2">
+                <Label>Notas</Label>
+                <Textarea
+                  value={editRiegoForm.notas}
+                  onChange={(e) => setEditRiegoForm((f) => ({ ...f, notas: e.target.value }))}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Genetica</Label>
-              <Select value={bulkForm.geneticsId} onValueChange={(geneticsId) => setBulkForm({ ...bulkForm, geneticsId })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Genetica pendiente</SelectItem>
-                  {genetics.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Lote</Label>
-              <Input value={bulkForm.batchId} onChange={(e) => setBulkForm({ ...bulkForm, batchId: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Madre de origen</Label>
-              <Select value={bulkForm.motherPlantId} onValueChange={(motherPlantId) => setBulkForm({ ...bulkForm, motherPlantId })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin madre</SelectItem>
-                  {mothers.map((item) => <SelectItem key={item.id} value={item.id}>{item.code}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Origen</Label>
-              <Select value={bulkForm.origin} onValueChange={(origin) => setBulkForm({ ...bulkForm, origin: origin as PlantOrigin })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="semilla">Semilla</SelectItem>
-                  <SelectItem value="esqueje">Esqueje</SelectItem>
-                  <SelectItem value="madre">Madre</SelectItem>
-                  <SelectItem value="planta">Planta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Etapa</Label>
-              <Select value={bulkForm.stage} onValueChange={(stage) => setBulkForm({ ...bulkForm, stage: stage as PlantStage })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vegetativo">Vegetativo</SelectItem>
-                  <SelectItem value="floracion">Floracion</SelectItem>
-                  <SelectItem value="cosecha">Cosecha</SelectItem>
-                  <SelectItem value="secado">Secado</SelectItem>
-                  <SelectItem value="curado">Curado</SelectItem>
-                  <SelectItem value="liberado">Liberado</SelectItem>
-                  <SelectItem value="a_limpiar">A Limpiar</SelectItem>
-                  <SelectItem value="a_reparar">A Reparar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Estado</Label>
-              <Select value={bulkForm.status} onValueChange={(status) => setBulkForm({ ...bulkForm, status: status as PlantStatus })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="observacion">Observacion</SelectItem>
-                  <SelectItem value="alerta">Alerta</SelectItem>
-                  <SelectItem value="descartada">Descartada</SelectItem>
-                  <SelectItem value="cosechada">Cosechada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Fecha de inicio</Label>
-              <DateInput value={bulkForm.startDate} onChange={(v) => setBulkForm({ ...bulkForm, startDate: v })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Tamano maceta L</Label>
-              <Input type="number" min={0} value={bulkForm.potSizeLiters} onChange={(e) => setBulkForm({ ...bulkForm, potSizeLiters: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Tipo de maceta</Label>
-              <Input value={bulkForm.potType} onChange={(e) => setBulkForm({ ...bulkForm, potType: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Sustrato</Label>
-              <Input value={bulkForm.substrate} onChange={(e) => setBulkForm({ ...bulkForm, substrate: e.target.value })} />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Observaciones</Label>
-              <Textarea value={bulkForm.notes} onChange={(e) => setBulkForm({ ...bulkForm, notes: e.target.value })} />
-            </div>
-          </div>
-          {bulkError ? <p className="rounded-md border border-red-200 bg-red-500/10 p-3 text-sm text-red-700">{bulkError}</p> : null}
-          <Button onClick={handleBulkCreate} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Crear plantas
-          </Button>
+          ) : null}
+          {editRiegoError ? (
+            <p className="rounded-md border border-red-200 bg-red-500/10 p-3 text-sm text-red-700">{editRiegoError}</p>
+          ) : null}
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" onClick={() => setEditRiego(null)}>Cancelar</Button>
+            <Button onClick={() => void handleRiegoEdit()} disabled={editRiegoSaving}>
+              {editRiegoSaving ? "Guardando…" : "Guardar cambios"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog Confirmar Eliminar Riego */}
+      <Dialog open={Boolean(deleteRiegoId)} onOpenChange={(open) => { if (!open) setDeleteRiegoId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar sistema de riego</DialogTitle>
+            <DialogDescription>
+              Esta acción no se puede deshacer. ¿Confirmás la eliminación?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteRiegoId(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => void handleRiegoDelete()}>Eliminar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <BulkCreatePlantsDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        beds={bed ? [bed] : []}
+        genetics={genetics}
+        mothers={mothers}
+        defaultBedId={bed?.id}
+        onSuccess={() => void loadData()}
+      />
 
       <DeleteConfirmDialog
         open={deleteOpen}

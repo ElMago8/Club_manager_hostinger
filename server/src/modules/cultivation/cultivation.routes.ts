@@ -422,33 +422,50 @@ function plantaRoutes() {
 
       if (freePositions.length < body.count) throw new ApiError(400, "No hay posiciones libres suficientes en la camilla.");
 
-      const created = [];
-      for (let index = 0; index < body.count; index += 1) {
-        const position = freePositions[index];
-        const sequence = String(position).padStart(3, "0");
-        const codigoPlanta = `${body.internalCodePrefix}-${sequence}`;
-        created.push(await prisma.planta.create({
-          data: {
-            codigoPlanta,
-            nombrePlanta: codigoPlanta,
-            camillaId: body.bedId,
-            posicionCamilla: position,
-            loteCultivoId: body.batchId,
-            geneticaId: body.geneticsId,
-            madreId: body.motherPlantId,
-            origen: body.origin,
-            etapa: body.stage,
-            estado: body.status,
-            fechaInicio: body.startDate,
-            fechaInicioEtapa: body.stageStartDate,
-            macetaLitros: body.potSizeLiters,
-            tipoMaceta: body.potType ?? undefined,
-            sustrato: body.substrate ?? undefined,
-            observaciones: body.notes ?? undefined,
-          },
-          include,
-        }));
-      }
+      const created = await prisma.$transaction(async (tx) => {
+        // Determinar el próximo número secuencial global para el prefijo
+        const codigosExistentes = await tx.planta.findMany({
+          where: { codigoPlanta: { startsWith: `${body.internalCodePrefix}-` } },
+          select: { codigoPlanta: true },
+        });
+        let maxSeq = 0;
+        for (const { codigoPlanta: code } of codigosExistentes) {
+          const match = code.match(/-(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxSeq) maxSeq = num;
+          }
+        }
+
+        const plants = [];
+        for (let index = 0; index < body.count; index += 1) {
+          const position = freePositions[index];
+          const sequence = String(maxSeq + index + 1).padStart(4, "0");
+          const codigoPlanta = `${body.internalCodePrefix}-${sequence}`;
+          plants.push(await tx.planta.create({
+            data: {
+              codigoPlanta,
+              nombrePlanta: codigoPlanta,
+              camillaId: body.bedId,
+              posicionCamilla: position,
+              loteCultivoId: body.batchId,
+              geneticaId: body.geneticsId,
+              madreId: body.motherPlantId,
+              origen: body.origin,
+              etapa: body.stage,
+              estado: body.status,
+              fechaInicio: body.startDate,
+              fechaInicioEtapa: body.stageStartDate,
+              macetaLitros: body.potSizeLiters,
+              tipoMaceta: body.potType ?? undefined,
+              sustrato: body.substrate ?? undefined,
+              observaciones: body.notes ?? undefined,
+            },
+            include,
+          }));
+        }
+        return plants;
+      });
 
       res.status(201).json(created);
     } catch (error) {
@@ -1132,6 +1149,106 @@ function clonadorRoutes() {
     } catch (error) { next(error); }
   });
 
+  router.post("/:id/bulk", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const clonadorId = parseId(req);
+      console.log("[bulk clonador] clonadorId:", clonadorId, "body:", JSON.stringify(req.body));
+      const body = z.object({
+        count: z.coerce.number().int().min(1).max(60),
+        internalCodePrefix: z.string().trim().min(1).default("ESQ"),
+        geneticsId: intId,
+        motherPlantId: intId.optional(),
+        batchId: intId.optional(),
+        origin: z.string().trim().min(1).default("esqueje"),
+        stage: z.string().trim().min(1).default("vegetativo"),
+        status: z.string().trim().min(1).default("normal"),
+        startDate: z.coerce.date(),
+        notes: nullableText,
+      }).parse(req.body);
+
+      const [clonador, genetica] = await Promise.all([
+        prisma.clonador.findUnique({ where: { id: clonadorId } }),
+        prisma.genetica.findUnique({ where: { id: body.geneticsId }, select: { id: true } }),
+      ]);
+      if (!clonador) throw new ApiError(404, "Clonador no encontrado.");
+      if (!genetica) throw new ApiError(400, `Genética con ID ${body.geneticsId} no existe. Verificá que esté guardada en la base de datos.`);
+
+      if (body.motherPlantId) {
+        const madre = await prisma.madre.findUnique({ where: { id: body.motherPlantId }, select: { id: true } });
+        if (!madre) throw new ApiError(400, `Madre con ID ${body.motherPlantId} no existe.`);
+      }
+      if (body.batchId) {
+        const lote = await prisma.loteCultivo.findUnique({ where: { id: body.batchId }, select: { id: true } });
+        if (!lote) throw new ApiError(400, `Lote con ID ${body.batchId} no existe.`);
+      }
+
+      const activeCount = await prisma.planta.count({
+        where: { clonadorId, estado: { notIn: ["descartada", "discarded"] } },
+      });
+      if (activeCount + body.count > clonador.capacidadMaximaEsquejes) {
+        throw new ApiError(400, `No hay capacidad disponible en el clonador. Libres: ${Math.max(clonador.capacidadMaximaEsquejes - activeCount, 0)}.`);
+      }
+
+      const occupiedPositions = await prisma.planta.findMany({
+        where: { clonadorId, estado: { notIn: ["descartada", "discarded"] } },
+        select: { posicionClonador: true },
+      });
+      const occupiedSet = new Set(occupiedPositions.map((p) => p.posicionClonador).filter(Boolean) as number[]);
+      const freePositions = Array.from(
+        { length: Math.min(clonador.capacidadMaximaEsquejes, 60) },
+        (_, i) => i + 1,
+      ).filter((pos) => !occupiedSet.has(pos));
+
+      if (freePositions.length < body.count) {
+        throw new ApiError(400, "No hay posiciones libres suficientes en el clonador.");
+      }
+
+      const plantInclude = { genetica: true, madre: true, clonador: true };
+
+      const created = await prisma.$transaction(async (tx) => {
+        const existing = await tx.planta.findMany({
+          where: { codigoPlanta: { startsWith: `${body.internalCodePrefix}-` } },
+          select: { codigoPlanta: true },
+        });
+        let maxSeq = 0;
+        for (const { codigoPlanta: code } of existing) {
+          const match = code.match(/-(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxSeq) maxSeq = num;
+          }
+        }
+
+        const plants = [];
+        for (let i = 0; i < body.count; i += 1) {
+          const position = freePositions[i];
+          const sequence = String(maxSeq + i + 1).padStart(4, "0");
+          const codigoPlanta = `${body.internalCodePrefix}-${sequence}`;
+          plants.push(await tx.planta.create({
+            data: {
+              codigoPlanta,
+              nombrePlanta: codigoPlanta,
+              clonadorId,
+              posicionClonador: position,
+              geneticaId: body.geneticsId,
+              madreId: body.motherPlantId,
+              loteCultivoId: body.batchId,
+              origen: body.origin,
+              etapa: body.stage,
+              estado: body.status,
+              fechaInicio: body.startDate,
+              observaciones: body.notes ?? undefined,
+            },
+            include: plantInclude,
+          }));
+        }
+        return plants;
+      });
+
+      res.status(201).json(created);
+    } catch (error) { next(error); }
+  });
+
   router.post("/:id/send-to-camilla", async (req: Request, res: Response, next: NextFunction) => {
     try {
       const clonadorId = parseId(req);
@@ -1179,6 +1296,71 @@ function clonadorRoutes() {
   return router;
 }
 
+const sistemaRiegoSchema = z.object({
+  codigoRiego: z.string().trim().min(1),
+  camillaId: intId,
+  picosPorPlanta: z.coerce.number().min(0).optional(),
+  horarioApertura: optionalText,
+  cantidadLitros: z.coerce.number().min(0).optional(),
+  tanque: optionalText,
+  frecuenciaTiempo: optionalText,
+  sistemaRegado: z.enum(["goteo", "continuo_intermitente", "otro"]),
+  sistemaRegadoCustom: optionalText,
+  notas: optionalText,
+});
+
+function sistemaRiegoRoutes() {
+  const router = Router();
+  const include = { camilla: { select: { nombre: true, codigoCamilla: true } } };
+
+  router.get("/", async (req, res, next) => {
+    try {
+      const camillaId = req.query.camillaId ? intId.parse(req.query.camillaId) : undefined;
+      res.json(
+        await prisma.sistemaRiego.findMany({
+          where: camillaId ? { camillaId } : undefined,
+          include,
+          orderBy: { id: "desc" },
+        }),
+      );
+    } catch (error) { next(error); }
+  });
+
+  router.post("/", async (req, res, next) => {
+    try {
+      res.status(201).json(await prisma.sistemaRiego.create({ data: sistemaRiegoSchema.parse(req.body), include }));
+    } catch (error) { next(error); }
+  });
+
+  router.get("/:id", async (req, res, next) => {
+    try {
+      const record = await prisma.sistemaRiego.findUnique({ where: { id: parseId(req) }, include });
+      if (!record) throw new ApiError(404, "Sistema de riego no encontrado.");
+      res.json(record);
+    } catch (error) { next(error); }
+  });
+
+  router.put("/:id", async (req, res, next) => {
+    try {
+      res.json(
+        await prisma.sistemaRiego.update({
+          where: { id: parseId(req) },
+          data: sistemaRiegoSchema.partial().parse(req.body),
+          include,
+        }),
+      );
+    } catch (error) { next(error); }
+  });
+
+  router.delete("/:id", async (req, res, next) => {
+    try {
+      res.json(await prisma.sistemaRiego.delete({ where: { id: parseId(req) } }));
+    } catch (error) { next(error); }
+  });
+
+  return router;
+}
+
 export const cultivationRoutes = Router();
 
 cultivationRoutes.use("/rooms", salaRoutes());
@@ -1207,3 +1389,4 @@ cultivationRoutes.use("/tasks", crudRoutes(prisma.tareaCultivo, tareaCultivoSche
 cultivationRoutes.use("/operational-tasks", crudRoutes(prisma.tareaCultivo, tareaCultivoSchema));
 cultivationRoutes.use("/harvests", cosechaRoutes());
 cultivationRoutes.use("/clonadores", clonadorRoutes());
+cultivationRoutes.use("/irrigation-systems", sistemaRiegoRoutes());

@@ -4,6 +4,8 @@ import {
   AlertTriangle,
   BarChart3,
   BoxIcon,
+  ClipboardList,
+  FlaskConical,
   Layers,
   MoreVertical,
   Package,
@@ -221,7 +223,7 @@ function KpiCards({ summary }: { summary: ProductBatchSummary | null }) {
   );
 }
 
-// ─── Tab Productos ────────────────────────────────────────────────────────────
+// ─── Tab Productos / Insumos / Inventario (componente genérico) ───────────────
 
 type ProductoForm = {
   codigoProducto: string;
@@ -235,46 +237,81 @@ type ProductoForm = {
   estado: "activo" | "inactivo";
 };
 
-const EMPTY_PRODUCTO_FORM: ProductoForm = {
-  codigoProducto: "",
-  nombre: "",
-  tipoProducto: "flor",
-  unidadMedida: "gramos",
-  categoriaProductoId: "",
-  descripcion: "",
-  requiereLote: true,
-  requiereTrazabilidad: true,
-  estado: "activo",
-};
+interface TabProductosConfig {
+  /** Tipos que se muestran y se pueden crear en esta pestaña. */
+  tiposPermitidos: TipoProducto[];
+  tipoDefault: TipoProducto;
+  codigoPrefix: string;
+  /** Texto del botón "Nuevo …" */
+  labelNuevo: string;
+  /** Nombre singular de la entidad para mensajes ("producto", "insumo", "artículo") */
+  labelEntidad: string;
+  /** Mostrar selector de tipo en el formulario (falso cuando hay un solo tipo fijo) */
+  mostrarSelectorTipo?: boolean;
+  /** Mostrar checkboxes de trazabilidad */
+  mostrarTrazabilidad?: boolean;
+  requiereLoteDefault?: boolean;
+  requiereTrazabilidadDefault?: boolean;
+  unidadDefault?: UnidadMedida;
+}
 
 function TabProductos({
   productos,
   categorias,
   onRefresh,
+  config,
 }: {
   productos: Producto[];
   categorias: CategoriaProducto[];
   onRefresh: () => void;
+  config: TabProductosConfig;
 }) {
+  const {
+    tiposPermitidos,
+    tipoDefault,
+    codigoPrefix,
+    labelNuevo,
+    labelEntidad,
+    mostrarSelectorTipo = true,
+    mostrarTrazabilidad = true,
+    requiereLoteDefault = false,
+    requiereTrazabilidadDefault = false,
+    unidadDefault = "gramos",
+  } = config;
+
+  const emptyForm: ProductoForm = {
+    codigoProducto: "",
+    nombre: "",
+    tipoProducto: tipoDefault,
+    unidadMedida: unidadDefault,
+    categoriaProductoId: "",
+    descripcion: "",
+    requiereLote: requiereLoteDefault,
+    requiereTrazabilidad: requiereTrazabilidadDefault,
+    estado: "activo",
+  };
+
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Producto | null>(null);
-  const [form, setForm] = useState<ProductoForm>(EMPTY_PRODUCTO_FORM);
+  const [form, setForm] = useState<ProductoForm>(emptyForm);
   const [saving, setSaving] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return productos.filter(
-      (p) =>
-        p.nombre.toLowerCase().includes(q) ||
-        p.codigoProducto.toLowerCase().includes(q) ||
-        (p.categoria?.nombre.toLowerCase().includes(q) ?? false),
-    );
-  }, [productos, search]);
+    return productos
+      .filter((p) => tiposPermitidos.includes(p.tipoProducto))
+      .filter(
+        (p) =>
+          p.nombre.toLowerCase().includes(q) ||
+          p.codigoProducto.toLowerCase().includes(q) ||
+          (p.categoria?.nombre.toLowerCase().includes(q) ?? false),
+      );
+  }, [productos, search, tiposPermitidos]);
 
   function openCreate() {
     setEditTarget(null);
-    setForm({ ...EMPTY_PRODUCTO_FORM, codigoProducto: generateCodigo("PROD") });
+    setForm({ ...emptyForm, codigoProducto: generateCodigo(codigoPrefix) });
     setDialogOpen(true);
   }
 
@@ -308,21 +345,21 @@ function TabProductos({
         unidadMedida: form.unidadMedida,
         categoriaProductoId: form.categoriaProductoId ? Number(form.categoriaProductoId) : null,
         descripcion: form.descripcion || null,
-        requiereLote: form.requiereLote,
-        requiereTrazabilidad: form.requiereTrazabilidad,
+        requiereLote: mostrarTrazabilidad ? form.requiereLote : false,
+        requiereTrazabilidad: mostrarTrazabilidad ? form.requiereTrazabilidad : false,
         estado: form.estado,
       };
       if (editTarget) {
         await updateProducto(editTarget.id, payload);
-        toast.success("Producto actualizado");
+        toast.success(`${labelEntidad.charAt(0).toUpperCase() + labelEntidad.slice(1)} actualizado`);
       } else {
         await createProducto(payload);
-        toast.success("Producto creado");
+        toast.success(`${labelEntidad.charAt(0).toUpperCase() + labelEntidad.slice(1)} creado`);
       }
       setDialogOpen(false);
       onRefresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "No se pudo guardar el producto.");
+      toast.error(e instanceof Error ? e.message : `No se pudo guardar el ${labelEntidad}.`);
     } finally {
       setSaving(false);
     }
@@ -334,9 +371,11 @@ function TabProductos({
       toast.success(`${p.nombre} ${p.estado === "activo" ? "inactivado" : "eliminado"}`);
       onRefresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "No se pudo inactivar el producto.");
+      toast.error(e instanceof Error ? e.message : `No se pudo inactivar el ${labelEntidad}.`);
     }
   }
+
+  const colSpan = mostrarSelectorTipo ? 7 : 6;
 
   return (
     <div className="space-y-4">
@@ -344,7 +383,7 @@ function TabProductos({
         <div className="relative max-w-xs flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar productos…"
+            placeholder={`Buscar ${labelEntidad}s…`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8"
@@ -352,7 +391,7 @@ function TabProductos({
         </div>
         <Button onClick={openCreate} className="gap-1.5">
           <Plus className="h-4 w-4" />
-          Nuevo producto
+          {labelNuevo}
         </Button>
       </div>
 
@@ -362,7 +401,7 @@ function TabProductos({
             <TableRow>
               <TableHead>Código</TableHead>
               <TableHead>Nombre</TableHead>
-              <TableHead>Tipo</TableHead>
+              {mostrarSelectorTipo && <TableHead>Tipo</TableHead>}
               <TableHead>Unidad</TableHead>
               <TableHead>Categoría</TableHead>
               <TableHead>Estado</TableHead>
@@ -372,8 +411,8 @@ function TabProductos({
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                  No hay productos{search ? " que coincidan con la búsqueda" : " registrados"}.
+                <TableCell colSpan={colSpan} className="py-12 text-center text-muted-foreground">
+                  No hay {labelEntidad}s{search ? " que coincidan con la búsqueda" : " registrados"}.
                 </TableCell>
               </TableRow>
             ) : (
@@ -381,7 +420,7 @@ function TabProductos({
                 <TableRow key={p.id}>
                   <TableCell className="font-mono text-xs text-muted-foreground">{p.codigoProducto}</TableCell>
                   <TableCell className="font-medium">{p.nombre}</TableCell>
-                  <TableCell>{TIPO_LABEL[p.tipoProducto]}</TableCell>
+                  {mostrarSelectorTipo && <TableCell>{TIPO_LABEL[p.tipoProducto]}</TableCell>}
                   <TableCell className="capitalize">{p.unidadMedida}</TableCell>
                   <TableCell>{p.categoria?.nombre ?? "—"}</TableCell>
                   <TableCell>
@@ -429,7 +468,11 @@ function TabProductos({
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editTarget ? "Editar producto" : "Nuevo producto"}</DialogTitle>
+            <DialogTitle>
+              {editTarget
+                ? `Editar ${labelEntidad}`
+                : labelNuevo}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid grid-cols-2 gap-3">
@@ -450,20 +493,22 @@ function TabProductos({
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Tipo</Label>
-                <Select
-                  value={form.tipoProducto}
-                  onValueChange={(v) => setForm((f) => ({ ...f, tipoProducto: v as TipoProducto }))}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(TIPO_LABEL) as TipoProducto[]).map((t) => (
-                      <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {mostrarSelectorTipo && (
+                <div className="space-y-1">
+                  <Label>Tipo</Label>
+                  <Select
+                    value={form.tipoProducto}
+                    onValueChange={(v) => setForm((f) => ({ ...f, tipoProducto: v as TipoProducto }))}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {tiposPermitidos.map((t) => (
+                        <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-1">
                 <Label>Unidad de medida</Label>
                 <Select
@@ -517,31 +562,33 @@ function TabProductos({
                 rows={2}
               />
             </div>
-            <div className="flex gap-4 text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.requiereLote}
-                  onChange={(e) => setForm((f) => ({ ...f, requiereLote: e.target.checked }))}
-                  className="rounded"
-                />
-                Requiere lote
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.requiereTrazabilidad}
-                  onChange={(e) => setForm((f) => ({ ...f, requiereTrazabilidad: e.target.checked }))}
-                  className="rounded"
-                />
-                Requiere trazabilidad
-              </label>
-            </div>
+            {mostrarTrazabilidad && (
+              <div className="flex gap-4 text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.requiereLote}
+                    onChange={(e) => setForm((f) => ({ ...f, requiereLote: e.target.checked }))}
+                    className="rounded"
+                  />
+                  Requiere lote
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.requiereTrazabilidad}
+                    onChange={(e) => setForm((f) => ({ ...f, requiereTrazabilidad: e.target.checked }))}
+                    className="rounded"
+                  />
+                  Requiere trazabilidad
+                </label>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Guardando…" : editTarget ? "Guardar cambios" : "Crear producto"}
+              {saving ? "Guardando…" : editTarget ? "Guardar cambios" : labelNuevo}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1214,6 +1261,14 @@ function CatalogPage() {
             <Package className="h-4 w-4" />
             Productos
           </TabsTrigger>
+          <TabsTrigger value="insumos" className="gap-2">
+            <FlaskConical className="h-4 w-4" />
+            Insumos
+          </TabsTrigger>
+          <TabsTrigger value="inventario" className="gap-2">
+            <ClipboardList className="h-4 w-4" />
+            Inventario
+          </TabsTrigger>
           <TabsTrigger value="lotes" className="gap-2">
             <BoxIcon className="h-4 w-4" />
             Lotes
@@ -1225,7 +1280,63 @@ function CatalogPage() {
         </TabsList>
 
         <TabsContent value="productos">
-          <TabProductos productos={productos} categorias={categorias} onRefresh={loadAll} />
+          <TabProductos
+            productos={productos}
+            categorias={categorias}
+            onRefresh={loadAll}
+            config={{
+              tiposPermitidos: ["flor", "aceite", "extracto", "comestible"],
+              tipoDefault: "flor",
+              codigoPrefix: "PROD",
+              labelNuevo: "Nuevo producto",
+              labelEntidad: "producto",
+              mostrarSelectorTipo: true,
+              mostrarTrazabilidad: true,
+              requiereLoteDefault: true,
+              requiereTrazabilidadDefault: true,
+              unidadDefault: "gramos",
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="insumos">
+          <TabProductos
+            productos={productos}
+            categorias={categorias}
+            onRefresh={loadAll}
+            config={{
+              tiposPermitidos: ["insumo"],
+              tipoDefault: "insumo",
+              codigoPrefix: "INS",
+              labelNuevo: "Nuevo insumo",
+              labelEntidad: "insumo",
+              mostrarSelectorTipo: false,
+              mostrarTrazabilidad: true,
+              requiereLoteDefault: false,
+              requiereTrazabilidadDefault: false,
+              unidadDefault: "unidades",
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="inventario">
+          <TabProductos
+            productos={productos}
+            categorias={categorias}
+            onRefresh={loadAll}
+            config={{
+              tiposPermitidos: ["otro"],
+              tipoDefault: "otro",
+              codigoPrefix: "INV",
+              labelNuevo: "Nuevo artículo",
+              labelEntidad: "artículo",
+              mostrarSelectorTipo: false,
+              mostrarTrazabilidad: false,
+              requiereLoteDefault: false,
+              requiereTrazabilidadDefault: false,
+              unidadDefault: "unidades",
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="lotes">

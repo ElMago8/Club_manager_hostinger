@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, FlaskConical, Pencil, SendHorizonal, Timer, TimerOff, Trash2 } from "lucide-react";
+import { ArrowLeft, FlaskConical, Pencil, Plus, SendHorizonal, Timer, TimerOff, Trash2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
 import { RelationshipWarning } from "@/components/cultivation/RelationshipWarning";
+import { BulkCreateClonadorDialog } from "@/components/cultivation/BulkCreateClonadorDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,11 +20,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getCamillasOnly, deleteClonador, getClonadorById, getClonadorOccupancy, updateClonadorCapacity, sendToGrowBed, type GrowBedOccupancy } from "@/services/growBedService";
 import { getMeasurements } from "@/services/measurementService";
 import { getGrowRoomById } from "@/services/growRoomService";
+import { getGenetics } from "@/services/geneticsService";
+import { getMotherPlants } from "@/services/motherPlantService";
 import { apiRequest } from "@/services/cultivationApi";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { getPlantsByBed } from "@/services/plantService";
-import type { BedStatus, CultivationMeasurement, GrowBed, GrowRoom, MeasurementStatus, Plant, PlantStage } from "@/types/cultivation";
+import { getPlants } from "@/services/plantService";
+import type { BedStatus, CultivationMeasurement, Genetics, GrowBed, GrowRoom, MeasurementStatus, MotherPlant, Plant, PlantOrigin, PlantStage, PlantStatus } from "@/types/cultivation";
 
 export const Route = createFileRoute("/app/cultivo/clonador/$id")({
   head: () => ({ meta: [{ title: "Detalle de clonador · Cannabis Club Manager" }] }),
@@ -45,16 +48,55 @@ const PARAM_STATUS_CLASS: Record<MeasurementStatus, string> = {
   critical: "border-red-200 bg-red-500/10 text-red-700",
 };
 
-const STAGE_COLOR: Record<PlantStage, string> = {
-  vegetativo: "bg-emerald-500/15 border-emerald-300 text-emerald-800",
-  floracion: "bg-fuchsia-500/15 border-fuchsia-300 text-fuchsia-800",
-  cosecha: "bg-amber-500/15 border-amber-300 text-amber-900",
-  secado: "bg-orange-500/15 border-orange-300 text-orange-900",
-  curado: "bg-violet-500/15 border-violet-300 text-violet-800",
-  liberado: "bg-sky-500/15 border-sky-300 text-sky-800",
-  a_limpiar: "bg-teal-500/15 border-teal-300 text-teal-800",
-  a_reparar: "bg-rose-500/15 border-rose-300 text-rose-800",
+const PLANT_STAGE_CLASS: Record<PlantStage, string> = {
+  vegetativo: "border-emerald-200 bg-emerald-500/15 text-emerald-800 hover:bg-emerald-500/20",
+  floracion: "border-fuchsia-200 bg-fuchsia-500/15 text-fuchsia-800 hover:bg-fuchsia-500/20",
+  cosecha: "border-amber-200 bg-amber-500/20 text-amber-900 hover:bg-amber-500/25",
+  secado: "border-orange-200 bg-orange-500/20 text-orange-900 hover:bg-orange-500/25",
+  curado: "border-violet-200 bg-violet-500/15 text-violet-800 hover:bg-violet-500/20",
+  liberado: "border-sky-200 bg-sky-500/15 text-sky-800 hover:bg-sky-500/20",
+  a_limpiar: "border-teal-200 bg-teal-500/15 text-teal-800 hover:bg-teal-500/20",
+  a_reparar: "border-rose-200 bg-rose-500/15 text-rose-800 hover:bg-rose-500/20",
 };
+
+const PLANT_STATUS_CLASS: Record<PlantStatus, string> = {
+  normal: "border-emerald-200 bg-emerald-500/10 text-emerald-700",
+  observacion: "border-sky-200 bg-sky-500/10 text-sky-700",
+  alerta: "border-amber-200 bg-amber-500/10 text-amber-700",
+  descartada: "border-muted bg-muted text-muted-foreground",
+  cosechada: "border-violet-200 bg-violet-500/10 text-violet-700",
+};
+
+const STAGE_LABEL: Record<PlantStage, string> = {
+  vegetativo: "Vegetativo",
+  floracion: "Floracion",
+  cosecha: "Cosecha",
+  secado: "Secado",
+  curado: "Curado",
+  liberado: "Liberado",
+  a_limpiar: "A Limpiar",
+  a_reparar: "A Reparar",
+};
+
+const PLANT_STATUS_LABEL: Record<PlantStatus, string> = {
+  normal: "Normal",
+  observacion: "Observación",
+  alerta: "Alerta",
+  descartada: "Descartada",
+  cosechada: "Cosechada",
+};
+
+const PLANT_ORIGIN_LABEL: Record<PlantOrigin, string> = {
+  semilla: "Semilla",
+  esqueje: "Esqueje",
+  madre: "Madre",
+  planta: "Planta",
+};
+
+function shortCode(code: string): string {
+  const parts = code.split("-");
+  return parts.slice(-2).join("-");
+}
 
 function elapsedLabel(startIso: string, now: number): string {
   const ms = now - new Date(startIso).getTime();
@@ -74,6 +116,9 @@ function ClonadorDetailPage() {
   const [occupancy, setOccupancy] = useState<GrowBedOccupancy | null>(null);
   const [measurements, setMeasurements] = useState<CultivationMeasurement[]>([]);
   const [camillas, setCamillas] = useState<GrowBed[]>([]);
+  const [genetics, setGenetics] = useState<Genetics[]>([]);
+  const [mothers, setMothers] = useState<MotherPlant[]>([]);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [capacityValue, setCapacityValue] = useState("");
   const [capacityError, setCapacityError] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -84,6 +129,7 @@ function ClonadorDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
   const [stopContadorOpen, setStopContadorOpen] = useState(false);
+  const [detailPlant, setDetailPlant] = useState<Plant | null>(null);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -108,12 +154,15 @@ function ClonadorDetailPage() {
     const next = await getClonadorById(id);
     setClonador(next);
     if (!next) return;
-    setPlants(await getPlantsByBed(next.id));
+    setPlants(await getPlants({ clonadorId: next.id }));
     setOccupancy(await getClonadorOccupancy(next.id));
     setCapacityValue(String(next.maxPlants));
     setRoom(await getGrowRoomById(next.roomId));
     setMeasurements(await getMeasurements({ clonadorId: next.id }));
     setCamillas(await getCamillasOnly());
+    const [nextGenetics, nextMothers] = await Promise.all([getGenetics(), getMotherPlants()]);
+    setGenetics(nextGenetics);
+    setMothers(nextMothers);
   }
 
   useEffect(() => { void loadData(); }, [id]);
@@ -254,6 +303,14 @@ function ClonadorDetailPage() {
           <p className="text-sm text-muted-foreground">Grilla de esquejes y ocupación del clonador.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setBulkDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Ingreso múltiple
+          </Button>
           <Button asChild className="gap-2 bg-emerald-700 hover:bg-emerald-800">
             <Link to="/app/cultivo/clonador/nueva" search={{ edit: clonador.id }}>
               <Pencil className="h-4 w-4" />Editar
@@ -523,7 +580,7 @@ function ClonadorDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 md:grid-cols-10 xl:grid-cols-12">
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 xl:grid-cols-10">
             {Array.from({ length: Math.min(clonador.maxPlants, 60) }, (_, idx) => {
               const position = idx + 1;
               const plant = plantsByPosition.get(position);
@@ -532,18 +589,44 @@ function ClonadorDetailPage() {
                 <button
                   key={position}
                   type="button"
-                  onClick={() => plant && toggleSelect(plant.id)}
+                  onClick={() => {
+                    if (plant) {
+                      if (isSelected) {
+                        toggleSelect(plant.id);
+                      } else {
+                        setDetailPlant(plant);
+                      }
+                    }
+                  }}
+                  onContextMenu={(e) => { e.preventDefault(); if (plant) toggleSelect(plant.id); }}
                   className={[
-                    "aspect-square rounded-md border-2 transition-all",
+                    "min-h-[5.5rem] rounded-md border p-1.5 text-left transition-colors",
                     plant
                       ? [
-                          STAGE_COLOR[plant.stage] ?? "bg-slate-100 border-slate-300",
-                          isSelected ? "ring-2 ring-primary ring-offset-1 scale-105 shadow-md" : "hover:scale-105",
+                          PLANT_STAGE_CLASS[plant.stage] ?? "border-slate-200 bg-slate-100 text-slate-800",
+                          isSelected ? "ring-2 ring-primary ring-offset-1 shadow-md" : "",
                         ].join(" ")
                       : "border-dashed border-muted bg-muted/20 cursor-default",
                   ].join(" ")}
-                  title={plant ? `#${position} · ${plant.internalCode}` : `#${position} · vacío`}
-                />
+                  title={plant ? `#${position} · ${plant.internalCode} · click para ver detalles, clic derecho para seleccionar` : `#${position} · vacío`}
+                >
+                  <span className="block font-mono text-[10px] leading-none opacity-70">#{position}</span>
+                  <span className="mt-0.5 block truncate text-[11px] font-semibold leading-tight">
+                    {plant ? shortCode(plant.internalCode) : "vacío"}
+                  </span>
+                  {plant && <span className="block truncate text-[10px] leading-tight">{STAGE_LABEL[plant.stage]}</span>}
+                  {plant && <span className="block truncate text-[10px] leading-tight opacity-80">{PLANT_STATUS_LABEL[plant.status]}</span>}
+                  {plant && (
+                    <span className="block truncate text-[10px] leading-tight opacity-70">
+                      {plant.motherPlantCode ?? "Sin madre"}
+                    </span>
+                  )}
+                  {plant && (
+                    <span className="block truncate text-[10px] font-medium leading-tight">
+                      {plant.geneticsName ?? "Sin genética"}
+                    </span>
+                  )}
+                </button>
               );
             })}
           </div>
@@ -630,6 +713,119 @@ function ClonadorDetailPage() {
         description={`Estás por eliminar el clonador ${clonador.name}. Si tiene esquejes u otros datos asociados, no se podrá eliminar.`}
         onOpenChange={setDeleteOpen}
         onConfirm={handleDelete}
+      />
+
+      {/* Modal detalle de esqueje */}
+      <Dialog open={Boolean(detailPlant)} onOpenChange={(open) => { if (!open) setDetailPlant(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalle de esqueje</DialogTitle>
+            <DialogDescription>Información completa del esqueje seleccionado.</DialogDescription>
+          </DialogHeader>
+          {detailPlant && (
+            <div className="space-y-4">
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Código</p>
+                  <p className="font-mono">{detailPlant.internalCode}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Nombre</p>
+                  <p>{detailPlant.plantName ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Madre de origen</p>
+                  <p className="font-mono">{detailPlant.motherPlantCode ?? "Sin madre"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Posición en clonador</p>
+                  <p className="font-mono">#{detailPlant.bedPosition}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Lote</p>
+                  <p className="font-mono">{detailPlant.batchId ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Fecha inicio</p>
+                  <p className="font-mono">{detailPlant.startDate ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Etapa</p>
+                  <Badge variant="outline" className={PLANT_STAGE_CLASS[detailPlant.stage]}>
+                    {STAGE_LABEL[detailPlant.stage]}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Estado</p>
+                  <Badge variant="outline" className={PLANT_STATUS_CLASS[detailPlant.status]}>
+                    {PLANT_STATUS_LABEL[detailPlant.status]}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Origen</p>
+                  <p>{PLANT_ORIGIN_LABEL[detailPlant.origin]}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Fecha inicio etapa</p>
+                  <p className="font-mono">{detailPlant.stageStartDate ?? "-"}</p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-xs text-muted-foreground">Genética</p>
+                  <p className="font-semibold">{detailPlant.geneticsName ?? "Sin genética"}</p>
+                  {(() => {
+                    const gen = genetics.find((g) => g.id === detailPlant.geneticsId);
+                    if (!gen || (gen.sativaPercent == null && gen.indicaPercent == null)) return null;
+                    const sativa = gen.sativaPercent ?? 0;
+                    const indica = gen.indicaPercent ?? 0;
+                    return (
+                      <div className="mt-1.5 space-y-1">
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="text-green-700">{sativa}% Sativa</span>
+                          <span className="text-violet-700">{indica}% Indica</span>
+                        </div>
+                        <div className="flex h-3 overflow-hidden rounded-full border">
+                          <div className="bg-green-500 transition-all" style={{ width: `${sativa}%` }} />
+                          <div className="bg-violet-500 transition-all" style={{ width: `${indica}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+                {detailPlant.notes && (
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-muted-foreground">Observaciones</p>
+                    <p className="whitespace-pre-wrap text-sm">{detailPlant.notes}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/app/cultivo/plantas">
+                    Ver en lista
+                  </Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setDetailPlant(null); toggleSelect(detailPlant.id); }}
+                >
+                  Seleccionar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <BulkCreateClonadorDialog
+        open={bulkDialogOpen}
+        onOpenChange={setBulkDialogOpen}
+        clonadorId={clonador.id}
+        clonadorName={clonador.name}
+        freeSlots={freeSlots}
+        genetics={genetics}
+        mothers={mothers}
+        onSuccess={() => void loadData()}
       />
 
       <Dialog open={mDeleteId !== null} onOpenChange={(open) => { if (!open) setMDeleteId(null); }}>

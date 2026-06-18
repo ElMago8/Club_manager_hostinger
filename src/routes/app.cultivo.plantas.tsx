@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DeleteConfirmDialog } from "@/components/cultivation/DeleteConfirmDialog";
+import { BulkCreatePlantsDialog } from "@/components/cultivation/BulkCreatePlantsDialog";
 import { CultivationStatusMessage } from "@/components/cultivation/RelationshipWarning";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ function PlantsPage() {
   const [genetics, setGenetics] = useState<Genetics[]>([]);
   const [mothers, setMothers] = useState<MotherPlant[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Plant | null>(null);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [filters, setFilters] = useState({
     roomId: "all",
@@ -147,12 +149,22 @@ function PlantsPage() {
           <p className="text-sm text-muted-foreground">Listado operativo de plantas por sala, camilla y posicion.</p>
         </header>
 
-        <Button asChild className="gap-2">
-          <Link to="/app/cultivo/plantas/nueva" search={{ edit: undefined }}>
-            <Plus className="h-4 w-4" />
-            Nueva planta
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setBulkDialogOpen(true)}
+          >
+            <Users className="h-4 w-4" />
+            Ingreso múltiple
+          </Button>
+          <Button asChild className="gap-2">
+            <Link to="/app/cultivo/plantas/nueva" search={{ edit: undefined }}>
+              <Plus className="h-4 w-4" />
+              Nueva planta
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -303,6 +315,18 @@ function PlantsPage() {
         description={`Estas por eliminar la planta ${deleteTarget?.internalCode ?? ""}. Esta accion no se puede deshacer.`}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         onConfirm={handleDelete}
+      />
+
+      <BulkCreatePlantsDialog
+        open={bulkDialogOpen}
+        onOpenChange={setBulkDialogOpen}
+        beds={beds}
+        genetics={genetics}
+        mothers={mothers}
+        onSuccess={(created) => {
+          setPlants((prev) => [...prev, ...created]);
+          setMessage(`${created.length} plantas creadas correctamente.`);
+        }}
       />
     </div>
   );
