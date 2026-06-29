@@ -10,8 +10,10 @@ server/prisma/backups/*.db
 
 .env
 .env.*
+!.env.example
 server/.env
 server/.env.*
+!server/.env.example
 
 *.log
 dev-server*.log
