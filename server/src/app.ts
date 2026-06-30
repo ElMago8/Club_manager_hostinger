@@ -1,3 +1,4 @@
+import { fileURLToPath } from "url";
 import path from "path";
 import cors from "cors";
 import express from "express";
@@ -44,3 +45,12 @@ app.use("/api/stock/locations", stockLocationsRoutes);
 app.use("/api/product-batches", productBatchesRoutes);
 
 app.use(errorHandler);
+
+if (env.nodeEnv === "production") {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const distPath = path.join(__dirname, "../../../dist");
+  app.use(express.static(distPath));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}

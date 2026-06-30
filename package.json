@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && cd server && npm install && npm run build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "start": "node server/dist/src/index.js"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
