@@ -1,0 +1,658 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model SalaCultivo {
+  id                       Int      @id @default(autoincrement())
+  codigoSala               String   @unique @map("codigo_sala")
+  nombre                   String
+  tipo                     String
+  estado                   String   @default("activa")
+  potenciaWatts            Int      @default(0) @map("potencia_watts")
+  tipoRiego                String   @default("manual") @map("tipo_riego")
+  tieneAireAcondicionado   Boolean  @default(false) @map("tiene_aire_acondicionado")
+  tieneDeshumidificador    Boolean  @default(false) @map("tiene_deshumidificador")
+  sensores                 String?
+  descripcion              String?
+  entornoCultivo           String?  @map("entorno_cultivo")
+  tipoCultivo              String?  @map("tipo_cultivo")
+  creadoEn                 DateTime @default(now()) @map("creado_en")
+  actualizadoEn            DateTime @updatedAt @map("actualizado_en")
+
+  camillas              Camilla[]
+  clonadores            Clonador[]
+  madres                Madre[]
+  lotesCultivo          LoteCultivo[]
+  cosechas              Cosecha[]
+  registrosAmbientales  RegistroAmbiental[]
+  tareasCultivo         TareaCultivo[]
+  medicionesCultivo     MedicionCultivo[]
+
+  @@map("salas_cultivo")
+}
+
+model Camilla {
+  id                     Int      @id @default(autoincrement())
+  codigoCamilla          String   @unique @map("codigo_camilla")
+  salaCultivoId          Int      @map("sala_cultivo_id")
+  nombre                 String
+  estado                 String   @default("activa")
+  capacidadMaximaPlantas Int      @map("capacidad_maxima_plantas")
+  descripcion            String?
+  creadoEn               DateTime @default(now()) @map("creado_en")
+  actualizadoEn          DateTime @updatedAt @map("actualizado_en")
+
+  salaCultivo          SalaCultivo          @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  madres               Madre[]
+  plantas              Planta[]
+  tareasCultivo        TareaCultivo[]
+  registrosAmbientales RegistroAmbiental[]
+  medicionesCultivo    MedicionCultivo[]
+  sistemasRiego        SistemaRiego[]
+
+  @@index([salaCultivoId])
+  @@map("camillas")
+}
+
+model Clonador {
+  id                      Int      @id @default(autoincrement())
+  codigoClonador          String   @unique @map("codigo_clonador")
+  salaCultivoId           Int      @map("sala_cultivo_id")
+  nombre                  String
+  estado                  String    @default("activa")
+  capacidadMaximaEsquejes Int       @map("capacidad_maxima_esquejes")
+  contadorInicioEn        DateTime? @map("contador_inicio_en")
+  responsable             String?
+  descripcion             String?
+  creadoEn                DateTime  @default(now()) @map("creado_en")
+  actualizadoEn           DateTime  @updatedAt @map("actualizado_en")
+
+  salaCultivo       SalaCultivo       @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  esquejes          Planta[]
+  medicionesCultivo MedicionCultivo[]
+
+  @@index([salaCultivoId])
+  @@map("clonadores")
+}
+
+model Genetica {
+  id                  Int      @id @default(autoincrement())
+  codigoGenetica      String   @unique @map("codigo_genetica")
+  nombre              String
+  breeder             String?
+  tipo                String
+  thcEstimado         Float?   @map("thc_estimado")
+  cbdEstimado         Float?   @map("cbd_estimado")
+  sativaPorcentaje    Float?   @map("sativa_porcentaje")
+  indicaPorcentaje    Float?   @map("indica_porcentaje")
+  sabor               String?
+  efecto              String?
+  aroma               String?
+  origen              String?
+  perfilCannabionoide String?  @map("perfil_cannabinoide")
+  tiempoFloracionDias Int?     @map("tiempo_floracion_dias")
+  estado              String   @default("activa")
+  descripcion         String?
+  observaciones       String?
+  creadoEn            DateTime @default(now()) @map("creado_en")
+  actualizadoEn       DateTime @updatedAt @map("actualizado_en")
+
+  madres        Madre[]
+  lotesCultivo  LoteCultivo[]
+  plantas       Planta[]
+  lotesProducto LoteProducto[]
+
+  @@map("geneticas")
+}
+
+model Madre {
+  id                            Int       @id @default(autoincrement())
+  codigoMadre                   String    @unique @map("codigo_madre")
+  nombreMadre                   String?   @map("nombre_madre")
+  geneticaId                    Int       @map("genetica_id")
+  salaCultivoId                 Int       @map("sala_cultivo_id")
+  camillaId                     Int       @map("camilla_id")
+  estado                        String    @default("activa")
+  estadoSanitario               String    @default("bueno") @map("estado_sanitario")
+  fechaInicio                   DateTime  @map("fecha_inicio")
+  fechaUltimoCorte              DateTime? @map("fecha_ultimo_corte")
+  cantidadEsquejesDisponibles   Int       @default(0) @map("cantidad_esquejes_disponibles")
+  origen                        String?
+  observaciones                 String?
+  creadoEn                      DateTime  @default(now()) @map("creado_en")
+  actualizadoEn                 DateTime  @updatedAt @map("actualizado_en")
+
+  genetica          Genetica          @relation(fields: [geneticaId], references: [id], onDelete: Restrict)
+  salaCultivo       SalaCultivo       @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  camilla           Camilla           @relation(fields: [camillaId], references: [id], onDelete: Restrict)
+  plantas           Planta[]
+  medicionesCultivo MedicionCultivo[]
+
+  @@index([geneticaId])
+  @@index([salaCultivoId])
+  @@index([camillaId])
+  @@map("madres")
+}
+
+model LoteCultivo {
+  id                    Int       @id @default(autoincrement())
+  codigoLote            String    @unique @map("codigo_lote")
+  geneticaId            Int       @map("genetica_id")
+  salaCultivoId         Int       @map("sala_cultivo_id")
+  fechaInicio           DateTime  @map("fecha_inicio")
+  fechaInicioFloracion  DateTime? @map("fecha_inicio_floracion")
+  fechaEstimadaCosecha  DateTime? @map("fecha_estimada_cosecha")
+  fechaCosechaReal      DateTime? @map("fecha_cosecha_real")
+  estado                String    @default("activo")
+  observaciones         String?
+  creadoEn              DateTime  @default(now()) @map("creado_en")
+  actualizadoEn         DateTime  @updatedAt @map("actualizado_en")
+
+  genetica              Genetica              @relation(fields: [geneticaId], references: [id], onDelete: Restrict)
+  salaCultivo           SalaCultivo           @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  plantas               Planta[]
+  registrosAmbientales  RegistroAmbiental[]
+  riegos                Riego[]
+  tareasCultivo         TareaCultivo[]
+  cosechas              Cosecha[]
+  lotesProducto         LoteProducto[]
+
+  @@index([geneticaId])
+  @@index([salaCultivoId])
+  @@map("lotes_cultivo")
+}
+
+model Planta {
+  id               Int       @id @default(autoincrement())
+  codigoPlanta     String    @unique @map("codigo_planta")
+  nombrePlanta     String    @map("nombre_planta")
+  loteCultivoId    Int?      @map("lote_cultivo_id")
+  geneticaId       Int       @map("genetica_id")
+  madreId          Int?      @map("madre_id")
+  camillaId        Int?      @map("camilla_id")
+  posicionCamilla  Int?      @map("posicion_camilla")
+  clonadorId       Int?      @map("clonador_id")
+  posicionClonador Int?      @map("posicion_clonador")
+  origen           String
+  etapa            String
+  estado           String    @default("activa")
+  fechaInicio      DateTime  @map("fecha_inicio")
+  fechaInicioEtapa DateTime? @map("fecha_inicio_etapa")
+  macetaCodigo     String?   @map("maceta_codigo")
+  macetaLitros     Float?    @map("maceta_litros")
+  tipoMaceta       String?   @map("tipo_maceta")
+  sustrato         String?
+  estadoSanitario  String?   @default("bueno") @map("estado_sanitario")
+  observaciones    String?
+  creadoEn         DateTime  @default(now()) @map("creado_en")
+  actualizadoEn    DateTime  @updatedAt @map("actualizado_en")
+
+  loteCultivo       LoteCultivo?       @relation(fields: [loteCultivoId], references: [id], onDelete: SetNull)
+  genetica          Genetica           @relation(fields: [geneticaId], references: [id], onDelete: Restrict)
+  madre             Madre?             @relation(fields: [madreId], references: [id], onDelete: SetNull)
+  camilla           Camilla?           @relation(fields: [camillaId], references: [id], onDelete: SetNull)
+  clonador          Clonador?          @relation(fields: [clonadorId], references: [id], onDelete: SetNull)
+  riegos            Riego[]
+  medicionesCultivo MedicionCultivo[]
+  tareasCultivo     TareaCultivo[]
+
+  @@unique([camillaId, posicionCamilla])
+  @@unique([clonadorId, posicionClonador])
+  @@index([loteCultivoId])
+  @@index([geneticaId])
+  @@index([madreId])
+  @@index([camillaId])
+  @@index([clonadorId])
+  @@map("plantas")
+}
+
+model RegistroAmbiental {
+  id             Int      @id @default(autoincrement())
+  salaCultivoId  Int      @map("sala_cultivo_id")
+  loteCultivoId  Int?     @map("lote_cultivo_id")
+  camillaId      Int?     @map("camilla_id")
+  temperatura    Float
+  humedad        Float
+  vpd            Float?
+  co2            Int?
+  observaciones  String?
+  registradoEn   DateTime @default(now()) @map("registrado_en")
+  creadoEn       DateTime @default(now()) @map("creado_en")
+
+  salaCultivo SalaCultivo  @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  loteCultivo LoteCultivo? @relation(fields: [loteCultivoId], references: [id], onDelete: SetNull)
+  camilla     Camilla?     @relation(fields: [camillaId], references: [id], onDelete: SetNull)
+
+  @@index([salaCultivoId])
+  @@index([loteCultivoId])
+  @@index([camillaId])
+  @@index([registradoEn])
+  @@map("registros_ambientales")
+}
+
+model Riego {
+  id             Int      @id @default(autoincrement())
+  plantaId       Int?     @map("planta_id")
+  loteCultivoId  Int?     @map("lote_cultivo_id")
+  tipoRiego      String   @map("tipo_riego")
+  volumenLitros  Float    @map("volumen_litros")
+  ph             Float?
+  ec             Float?
+  observaciones  String?
+  fechaRiego     DateTime @default(now()) @map("fecha_riego")
+  creadoEn       DateTime @default(now()) @map("creado_en")
+
+  planta      Planta?      @relation(fields: [plantaId], references: [id], onDelete: SetNull)
+  loteCultivo LoteCultivo? @relation(fields: [loteCultivoId], references: [id], onDelete: SetNull)
+
+  @@index([plantaId])
+  @@index([loteCultivoId])
+  @@index([fechaRiego])
+  @@map("riegos")
+}
+
+model SistemaRiego {
+  id                   Int      @id @default(autoincrement())
+  codigoRiego          String   @unique @map("codigo_riego")
+  camillaId            Int      @map("camilla_id")
+  picosPorPlanta       Float?   @map("picos_por_planta")
+  horarioApertura      String?  @map("horario_apertura")
+  cantidadLitros       Float?   @map("cantidad_litros")
+  tanque               String?
+  frecuenciaTiempo     String?  @map("frecuencia_tiempo")
+  sistemaRegado        String   @map("sistema_regado")
+  sistemaRegadoCustom  String?  @map("sistema_regado_custom")
+  notas                String?
+  creadoEn             DateTime @default(now()) @map("creado_en")
+  actualizadoEn        DateTime @updatedAt @map("actualizado_en")
+
+  camilla Camilla @relation(fields: [camillaId], references: [id], onDelete: Cascade)
+
+  @@index([camillaId])
+  @@map("sistemas_riego")
+}
+
+model MedicionCultivo {
+  id             Int      @id @default(autoincrement())
+  fecha          DateTime @map("fecha")
+  hora           String   @map("hora")
+  tipo           String
+  salaCultivoId  Int      @map("sala_cultivo_id")
+  camillaId      Int?     @map("camilla_id")
+  clonadorId     Int?     @map("clonador_id")
+  plantaId       Int?     @map("planta_id")
+  madreId        Int?     @map("madre_id")
+  phLiquido      Float?   @map("ph_liquido")
+  ppmLiquido     Float?   @map("ppm_liquido")
+  phSustrato     Float?   @map("ph_sustrato")
+  ppmSustrato    Float?   @map("ppm_sustrato")
+  phDrenaje      Float?   @map("ph_drenaje")
+  ppmDrenaje     Float?   @map("ppm_drenaje")
+  estado         String   @default("normal")
+  metodo         String?
+  responsable    String?
+  observaciones  String?
+  creadoEn       DateTime @default(now()) @map("creado_en")
+  actualizadoEn  DateTime @updatedAt @map("actualizado_en")
+
+  salaCultivo SalaCultivo @relation(fields: [salaCultivoId], references: [id], onDelete: Restrict)
+  camilla     Camilla?    @relation(fields: [camillaId], references: [id], onDelete: SetNull)
+  clonador    Clonador?   @relation(fields: [clonadorId], references: [id], onDelete: SetNull)
+  planta      Planta?     @relation(fields: [plantaId], references: [id], onDelete: SetNull)
+  madre       Madre?      @relation(fields: [madreId], references: [id], onDelete: SetNull)
+
+  @@index([salaCultivoId])
+  @@index([camillaId])
+  @@index([clonadorId])
+  @@index([plantaId])
+  @@index([madreId])
+  @@index([fecha])
+  @@map("mediciones_cultivo")
+}
+
+model Socio {
+  id                Int       @id @default(autoincrement())
+  codigoSocio       String    @unique @map("codigo_socio")
+  nombre            String
+  apellido          String
+  dni               String?   @unique
+  fechaNacimiento   DateTime? @map("fecha_nacimiento")
+  telefono          String?
+  email             String?
+  direccion         String?
+  localidad         String?
+  provincia         String?
+  estado            String    @default("activo")
+  cupoMensualGramos Float?    @map("cupo_mensual_gramos")
+  observaciones     String?
+  creadoEn          DateTime  @default(now()) @map("creado_en")
+  actualizadoEn     DateTime  @updatedAt @map("actualizado_en")
+
+  documentos    DocumentoSocio[]
+  comprobantes  ComprobanteFacturacion[]
+
+  @@map("socios")
+}
+
+model DocumentoSocio {
+  id               Int       @id @default(autoincrement())
+  socioId          Int       @map("socio_id")
+  tipoDocumento    String    @map("tipo_documento")
+  numeroDocumento  String?   @map("numero_documento")
+  fechaEmision     DateTime? @map("fecha_emision")
+  fechaVencimiento DateTime? @map("fecha_vencimiento")
+  estado           String    @default("vigente")
+  archivoUrl       String?   @map("archivo_url")
+  nombreArchivo    String?   @map("nombre_archivo")
+  mimeType         String?   @map("mime_type")
+  tamanioBytes     Int?      @map("tamanio_bytes")
+  subidoEn         DateTime? @map("subido_en")
+  observaciones    String?
+  creadoEn         DateTime  @default(now()) @map("creado_en")
+  actualizadoEn    DateTime  @updatedAt @map("actualizado_en")
+
+  socio Socio @relation(fields: [socioId], references: [id], onDelete: Cascade)
+
+  @@index([socioId])
+  @@map("documentos_socio")
+}
+
+model ComprobanteFacturacion {
+  id                       Int       @id @default(autoincrement())
+  codigoComprobante        String    @unique @map("codigo_comprobante")
+  socioId                  Int?      @map("socio_id")
+  tipoComprobante          String    @map("tipo_comprobante")
+  puntoVenta               String?   @map("punto_venta")
+  numeroComprobante        String?   @map("numero_comprobante")
+  fechaEmision             DateTime  @map("fecha_emision")
+  fechaVencimientoPago     DateTime? @map("fecha_vencimiento_pago")
+  concepto                 String
+  condicionIva             String    @default("consumidor_final") @map("condicion_iva")
+  cuitDni                  String?   @map("cuit_dni")
+  razonSocial              String?   @map("razon_social")
+  domicilio                String?
+  subtotal                 Float     @default(0)
+  iva                      Float     @default(0)
+  total                    Float
+  moneda                   String    @default("ARS")
+  estadoArca               String    @default("pendiente") @map("estado_arca")
+  estadoCobro              String    @default("impago") @map("estado_cobro")
+  cae                      String?
+  vencimientoCae           DateTime? @map("vencimiento_cae")
+  pdfUrl                   String?   @map("pdf_url")
+  observaciones            String?
+  comprobanteRelacionadoId Int?      @map("comprobante_relacionado_id")
+  creadoEn                 DateTime  @default(now()) @map("creado_en")
+  actualizadoEn            DateTime  @updatedAt @map("actualizado_en")
+
+  socio                  Socio?                      @relation(fields: [socioId], references: [id], onDelete: Restrict)
+  comprobanteRelacionado ComprobanteFacturacion?     @relation("ComprobanteRelacionado", fields: [comprobanteRelacionadoId], references: [id], onDelete: SetNull)
+  comprobantesRelacionados ComprobanteFacturacion[]   @relation("ComprobanteRelacionado")
+  items                  ItemComprobanteFacturacion[]
+  pagos                  PagoComprobanteFacturacion[]
+
+  @@index([socioId])
+  @@index([comprobanteRelacionadoId])
+  @@index([fechaEmision])
+  @@index([estadoArca])
+  @@index([estadoCobro])
+  @@map("comprobantes_facturacion")
+}
+
+model ItemComprobanteFacturacion {
+  id                         Int      @id @default(autoincrement())
+  comprobanteFacturacionId   Int      @map("comprobante_facturacion_id")
+  descripcion                String
+  cantidad                   Float
+  precioUnitario             Float    @map("precio_unitario")
+  subtotal                   Float
+  creadoEn                   DateTime @default(now()) @map("creado_en")
+
+  comprobanteFacturacion ComprobanteFacturacion @relation(fields: [comprobanteFacturacionId], references: [id], onDelete: Cascade)
+
+  @@index([comprobanteFacturacionId])
+  @@map("items_comprobante_facturacion")
+}
+
+model PagoComprobanteFacturacion {
+  id                       Int      @id @default(autoincrement())
+  comprobanteFacturacionId Int      @map("comprobante_facturacion_id")
+  fechaPago                DateTime @default(now()) @map("fecha_pago")
+  monto                    Float
+  medioPago                String   @map("medio_pago")
+  referencia               String?
+  observaciones            String?
+  creadoEn                 DateTime @default(now()) @map("creado_en")
+
+  comprobanteFacturacion ComprobanteFacturacion @relation(fields: [comprobanteFacturacionId], references: [id], onDelete: Cascade)
+
+  @@index([comprobanteFacturacionId])
+  @@index([fechaPago])
+  @@map("pagos_comprobante_facturacion")
+}
+
+model TareaCultivo {
+  id              Int       @id @default(autoincrement())
+  titulo          String
+  descripcion     String?
+  tipo            String
+  prioridad       String   @default("media")
+  estado          String   @default("pendiente")
+  salaCultivoId   Int?     @map("sala_cultivo_id")
+  camillaId       Int?     @map("camilla_id")
+  loteCultivoId   Int?     @map("lote_cultivo_id")
+  plantaId        Int?     @map("planta_id")
+  fechaProgramada DateTime @map("fecha_programada")
+  fechaCompletada DateTime? @map("fecha_completada")
+  observaciones   String?
+  creadoEn        DateTime @default(now()) @map("creado_en")
+  actualizadoEn   DateTime @updatedAt @map("actualizado_en")
+
+  salaCultivo SalaCultivo? @relation(fields: [salaCultivoId], references: [id], onDelete: SetNull)
+  camilla     Camilla?     @relation(fields: [camillaId], references: [id], onDelete: SetNull)
+  loteCultivo LoteCultivo? @relation(fields: [loteCultivoId], references: [id], onDelete: SetNull)
+  planta      Planta?      @relation(fields: [plantaId], references: [id], onDelete: SetNull)
+
+  @@index([estado])
+  @@index([prioridad])
+  @@index([tipo])
+  @@index([salaCultivoId])
+  @@index([camillaId])
+  @@index([loteCultivoId])
+  @@index([plantaId])
+  @@index([fechaProgramada])
+  @@map("tareas_cultivo")
+}
+
+model Cosecha {
+  id                Int       @id @default(autoincrement())
+  codigoCosecha     String    @unique @map("codigo_cosecha")
+  loteCultivoId     Int       @map("lote_cultivo_id")
+  salaCultivoId     Int?      @map("sala_cultivo_id")
+  fechaCosecha      DateTime  @map("fecha_cosecha")
+  pesoHumedoGramos  Float?    @map("peso_humedo_gramos")
+  pesoSecoGramos    Float?    @map("peso_seco_gramos")
+  pesoMermaGramos   Float?    @map("peso_merma_gramos")
+  estado            String    @default("registrada")
+  secadoInicioEn    DateTime? @map("secado_inicio_en")
+  curadoInicioEn    DateTime? @map("curado_inicio_en")
+  observaciones     String?
+  creadoEn          DateTime  @default(now()) @map("creado_en")
+  actualizadoEn     DateTime  @updatedAt @map("actualizado_en")
+
+  loteCultivo   LoteCultivo   @relation(fields: [loteCultivoId], references: [id], onDelete: Restrict)
+  salaCultivo   SalaCultivo?  @relation(fields: [salaCultivoId], references: [id], onDelete: SetNull)
+  lotesProducto LoteProducto[]
+
+  @@index([loteCultivoId])
+  @@index([salaCultivoId])
+  @@map("cosechas")
+}
+
+// ─── Fase 2.1: Usuarios, Roles y Permisos ────────────────────────────────────
+
+model Usuario {
+  id             Int       @id @default(autoincrement())
+  codigoUsuario  String    @unique @map("codigo_usuario")
+  username       String    @unique
+  nombre         String
+  apellido       String?
+  email          String?
+  passwordHash   String    @map("password_hash")
+  estado         String    @default("activo")
+  ultimoLoginEn  DateTime? @map("ultimo_login_en")
+  creadoEn       DateTime  @default(now()) @map("creado_en")
+  actualizadoEn  DateTime  @updatedAt @map("actualizado_en")
+
+  roles UsuarioRol[]
+
+  @@map("usuarios")
+}
+
+model Rol {
+  id            Int       @id @default(autoincrement())
+  slug          String    @unique
+  nombre        String    @unique
+  descripcion   String?
+  estado        String    @default("activo")
+  creadoEn      DateTime  @default(now()) @map("creado_en")
+  actualizadoEn DateTime  @updatedAt @map("actualizado_en")
+
+  usuarios UsuarioRol[]
+  permisos RolPermiso[]
+
+  @@map("roles")
+}
+
+model Permiso {
+  id           Int      @id @default(autoincrement())
+  clavePermiso String   @unique @map("clave_permiso")
+  modulo       String
+  accion       String
+  descripcion  String?
+  creadoEn     DateTime @default(now()) @map("creado_en")
+
+  roles RolPermiso[]
+
+  @@map("permisos")
+}
+
+model UsuarioRol {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int      @map("usuario_id")
+  rolId     Int      @map("rol_id")
+  creadoEn  DateTime @default(now()) @map("creado_en")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  rol     Rol     @relation(fields: [rolId], references: [id], onDelete: Restrict)
+
+  @@unique([usuarioId, rolId])
+  @@index([usuarioId])
+  @@index([rolId])
+  @@map("usuario_roles")
+}
+
+model RolPermiso {
+  id        Int      @id @default(autoincrement())
+  rolId     Int      @map("rol_id")
+  permisoId Int      @map("permiso_id")
+  creadoEn  DateTime @default(now()) @map("creado_en")
+
+  rol     Rol     @relation(fields: [rolId], references: [id], onDelete: Cascade)
+  permiso Permiso @relation(fields: [permisoId], references: [id], onDelete: Cascade)
+
+  @@unique([rolId, permisoId])
+  @@index([rolId])
+  @@index([permisoId])
+  @@map("rol_permisos")
+}
+
+// ─── Fase 3.0: Productos / Stock ─────────────────────────────────────────────
+
+model CategoriaProducto {
+  id              Int      @id @default(autoincrement())
+  codigoCategoria String   @unique @map("codigo_categoria")
+  nombre          String
+  descripcion     String?
+  estado          String   @default("activa")
+  creadoEn        DateTime @default(now()) @map("creado_en")
+  actualizadoEn   DateTime @updatedAt @map("actualizado_en")
+
+  productos Producto[]
+
+  @@map("categorias_producto")
+}
+
+model Producto {
+  id                   Int      @id @default(autoincrement())
+  codigoProducto       String   @unique @map("codigo_producto")
+  categoriaProductoId  Int?     @map("categoria_producto_id")
+  nombre               String
+  tipoProducto         String   @map("tipo_producto")
+  unidadMedida         String   @default("gramos") @map("unidad_medida")
+  descripcion          String?
+  estado               String   @default("activo")
+  requiereLote         Boolean  @default(true) @map("requiere_lote")
+  requiereTrazabilidad Boolean  @default(true) @map("requiere_trazabilidad")
+  creadoEn             DateTime @default(now()) @map("creado_en")
+  actualizadoEn        DateTime @updatedAt @map("actualizado_en")
+
+  categoria CategoriaProducto? @relation(fields: [categoriaProductoId], references: [id], onDelete: SetNull)
+  lotes     LoteProducto[]
+
+  @@index([categoriaProductoId])
+  @@map("productos")
+}
+
+model UbicacionStock {
+  id              Int      @id @default(autoincrement())
+  codigoUbicacion String   @unique @map("codigo_ubicacion")
+  nombre          String
+  tipo            String
+  descripcion     String?
+  estado          String   @default("activa")
+  creadoEn        DateTime @default(now()) @map("creado_en")
+  actualizadoEn   DateTime @updatedAt @map("actualizado_en")
+
+  lotes LoteProducto[]
+
+  @@map("ubicaciones_stock")
+}
+
+model LoteProducto {
+  id                 Int       @id @default(autoincrement())
+  codigoLoteProducto String    @unique @map("codigo_lote_producto")
+  productoId         Int       @map("producto_id")
+  cosechaId          Int?      @map("cosecha_id")
+  loteCultivoId      Int?      @map("lote_cultivo_id")
+  geneticaId         Int?      @map("genetica_id")
+  ubicacionStockId   Int?      @map("ubicacion_stock_id")
+  fechaIngreso       DateTime  @default(now()) @map("fecha_ingreso")
+  fechaVencimiento   DateTime? @map("fecha_vencimiento")
+  cantidadInicial    Float     @default(0) @map("cantidad_inicial")
+  cantidadDisponible Float     @default(0) @map("cantidad_disponible")
+  cantidadReservada  Float     @default(0) @map("cantidad_reservada")
+  unidadMedida       String    @default("gramos") @map("unidad_medida")
+  estado             String    @default("disponible")
+  observaciones      String?
+  creadoEn           DateTime  @default(now()) @map("creado_en")
+  actualizadoEn      DateTime  @updatedAt @map("actualizado_en")
+
+  producto       Producto        @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  cosecha        Cosecha?        @relation(fields: [cosechaId], references: [id], onDelete: SetNull)
+  loteCultivo    LoteCultivo?    @relation(fields: [loteCultivoId], references: [id], onDelete: SetNull)
+  genetica       Genetica?       @relation(fields: [geneticaId], references: [id], onDelete: SetNull)
+  ubicacionStock UbicacionStock? @relation(fields: [ubicacionStockId], references: [id], onDelete: SetNull)
+
+  @@index([productoId])
+  @@index([cosechaId])
+  @@index([loteCultivoId])
+  @@index([geneticaId])
+  @@index([ubicacionStockId])
+  @@map("lotes_producto")
+}
