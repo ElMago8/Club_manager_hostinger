@@ -5,10 +5,12 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "build": "echo \"no build needed\""
+    "build": "prisma generate"
   },
   "dependencies": {
+    "@prisma/client": "^6.0.0",
     "cors": "^2.8.5",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "prisma": "^6.0.0"
   }
 }
