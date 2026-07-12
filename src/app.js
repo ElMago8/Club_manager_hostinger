@@ -591,13 +591,19 @@ app.use("/api/product-batches", batchRouter);
 
 // ─── Billing ─────────────────────────────────────────────────────────────────
 
-const billingInclude = { socio: { select: { id: true, nombre: true, apellido: true, codigoSocio: true } }, items: true, pagos: true };
+const billingInclude = {
+  socio: { select: { id: true, nombre: true, apellido: true, codigoSocio: true, dni: true, direccion: true } },
+  items: true,
+  pagos: true,
+};
 const billingRouter = Router();
-billingRouter.get("/", async (_req, res, next) => {
+
+// Frontend llama a /api/billing/invoices (no /api/billing directamente)
+billingRouter.get("/invoices", async (_req, res, next) => {
   try { res.json(await prisma.comprobanteFacturacion.findMany({ include: billingInclude, orderBy: { fechaEmision: "desc" } })); }
   catch (e) { next(e); }
 });
-billingRouter.post("/", async (req, res, next) => {
+billingRouter.post("/invoices", async (req, res, next) => {
   try {
     const { items, pagos, ...data } = req.body;
     const created = await prisma.comprobanteFacturacion.create({
@@ -607,23 +613,54 @@ billingRouter.post("/", async (req, res, next) => {
     res.status(201).json(created);
   } catch (e) { next(e); }
 });
-billingRouter.get("/:id", async (req, res, next) => {
+billingRouter.get("/invoices/:id", async (req, res, next) => {
   try {
     const record = await prisma.comprobanteFacturacion.findUnique({ where: { id: id(req) }, include: billingInclude });
     if (!record) return notFound(res);
     res.json(record);
   } catch (e) { next(e); }
 });
-billingRouter.put("/:id", async (req, res, next) => {
+billingRouter.put("/invoices/:id", async (req, res, next) => {
   try {
     const { items, pagos, ...data } = req.body;
     res.json(await prisma.comprobanteFacturacion.update({ where: { id: id(req) }, data, include: billingInclude }));
   } catch (e) { next(e); }
 });
-billingRouter.delete("/:id", async (req, res, next) => {
+billingRouter.delete("/invoices/:id", async (req, res, next) => {
   try { res.json(await prisma.comprobanteFacturacion.delete({ where: { id: id(req) } })); }
   catch (e) { next(e); }
 });
+billingRouter.post("/invoices/:id/mark-paid", async (req, res, next) => {
+  try {
+    const { monto, medioPago, referencia, observaciones } = req.body;
+    await prisma.pagoComprobanteFacturacion.create({ data: { comprobanteFacturacionId: id(req), monto: Number(monto), medioPago, referencia, observaciones } });
+    const updated = await prisma.comprobanteFacturacion.update({ where: { id: id(req) }, data: { estadoCobro: "pagado" }, include: billingInclude });
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+billingRouter.post("/invoices/:id/credit-note", async (req, res, next) => {
+  try {
+    const original = await prisma.comprobanteFacturacion.findUnique({ where: { id: id(req) } });
+    if (!original) return notFound(res);
+    const nc = await prisma.comprobanteFacturacion.create({
+      data: { codigoComprobante: `NC-${Date.now()}`, tipoComprobante: "nota_credito_c", fechaEmision: new Date(), concepto: `Nota de crédito de ${original.codigoComprobante}`, total: original.total, subtotal: original.subtotal, iva: original.iva, comprobanteRelacionadoId: original.id, socioId: original.socioId },
+      include: billingInclude,
+    });
+    res.status(201).json(nc);
+  } catch (e) { next(e); }
+});
+billingRouter.post("/invoices/:id/debit-note", async (req, res, next) => {
+  try {
+    const original = await prisma.comprobanteFacturacion.findUnique({ where: { id: id(req) } });
+    if (!original) return notFound(res);
+    const nd = await prisma.comprobanteFacturacion.create({
+      data: { codigoComprobante: `ND-${Date.now()}`, tipoComprobante: "nota_debito_c", fechaEmision: new Date(), concepto: `Nota de débito de ${original.codigoComprobante}`, total: req.body.total ?? original.total, subtotal: req.body.subtotal ?? original.subtotal, iva: req.body.iva ?? original.iva, comprobanteRelacionadoId: original.id, socioId: original.socioId },
+      include: billingInclude,
+    });
+    res.status(201).json(nd);
+  } catch (e) { next(e); }
+});
+
 app.use("/api/billing", billingRouter);
 
 // ─── Users & Roles (minimal) ──────────────────────────────────────────────────
