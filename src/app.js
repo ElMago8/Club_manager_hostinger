@@ -1,7 +1,16 @@
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
+const fs = require("fs");
 const { PrismaClient } = require("@prisma/client");
+
+const dbUrl = process.env.DATABASE_URL ?? "";
+const dbFilePath = dbUrl.replace(/^file:/, "");
+console.log("DATABASE_URL:", dbUrl);
+console.log("DB file path:", dbFilePath);
+console.log("DB file exists:", (() => { try { return fs.existsSync(dbFilePath); } catch { return "error"; } })());
+console.log("CWD:", process.cwd());
+console.log("__dirname:", __dirname);
 
 const prisma = new PrismaClient();
 const app = express();
@@ -77,10 +86,18 @@ function crudRouter(model, opts = {}) {
   return r;
 }
 
-// ─── Health ───────────────────────────────────────────────────────────────────
+// ─── Health & Debug ───────────────────────────────────────────────────────────
 
 app.get("/", (_req, res) => res.json({ ok: true, service: "cannabis-club-manager-api", version: "2.0.0" }));
 app.get("/api/health", (_req, res) => res.json({ ok: true, service: "cannabis-club-manager-api", timestamp: new Date().toISOString() }));
+app.get("/api/debug", (_req, res) => {
+  const url = process.env.DATABASE_URL ?? "(no definida)";
+  const filePath = url.replace(/^file:/, "");
+  let exists = false;
+  let stat = null;
+  try { stat = fs.statSync(filePath); exists = true; } catch (e) { stat = e.message; }
+  res.json({ cwd: process.cwd(), dirname: __dirname, DATABASE_URL: url, filePath, fileExists: exists, stat });
+});
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
