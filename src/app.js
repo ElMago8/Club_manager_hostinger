@@ -560,12 +560,24 @@ batchRouter.get("/", async (_req, res, next) => {
 });
 batchRouter.get("/summary", async (_req, res, next) => {
   try {
-    const [total, disponible, reservado] = await Promise.all([
+    const now = new Date();
+    const in30days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const [stockSum, lotesDisponibles, totalLotes, productosActivos, bloqueados, proxVenc] = await Promise.all([
       prisma.loteProducto.aggregate({ _sum: { cantidadDisponible: true } }),
       prisma.loteProducto.count({ where: { estado: "disponible" } }),
-      prisma.loteProducto.aggregate({ _sum: { cantidadReservada: true } }),
+      prisma.loteProducto.count(),
+      prisma.producto.count({ where: { estado: "activo" } }),
+      prisma.loteProducto.count({ where: { estado: { in: ["bloqueado", "bloqueado_analisis", "en_analisis"] } } }),
+      prisma.loteProducto.count({ where: { fechaVencimiento: { gte: now, lte: in30days } } }),
     ]);
-    res.json({ totalDisponible: total._sum.cantidadDisponible ?? 0, lotesDisponibles: disponible, totalReservado: reservado._sum.cantidadReservada ?? 0 });
+    res.json({
+      stockTotalDisponible: stockSum._sum.cantidadDisponible ?? 0,
+      lotesDisponibles,
+      totalLotes,
+      productosActivos,
+      lotesBloqueadosAnalisis: bloqueados,
+      proximosVencimientos: proxVenc,
+    });
   } catch (e) { next(e); }
 });
 batchRouter.post("/", async (req, res, next) => {
