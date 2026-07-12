@@ -41,8 +41,9 @@ function notFound(res, msg = "No encontrado") {
 }
 
 function errHandler(err, _req, res, _next) {
+  console.error("API_ERR:", err.code ?? "", err.message, err.meta ? JSON.stringify(err.meta) : "");
   const status = err.statusCode ?? err.status ?? 500;
-  res.status(status).json({ message: err.message ?? "Error interno" });
+  res.status(status).json({ message: err.message ?? "Error interno", code: err.code, meta: err.meta });
 }
 
 // CRUD básico para un modelo Prisma
