@@ -2,15 +2,21 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const fs = require("fs");
+const path = require("path");
 const { PrismaClient } = require("@prisma/client");
+
+// Prisma resuelve rutas relativas desde su propio binario, no desde process.cwd().
+// Convertimos a ruta absoluta antes de que Prisma lo lea.
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("file:./")) {
+  const rel = process.env.DATABASE_URL.replace("file:./", "");
+  process.env.DATABASE_URL = "file:" + path.resolve(process.cwd(), rel);
+}
 
 const dbUrl = process.env.DATABASE_URL ?? "";
 const dbFilePath = dbUrl.replace(/^file:/, "");
-console.log("DATABASE_URL:", dbUrl);
-console.log("DB file path:", dbFilePath);
+console.log("DATABASE_URL (resolved):", dbUrl);
 console.log("DB file exists:", (() => { try { return fs.existsSync(dbFilePath); } catch { return "error"; } })());
-console.log("CWD:", process.cwd());
-console.log("__dirname:", __dirname);
+console.log("DB writable:", (() => { try { fs.accessSync(dbFilePath, fs.constants.W_OK); return true; } catch { return false; } })());
 
 const prisma = new PrismaClient();
 const app = express();
