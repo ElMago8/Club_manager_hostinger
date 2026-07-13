@@ -283,12 +283,23 @@ bedRouter.get("/", async (_req, res, next) => {
   catch (e) { next(e); }
 });
 bedRouter.post("/", async (req, res, next) => {
-  try { res.status(201).json(await prisma.camilla.create({ data: req.body, include: bedInclude })); }
-  catch (e) { next(e); }
+  try {
+    // "tipo" no existe en el schema de Camilla/Clonador — se saca antes de pasarlo a Prisma
+    const { tipo, lotePrincipalId, responsableId, ...data } = req.body;
+    const model = tipo === "clonador" ? prisma.clonador : prisma.camilla;
+    // Camilla usa capacidadMaximaPlantas, Clonador usa capacidadMaximaEsquejes
+    if (tipo === "clonador" && data.capacidadMaximaPlantas != null) {
+      data.capacidadMaximaEsquejes = data.capacidadMaximaPlantas;
+      delete data.capacidadMaximaPlantas;
+      if (data.codigoCamilla) { data.codigoClonador = data.codigoCamilla; delete data.codigoCamilla; }
+    }
+    res.status(201).json(await model.create({ data, include: bedInclude }));
+  } catch (e) { next(e); }
 });
 bedRouter.get("/:id/occupancy", async (req, res, next) => {
   try {
     const bedId = id(req);
+    if (isNaN(bedId)) return res.json({ bedId: String(req.params.id), maxPlants: 0, occupied: 0, available: 0, occupancyPercentage: 0 });
     const camilla = await prisma.camilla.findUnique({ where: { id: bedId } });
     if (!camilla) return notFound(res);
     const occupied = await prisma.planta.count({ where: { camillaId: bedId, estado: { notIn: ["descartada", "discarded"] } } });
@@ -310,8 +321,10 @@ bedRouter.get("/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 const bedUpdateHandler = async (req, res, next) => {
-  try { res.json(await prisma.camilla.update({ where: { id: id(req) }, data: req.body, include: bedInclude })); }
-  catch (e) { next(e); }
+  try {
+    const { tipo, lotePrincipalId, responsableId, ...data } = req.body;
+    res.json(await prisma.camilla.update({ where: { id: id(req) }, data, include: bedInclude }));
+  } catch (e) { next(e); }
 };
 bedRouter.put("/:id", bedUpdateHandler);
 bedRouter.patch("/:id", bedUpdateHandler);
@@ -489,6 +502,7 @@ cultivationRouter.post("/vpd/preview", (req, res, next) => {
 cultivationRouter.use("/measurements", crudRouter(prisma.medicionCultivo, {
   include: { salaCultivo: { select: { id: true, nombre: true } }, camilla: { select: { id: true, nombre: true } }, planta: { select: { id: true, codigoPlanta: true, nombrePlanta: true } }, madre: { select: { id: true, codigoMadre: true, nombreMadre: true } } },
   orderBy: [{ fecha: "desc" }],
+  dateFields: ["fecha"],
 }));
 
 // Tasks
