@@ -334,7 +334,18 @@ bedRouter.delete("/:id", async (req, res, next) => {
 });
 cultivationRouter.use("/beds", bedRouter);
 
-// Genetics
+// Genetics — POST custom para auto-generar codigoGenetica y defaultear tipo
+cultivationRouter.post("/genetics", async (req, res, next) => {
+  try {
+    const data = { ...req.body };
+    if (!data.codigoGenetica && data.nombre) {
+      const slug = String(data.nombre).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+      data.codigoGenetica = `GEN-${slug || "XX"}-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+    }
+    if (!data.tipo) data.tipo = "hibrida";
+    res.status(201).json(await prisma.genetica.create({ data }));
+  } catch (e) { next(e); }
+});
 cultivationRouter.use("/genetics", crudRouter(prisma.genetica, { orderBy: { id: "desc" } }));
 
 // Mothers
@@ -702,7 +713,36 @@ billingRouter.get("/invoices", async (_req, res, next) => {
 });
 billingRouter.post("/invoices", async (req, res, next) => {
   try {
-    const { items, pagos, ...data } = req.body;
+    const b = req.body;
+    const items = b.items;
+    const pagos  = b.pagos;
+    // El frontend envía snake_case; Prisma necesita camelCase.
+    const tipo = b.tipo_comprobante ?? b.tipoComprobante ?? "recibo_interno";
+    const prefixMap = { factura_c: "FAC", nota_credito_c: "NC", nota_debito_c: "ND", recibo_interno: "REC" };
+    const prefix = prefixMap[tipo] ?? "DOC";
+    const codigoComprobante = b.codigoComprobante ?? `${prefix}-${Date.now()}`;
+    const fechaRaw = b.fecha_emision ?? b.fechaEmision;
+    const vencRaw  = b.fecha_vencimiento_pago ?? b.fechaVencimientoPago;
+    const data = {
+      codigoComprobante,
+      socioId:              b.socio_id        ?? b.socioId        ?? undefined,
+      tipoComprobante:      tipo,
+      puntoVenta:           b.punto_venta     ?? b.puntoVenta     ?? undefined,
+      numeroComprobante:    b.numero_comprobante ?? b.numeroComprobante ?? undefined,
+      fechaEmision:         fechaRaw ? d(fechaRaw) : new Date(),
+      fechaVencimientoPago: vencRaw  ? d(vencRaw)  : undefined,
+      concepto:             b.concepto,
+      condicionIva:         b.condicion_iva   ?? b.condicionIva   ?? "consumidor_final",
+      cuitDni:              b.cuit_dni        ?? b.cuitDni        ?? undefined,
+      razonSocial:          b.razon_social    ?? b.razonSocial    ?? undefined,
+      domicilio:            b.domicilio       ?? undefined,
+      subtotal:             b.subtotal        ?? 0,
+      iva:                  b.iva             ?? 0,
+      total:                b.total,
+      estadoArca:           b.estado_arca     ?? b.estadoArca     ?? "pendiente",
+      estadoCobro:          b.estado_cobro    ?? b.estadoCobro    ?? "impago",
+      observaciones:        b.observaciones   ?? undefined,
+    };
     const created = await prisma.comprobanteFacturacion.create({
       data: { ...data, items: items ? { create: items } : undefined, pagos: pagos ? { create: pagos } : undefined },
       include: billingInclude,
