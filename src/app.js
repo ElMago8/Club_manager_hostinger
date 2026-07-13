@@ -42,6 +42,9 @@ app.use(express.json());
 
 function id(req) { return Number(req.params.id); }
 
+// Convierte "YYYY-MM-DD" a Date. Prisma SQLite necesita DateTime completo.
+function d(v) { return v ? new Date(String(v).length === 10 ? v + "T12:00:00.000Z" : v) : undefined; }
+
 function notFound(res, msg = "No encontrado") {
   return res.status(404).json({ message: msg });
 }
@@ -54,8 +57,18 @@ function errHandler(err, _req, res, _next) {
 
 // CRUD básico para un modelo Prisma
 function crudRouter(model, opts = {}) {
-  const { include, orderBy = { id: "desc" }, filters } = opts;
+  const { include, orderBy = { id: "desc" }, filters, dateFields = [] } = opts;
   const r = Router();
+
+  function prepareDates(body) {
+    if (!dateFields.length) return body;
+    const data = { ...body };
+    for (const f of dateFields) {
+      if (data[f] != null && data[f] !== "") data[f] = d(data[f]);
+      else if (data[f] === "") data[f] = null;
+    }
+    return data;
+  }
 
   r.get("/", async (req, res, next) => {
     try {
@@ -66,7 +79,7 @@ function crudRouter(model, opts = {}) {
 
   r.post("/", async (req, res, next) => {
     try {
-      res.status(201).json(await model.create({ data: req.body, include }));
+      res.status(201).json(await model.create({ data: prepareDates(req.body), include }));
     } catch (e) { next(e); }
   });
 
@@ -80,7 +93,7 @@ function crudRouter(model, opts = {}) {
 
   r.put("/:id", async (req, res, next) => {
     try {
-      res.json(await model.update({ where: { id: id(req) }, data: req.body, include }));
+      res.json(await model.update({ where: { id: id(req) }, data: prepareDates(req.body), include }));
     } catch (e) { next(e); }
   });
 
@@ -154,7 +167,9 @@ memberRouter.get("/", async (_req, res, next) => {
 
 memberRouter.post("/", async (req, res, next) => {
   try {
-    res.status(201).json(await prisma.socio.create({ data: req.body }));
+    const data = { ...req.body };
+    if (data.fechaNacimiento) data.fechaNacimiento = d(data.fechaNacimiento);
+    res.status(201).json(await prisma.socio.create({ data }));
   } catch (e) { next(e); }
 });
 
@@ -168,7 +183,9 @@ memberRouter.get("/:id", async (req, res, next) => {
 
 memberRouter.put("/:id", async (req, res, next) => {
   try {
-    res.json(await prisma.socio.update({ where: { id: id(req) }, data: req.body }));
+    const data = { ...req.body };
+    if (data.fechaNacimiento) data.fechaNacimiento = d(data.fechaNacimiento);
+    res.json(await prisma.socio.update({ where: { id: id(req) }, data }));
   } catch (e) { next(e); }
 });
 
@@ -270,12 +287,14 @@ cultivationRouter.use("/genetics", crudRouter(prisma.genetica, { orderBy: { id: 
 cultivationRouter.use("/mothers", crudRouter(prisma.madre, {
   include: { genetica: true, salaCultivo: true, camilla: true, _count: { select: { plantas: true } } },
   orderBy: { id: "desc" },
+  dateFields: ["fechaInicio", "fechaUltimoCorte"],
 }));
 
 // Batches (lotes de cultivo)
 cultivationRouter.use("/batches", crudRouter(prisma.loteCultivo, {
   include: { genetica: true, salaCultivo: true },
   orderBy: { id: "desc" },
+  dateFields: ["fechaInicio", "fechaInicioFloracion", "fechaEstimadaCosecha", "fechaCosechaReal"],
 }));
 
 // Plants
@@ -430,13 +449,14 @@ cultivationRouter.use("/measurements", crudRouter(prisma.medicionCultivo, {
 }));
 
 // Tasks
-cultivationRouter.use("/tasks", crudRouter(prisma.tareaCultivo, { orderBy: { id: "desc" } }));
-cultivationRouter.use("/operational-tasks", crudRouter(prisma.tareaCultivo, { orderBy: { id: "desc" } }));
+cultivationRouter.use("/tasks", crudRouter(prisma.tareaCultivo, { orderBy: { id: "desc" }, dateFields: ["fechaProgramada", "fechaCompletada"] }));
+cultivationRouter.use("/operational-tasks", crudRouter(prisma.tareaCultivo, { orderBy: { id: "desc" }, dateFields: ["fechaProgramada", "fechaCompletada"] }));
 
 // Harvests (cosechas)
 cultivationRouter.use("/harvests", crudRouter(prisma.cosecha, {
   include: { loteCultivo: { include: { genetica: true, salaCultivo: true } }, salaCultivo: true },
   orderBy: { id: "desc" },
+  dateFields: ["fechaCosecha", "secadoInicioEn", "curadoInicioEn"],
 }));
 
 // Clonadores
