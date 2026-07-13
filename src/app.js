@@ -3,6 +3,7 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
+const multer = require("multer");
 const { PrismaClient } = require("@prisma/client");
 
 // Prisma resuelve rutas relativas desde su propio binario, no desde process.cwd().
@@ -37,6 +38,24 @@ app.use(cors({
   },
 }));
 app.use(express.json());
+
+// ─── File uploads (multer) ────────────────────────────────────────────────────
+
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `doc_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+});
+
+app.use("/uploads", express.static(uploadsDir));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -199,15 +218,29 @@ memberRouter.delete("/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// Documentos de socio (stub — sin manejo de archivos en demo)
+function docDataFromRequest(req) {
+  const data = { ...req.body };
+  if (data.fechaEmision) data.fechaEmision = d(data.fechaEmision);
+  if (data.fechaVencimiento) data.fechaVencimiento = d(data.fechaVencimiento);
+  if (req.file) {
+    data.archivoUrl = `/uploads/${req.file.filename}`;
+    data.nombreArchivo = req.file.originalname;
+    data.mimeType = req.file.mimetype;
+    data.tamanioBytes = req.file.size;
+    data.subidoEn = new Date();
+  }
+  return data;
+}
+
 memberRouter.get("/:id/documents", async (req, res, next) => {
   try {
-    res.json(await prisma.documentoSocio.findMany({ where: { socioId: id(req) } }));
+    res.json(await prisma.documentoSocio.findMany({ where: { socioId: id(req) }, orderBy: { id: "desc" } }));
   } catch (e) { next(e); }
 });
-memberRouter.post("/:id/documents", async (req, res, next) => {
+memberRouter.post("/:id/documents", upload.single("arquivo"), async (req, res, next) => {
   try {
-    res.status(201).json(await prisma.documentoSocio.create({ data: { socioId: id(req), ...req.body } }));
+    const data = { socioId: id(req), ...docDataFromRequest(req) };
+    res.status(201).json(await prisma.documentoSocio.create({ data }));
   } catch (e) { next(e); }
 });
 
@@ -223,11 +256,11 @@ app.get("/api/member-documents/:id", async (req, res, next) => {
 });
 const memberDocUpdateHandler = async (req, res, next) => {
   try {
-    res.json(await prisma.documentoSocio.update({ where: { id: id(req) }, data: req.body }));
+    res.json(await prisma.documentoSocio.update({ where: { id: id(req) }, data: docDataFromRequest(req) }));
   } catch (e) { next(e); }
 };
-app.put("/api/member-documents/:id", memberDocUpdateHandler);
-app.patch("/api/member-documents/:id", memberDocUpdateHandler);
+app.put("/api/member-documents/:id", upload.single("arquivo"), memberDocUpdateHandler);
+app.patch("/api/member-documents/:id", upload.single("arquivo"), memberDocUpdateHandler);
 app.delete("/api/member-documents/:id", async (req, res, next) => {
   try {
     res.json(await prisma.documentoSocio.delete({ where: { id: id(req) } }));
