@@ -810,8 +810,15 @@ billingRouter.post("/invoices", async (req, res, next) => {
       estadoCobro:          b.estado_cobro    ?? b.estadoCobro    ?? "impago",
       observaciones:        b.observaciones   ?? undefined,
     };
+    // Items: el frontend envía precio_unitario (snake_case) → Prisma necesita precioUnitario
+    const mappedItems = items?.map((item) => ({
+      descripcion:    item.descripcion,
+      cantidad:       item.cantidad,
+      precioUnitario: item.precio_unitario ?? item.precioUnitario,
+      subtotal:       item.subtotal,
+    }));
     const created = await prisma.comprobanteFacturacion.create({
-      data: { ...data, items: items ? { create: items } : undefined, pagos: pagos ? { create: pagos } : undefined },
+      data: { ...data, items: mappedItems?.length ? { create: mappedItems } : undefined, pagos: pagos ? { create: pagos } : undefined },
       include: billingInclude,
     });
     res.status(201).json(created);
