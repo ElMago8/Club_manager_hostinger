@@ -516,8 +516,58 @@ cultivationRouter.use("/measurements", crudRouter(prisma.medicionCultivo, {
   dateFields: ["fecha"],
 }));
 
-// Tasks
+// Tasks — mapeo de campos del frontend al schema de Prisma
+function mapTaskPayload(body) {
+  const {
+    title, taskType, priority, status, dueDate, notes, description,
+    roomId, bedId, plantId, batchId,
+    // campos que no existen en el schema — los descartamos
+    dueTime, assignedToName, relatedModule, recurrenceType, recurrenceInterval,
+    completedAt, completedByName,
+    ...rest
+  } = body;
+  const data = { ...rest };
+  if (title)       data.titulo          = title;
+  if (taskType)    data.tipo            = taskType;
+  if (priority)    data.prioridad       = priority;
+  if (status)      data.estado          = status;
+  if (dueDate)     data.fechaProgramada = d(dueDate);
+  if (notes)       data.observaciones   = notes;
+  if (description) data.descripcion     = description;
+  if (roomId)      data.salaCultivoId   = Number(roomId);
+  if (bedId)       data.camillaId       = Number(bedId);
+  if (batchId)     data.loteCultivoId   = Number(batchId);
+  if (plantId)     data.plantaId        = Number(plantId);
+  if (data.fechaProgramada == null && data.dueDate) data.fechaProgramada = d(data.dueDate);
+  return data;
+}
+
+cultivationRouter.post("/tasks", async (req, res, next) => {
+  try { res.status(201).json(await prisma.tareaCultivo.create({ data: mapTaskPayload(req.body) })); }
+  catch (e) { next(e); }
+});
 cultivationRouter.use("/tasks", crudRouter(prisma.tareaCultivo, { orderBy: { id: "desc" }, dateFields: ["fechaProgramada", "fechaCompletada"] }));
+
+cultivationRouter.post("/operational-tasks", async (req, res, next) => {
+  try { res.status(201).json(await prisma.tareaCultivo.create({ data: mapTaskPayload(req.body) })); }
+  catch (e) { next(e); }
+});
+cultivationRouter.patch("/operational-tasks/:id/status", async (req, res, next) => {
+  try {
+    res.json(await prisma.tareaCultivo.update({
+      where: { id: id(req) },
+      data: { estado: req.body.status ?? req.body.estado },
+    }));
+  } catch (e) { next(e); }
+});
+cultivationRouter.patch("/operational-tasks/:id/complete", async (req, res, next) => {
+  try {
+    res.json(await prisma.tareaCultivo.update({
+      where: { id: id(req) },
+      data: { estado: "completada", fechaCompletada: new Date() },
+    }));
+  } catch (e) { next(e); }
+});
 cultivationRouter.use("/operational-tasks", crudRouter(prisma.tareaCultivo, { orderBy: { id: "desc" }, dateFields: ["fechaProgramada", "fechaCompletada"] }));
 
 // Harvests (cosechas)
@@ -590,9 +640,21 @@ clonadorRouter.post("/:id/send-to-camilla", async (req, res, next) => {
 cultivationRouter.use("/clonadores", clonadorRouter);
 
 // Irrigation systems
+cultivationRouter.post("/irrigation-systems", async (req, res, next) => {
+  try {
+    const data = { ...req.body };
+    if (!data.codigoRiego) data.codigoRiego = `RIE-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+    if (data.camillaId) data.camillaId = Number(data.camillaId);
+    res.status(201).json(await prisma.sistemaRiego.create({
+      data,
+      include: { camilla: { select: { nombre: true, codigoCamilla: true } } },
+    }));
+  } catch (e) { next(e); }
+});
 cultivationRouter.use("/irrigation-systems", crudRouter(prisma.sistemaRiego, {
   include: { camilla: { select: { nombre: true, codigoCamilla: true } } },
   orderBy: { id: "desc" },
+  filters: (q) => q.camillaId ? { camillaId: Number(q.camillaId) } : undefined,
 }));
 
 // Irrigation logs
@@ -671,8 +733,13 @@ batchRouter.get("/summary", async (_req, res, next) => {
   } catch (e) { next(e); }
 });
 batchRouter.post("/", async (req, res, next) => {
-  try { res.status(201).json(await prisma.loteProducto.create({ data: req.body, include: batchInclude })); }
-  catch (e) { next(e); }
+  try {
+    const data = { ...req.body };
+    if (!data.codigoLoteProducto) data.codigoLoteProducto = `LP-${Date.now().toString(36).toUpperCase().slice(-8)}`;
+    if (data.fechaIngreso)    data.fechaIngreso    = d(data.fechaIngreso);
+    if (data.fechaVencimiento) data.fechaVencimiento = d(data.fechaVencimiento);
+    res.status(201).json(await prisma.loteProducto.create({ data, include: batchInclude }));
+  } catch (e) { next(e); }
 });
 batchRouter.get("/:id", async (req, res, next) => {
   try {
@@ -802,9 +869,78 @@ billingRouter.post("/invoices/:id/debit-note", async (req, res, next) => {
 
 app.use("/api/billing", billingRouter);
 
-// ─── Users & Roles (minimal) ──────────────────────────────────────────────────
+// ─── Users & Roles ────────────────────────────────────────────────────────────
 
-app.use("/api/users", crudRouter(prisma.usuario, { orderBy: { id: "desc" } }));
+const userInclude = { roles: { include: { rol: { select: { id: true, slug: true, nombre: true } } } } };
+
+async function prepareUserData(body, isCreate = false) {
+  const { password, roleSlugs, ...data } = body;
+  if (password) data.passwordHash = await bcrypt.hash(password, 10);
+  if (isCreate && !data.codigoUsuario && data.username) {
+    data.codigoUsuario = `USR-${String(data.username).toUpperCase().slice(0, 6)}-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+  }
+  return { data, roleSlugs };
+}
+
+const userRouter = Router();
+userRouter.get("/", async (_req, res, next) => {
+  try { res.json(await prisma.usuario.findMany({ include: userInclude, orderBy: { id: "desc" } })); }
+  catch (e) { next(e); }
+});
+userRouter.post("/", async (req, res, next) => {
+  try {
+    const { data, roleSlugs } = await prepareUserData(req.body, true);
+    const user = await prisma.usuario.create({ data, include: userInclude });
+    if (roleSlugs?.length) {
+      const roles = await prisma.rol.findMany({ where: { slug: { in: roleSlugs } } });
+      await prisma.usuarioRol.createMany({ data: roles.map((r) => ({ usuarioId: user.id, rolId: r.id })) });
+      return res.status(201).json(await prisma.usuario.findUnique({ where: { id: user.id }, include: userInclude }));
+    }
+    res.status(201).json(user);
+  } catch (e) { next(e); }
+});
+userRouter.get("/:id", async (req, res, next) => {
+  try {
+    const u = await prisma.usuario.findUnique({ where: { id: id(req) }, include: userInclude });
+    if (!u) return notFound(res);
+    res.json(u);
+  } catch (e) { next(e); }
+});
+userRouter.patch("/:id", async (req, res, next) => {
+  try {
+    const { data, roleSlugs } = await prepareUserData(req.body);
+    const user = await prisma.usuario.update({ where: { id: id(req) }, data, include: userInclude });
+    if (roleSlugs) {
+      await prisma.usuarioRol.deleteMany({ where: { usuarioId: id(req) } });
+      if (roleSlugs.length) {
+        const roles = await prisma.rol.findMany({ where: { slug: { in: roleSlugs } } });
+        await prisma.usuarioRol.createMany({ data: roles.map((r) => ({ usuarioId: id(req), rolId: r.id })) });
+      }
+      return res.json(await prisma.usuario.findUnique({ where: { id: id(req) }, include: userInclude }));
+    }
+    res.json(user);
+  } catch (e) { next(e); }
+});
+userRouter.put("/:id", async (req, res, next) => {
+  try {
+    const { data, roleSlugs } = await prepareUserData(req.body);
+    const user = await prisma.usuario.update({ where: { id: id(req) }, data, include: userInclude });
+    if (roleSlugs) {
+      await prisma.usuarioRol.deleteMany({ where: { usuarioId: id(req) } });
+      if (roleSlugs.length) {
+        const roles = await prisma.rol.findMany({ where: { slug: { in: roleSlugs } } });
+        await prisma.usuarioRol.createMany({ data: roles.map((r) => ({ usuarioId: id(req), rolId: r.id })) });
+      }
+      return res.json(await prisma.usuario.findUnique({ where: { id: id(req) }, include: userInclude }));
+    }
+    res.json(user);
+  } catch (e) { next(e); }
+});
+userRouter.delete("/:id", async (req, res, next) => {
+  try { res.json(await prisma.usuario.update({ where: { id: id(req) }, data: { estado: "inactivo" } })); }
+  catch (e) { next(e); }
+});
+app.use("/api/users", userRouter);
 app.use("/api/roles", crudRouter(prisma.rol, { orderBy: { id: "desc" } }));
 app.get("/api/permissions", async (_req, res, next) => {
   try { res.json(await prisma.permiso.findMany({ orderBy: { modulo: "asc" } })); }
