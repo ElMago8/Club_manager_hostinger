@@ -91,11 +91,13 @@ function crudRouter(model, opts = {}) {
     } catch (e) { next(e); }
   });
 
-  r.put("/:id", async (req, res, next) => {
+  const updateHandler = async (req, res, next) => {
     try {
       res.json(await model.update({ where: { id: id(req) }, data: prepareDates(req.body), include }));
     } catch (e) { next(e); }
-  });
+  };
+  r.put("/:id", updateHandler);
+  r.patch("/:id", updateHandler);
 
   r.delete("/:id", async (req, res, next) => {
     try {
@@ -181,13 +183,15 @@ memberRouter.get("/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-memberRouter.put("/:id", async (req, res, next) => {
+const memberUpdateHandler = async (req, res, next) => {
   try {
     const data = { ...req.body };
     if (data.fechaNacimiento) data.fechaNacimiento = d(data.fechaNacimiento);
     res.json(await prisma.socio.update({ where: { id: id(req) }, data }));
   } catch (e) { next(e); }
-});
+};
+memberRouter.put("/:id", memberUpdateHandler);
+memberRouter.patch("/:id", memberUpdateHandler);
 
 memberRouter.delete("/:id", async (req, res, next) => {
   try {
@@ -217,11 +221,13 @@ app.get("/api/member-documents/:id", async (req, res, next) => {
     res.json(doc);
   } catch (e) { next(e); }
 });
-app.put("/api/member-documents/:id", async (req, res, next) => {
+const memberDocUpdateHandler = async (req, res, next) => {
   try {
     res.json(await prisma.documentoSocio.update({ where: { id: id(req) }, data: req.body }));
   } catch (e) { next(e); }
-});
+};
+app.put("/api/member-documents/:id", memberDocUpdateHandler);
+app.patch("/api/member-documents/:id", memberDocUpdateHandler);
 app.delete("/api/member-documents/:id", async (req, res, next) => {
   try {
     res.json(await prisma.documentoSocio.delete({ where: { id: id(req) } }));
@@ -270,10 +276,12 @@ bedRouter.get("/:id", async (req, res, next) => {
     res.json(record);
   } catch (e) { next(e); }
 });
-bedRouter.put("/:id", async (req, res, next) => {
+const bedUpdateHandler = async (req, res, next) => {
   try { res.json(await prisma.camilla.update({ where: { id: id(req) }, data: req.body, include: bedInclude })); }
   catch (e) { next(e); }
-});
+};
+bedRouter.put("/:id", bedUpdateHandler);
+bedRouter.patch("/:id", bedUpdateHandler);
 bedRouter.delete("/:id", async (req, res, next) => {
   try { res.json(await prisma.camilla.delete({ where: { id: id(req) } })); }
   catch (e) { next(e); }
@@ -373,10 +381,12 @@ plantRouter.get("/:id", async (req, res, next) => {
     res.json(record);
   } catch (e) { next(e); }
 });
-plantRouter.put("/:id", async (req, res, next) => {
+const plantUpdateHandler = async (req, res, next) => {
   try { res.json(await prisma.planta.update({ where: { id: id(req) }, data: req.body, include: plantInclude })); }
   catch (e) { next(e); }
-});
+};
+plantRouter.put("/:id", plantUpdateHandler);
+plantRouter.patch("/:id", plantUpdateHandler);
 plantRouter.delete("/:id", async (req, res, next) => {
   try { res.json(await prisma.planta.delete({ where: { id: id(req) } })); }
   catch (e) { next(e); }
@@ -558,10 +568,12 @@ productRouter.get("/:id", async (req, res, next) => {
     res.json(record);
   } catch (e) { next(e); }
 });
-productRouter.put("/:id", async (req, res, next) => {
+const productUpdateHandler = async (req, res, next) => {
   try { res.json(await prisma.producto.update({ where: { id: id(req) }, data: req.body })); }
   catch (e) { next(e); }
-});
+};
+productRouter.put("/:id", productUpdateHandler);
+productRouter.patch("/:id", productUpdateHandler);
 productRouter.delete("/:id", async (req, res, next) => {
   try { res.json(await prisma.producto.delete({ where: { id: id(req) } })); }
   catch (e) { next(e); }
@@ -611,10 +623,16 @@ batchRouter.get("/:id", async (req, res, next) => {
     res.json(record);
   } catch (e) { next(e); }
 });
-batchRouter.put("/:id", async (req, res, next) => {
-  try { res.json(await prisma.loteProducto.update({ where: { id: id(req) }, data: req.body, include: batchInclude })); }
-  catch (e) { next(e); }
-});
+const batchUpdateHandler = async (req, res, next) => {
+  try {
+    const data = { ...req.body };
+    if (data.fechaIngreso) data.fechaIngreso = d(data.fechaIngreso);
+    if (data.fechaVencimiento) data.fechaVencimiento = d(data.fechaVencimiento);
+    res.json(await prisma.loteProducto.update({ where: { id: id(req) }, data, include: batchInclude }));
+  } catch (e) { next(e); }
+};
+batchRouter.put("/:id", batchUpdateHandler);
+batchRouter.patch("/:id", batchUpdateHandler);
 batchRouter.delete("/:id", async (req, res, next) => {
   try { res.json(await prisma.loteProducto.delete({ where: { id: id(req) } })); }
   catch (e) { next(e); }
@@ -652,12 +670,14 @@ billingRouter.get("/invoices/:id", async (req, res, next) => {
     res.json(record);
   } catch (e) { next(e); }
 });
-billingRouter.put("/invoices/:id", async (req, res, next) => {
+const billingUpdateHandler = async (req, res, next) => {
   try {
     const { items, pagos, ...data } = req.body;
     res.json(await prisma.comprobanteFacturacion.update({ where: { id: id(req) }, data, include: billingInclude }));
   } catch (e) { next(e); }
-});
+};
+billingRouter.put("/invoices/:id", billingUpdateHandler);
+billingRouter.patch("/invoices/:id", billingUpdateHandler);
 billingRouter.delete("/invoices/:id", async (req, res, next) => {
   try { res.json(await prisma.comprobanteFacturacion.delete({ where: { id: id(req) } })); }
   catch (e) { next(e); }
