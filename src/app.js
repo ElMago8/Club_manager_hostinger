@@ -38,26 +38,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Convierte "YYYY-MM-DD" a Date en cualquier campo del body antes de llegar a Prisma
-function fixDates(obj) {
-  if (Array.isArray(obj)) return obj.map(fixDates);
-  if (obj !== null && typeof obj === "object") {
-    const out = {};
-    for (const [k, v] of Object.entries(obj)) {
-      if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
-        out[k] = new Date(v + "T12:00:00.000Z");
-      } else if (v !== null && typeof v === "object") {
-        out[k] = fixDates(v);
-      } else {
-        out[k] = v;
-      }
-    }
-    return out;
-  }
-  return obj;
-}
-app.use((req, _res, next) => { if (req.body) req.body = fixDates(req.body); next(); });
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function id(req) { return Number(req.params.id); }
