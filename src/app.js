@@ -182,7 +182,7 @@ const memberRouter = Router();
 
 memberRouter.get("/", async (_req, res, next) => {
   try {
-    res.json(await prisma.socio.findMany({ orderBy: { apellido: "asc" } }));
+    res.json(await prisma.socio.findMany({ orderBy: { apellido: "asc" }, include: { documentos: { where: { estado: { not: "inactivo" } } } } }));
   } catch (e) { next(e); }
 });
 
