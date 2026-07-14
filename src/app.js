@@ -384,14 +384,14 @@ plantRouter.get("/", async (req, res, next) => {
     }));
   } catch (e) { next(e); }
 });
-async function preparePlantData(body) {
+async function preparePlantData(body, isCreate = false) {
   const data = { ...body };
-  // Fechas: "YYYY-MM-DD" → DateTime
   if (data.fechaInicio)      data.fechaInicio      = d(data.fechaInicio);
   if (data.fechaInicioEtapa) data.fechaInicioEtapa = d(data.fechaInicioEtapa);
-  // Código requerido
-  if (!data.codigoPlanta)  data.codigoPlanta  = `PLT-${Date.now().toString(36).toUpperCase().slice(-8)}`;
-  if (!data.nombrePlanta)  data.nombrePlanta  = data.codigoPlanta;
+  if (isCreate) {
+    if (!data.codigoPlanta) data.codigoPlanta = `PLT-${Date.now().toString(36).toUpperCase().slice(-8)}`;
+    if (!data.nombrePlanta) data.nombrePlanta = data.codigoPlanta;
+  }
   // El frontend envía camillaId para AMBOS camillas y clonadores.
   // Verificamos en qué tabla existe el ID y redirigimos si corresponde.
   if (data.camillaId != null) {
@@ -414,7 +414,7 @@ async function preparePlantData(body) {
 
 plantRouter.post("/", async (req, res, next) => {
   try {
-    res.status(201).json(await prisma.planta.create({ data: await preparePlantData(req.body), include: plantInclude }));
+    res.status(201).json(await prisma.planta.create({ data: await preparePlantData(req.body, true), include: plantInclude }));
   } catch (e) { next(e); }
 });
 plantRouter.post("/bulk", async (req, res, next) => {
