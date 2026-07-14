@@ -384,9 +384,37 @@ plantRouter.get("/", async (req, res, next) => {
     }));
   } catch (e) { next(e); }
 });
+async function preparePlantData(body) {
+  const data = { ...body };
+  // Fechas: "YYYY-MM-DD" → DateTime
+  if (data.fechaInicio)      data.fechaInicio      = d(data.fechaInicio);
+  if (data.fechaInicioEtapa) data.fechaInicioEtapa = d(data.fechaInicioEtapa);
+  // Código requerido
+  if (!data.codigoPlanta)  data.codigoPlanta  = `PLT-${Date.now().toString(36).toUpperCase().slice(-8)}`;
+  if (!data.nombrePlanta)  data.nombrePlanta  = data.codigoPlanta;
+  // El frontend envía camillaId para AMBOS camillas y clonadores.
+  // Verificamos en qué tabla existe el ID y redirigimos si corresponde.
+  if (data.camillaId != null) {
+    const numId = Number(data.camillaId);
+    const camilla = await prisma.camilla.findUnique({ where: { id: numId }, select: { id: true } });
+    if (!camilla) {
+      const clonador = await prisma.clonador.findUnique({ where: { id: numId }, select: { id: true } });
+      if (clonador) {
+        data.clonadorId      = numId;
+        data.posicionClonador = data.posicionCamilla ?? null;
+        delete data.camillaId;
+        delete data.posicionCamilla;
+      }
+    } else {
+      data.camillaId = numId;
+    }
+  }
+  return data;
+}
+
 plantRouter.post("/", async (req, res, next) => {
   try {
-    res.status(201).json(await prisma.planta.create({ data: req.body, include: plantInclude }));
+    res.status(201).json(await prisma.planta.create({ data: await preparePlantData(req.body), include: plantInclude }));
   } catch (e) { next(e); }
 });
 plantRouter.post("/bulk", async (req, res, next) => {
@@ -439,8 +467,10 @@ plantRouter.get("/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 const plantUpdateHandler = async (req, res, next) => {
-  try { res.json(await prisma.planta.update({ where: { id: id(req) }, data: req.body, include: plantInclude })); }
-  catch (e) { next(e); }
+  try {
+    const data = await preparePlantData(req.body);
+    res.json(await prisma.planta.update({ where: { id: id(req) }, data, include: plantInclude }));
+  } catch (e) { next(e); }
 };
 plantRouter.put("/:id", plantUpdateHandler);
 plantRouter.patch("/:id", plantUpdateHandler);
