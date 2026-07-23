@@ -700,7 +700,7 @@ productRouter.get("/", async (_req, res, next) => {
   catch (e) { next(e); }
 });
 productRouter.post("/", async (req, res, next) => {
-  try { const { cantidad, ...data } = req.body; res.status(201).json(await prisma.producto.create({ data })); }
+  try { res.status(201).json(await prisma.producto.create({ data: req.body })); }
   catch (e) { next(e); }
 });
 productRouter.get("/categories", async (_req, res, next) => {
@@ -719,7 +719,7 @@ productRouter.get("/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 const productUpdateHandler = async (req, res, next) => {
-  try { const { cantidad, ...data } = req.body; res.json(await prisma.producto.update({ where: { id: id(req) }, data })); }
+  try { res.json(await prisma.producto.update({ where: { id: id(req) }, data: req.body })); }
   catch (e) { next(e); }
 };
 productRouter.put("/:id", productUpdateHandler);

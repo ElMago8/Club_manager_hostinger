@@ -601,6 +601,7 @@ model Producto {
   estado               String   @default("activo")
   requiereLote         Boolean  @default(true) @map("requiere_lote")
   requiereTrazabilidad Boolean  @default(true) @map("requiere_trazabilidad")
+  cantidad             Float?
   creadoEn             DateTime @default(now()) @map("creado_en")
   actualizadoEn        DateTime @updatedAt @map("actualizado_en")
 

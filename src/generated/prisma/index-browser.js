@@ -501,6 +501,7 @@ exports.Prisma.ProductoScalarFieldEnum = {
   estado: 'estado',
   requiereLote: 'requiereLote',
   requiereTrazabilidad: 'requiereTrazabilidad',
+  cantidad: 'cantidad',
   creadoEn: 'creadoEn',
   actualizadoEn: 'actualizadoEn'
 };

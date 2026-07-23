@@ -34404,11 +34404,13 @@ export namespace Prisma {
   export type ProductoAvgAggregateOutputType = {
     id: number | null
     categoriaProductoId: number | null
+    cantidad: number | null
   }
 
   export type ProductoSumAggregateOutputType = {
     id: number | null
     categoriaProductoId: number | null
+    cantidad: number | null
   }
 
   export type ProductoMinAggregateOutputType = {
@@ -34422,6 +34424,7 @@ export namespace Prisma {
     estado: string | null
     requiereLote: boolean | null
     requiereTrazabilidad: boolean | null
+    cantidad: number | null
     creadoEn: Date | null
     actualizadoEn: Date | null
   }
@@ -34437,6 +34440,7 @@ export namespace Prisma {
     estado: string | null
     requiereLote: boolean | null
     requiereTrazabilidad: boolean | null
+    cantidad: number | null
     creadoEn: Date | null
     actualizadoEn: Date | null
   }
@@ -34452,6 +34456,7 @@ export namespace Prisma {
     estado: number
     requiereLote: number
     requiereTrazabilidad: number
+    cantidad: number
     creadoEn: number
     actualizadoEn: number
     _all: number
@@ -34461,11 +34466,13 @@ export namespace Prisma {
   export type ProductoAvgAggregateInputType = {
     id?: true
     categoriaProductoId?: true
+    cantidad?: true
   }
 
   export type ProductoSumAggregateInputType = {
     id?: true
     categoriaProductoId?: true
+    cantidad?: true
   }
 
   export type ProductoMinAggregateInputType = {
@@ -34479,6 +34486,7 @@ export namespace Prisma {
     estado?: true
     requiereLote?: true
     requiereTrazabilidad?: true
+    cantidad?: true
     creadoEn?: true
     actualizadoEn?: true
   }
@@ -34494,6 +34502,7 @@ export namespace Prisma {
     estado?: true
     requiereLote?: true
     requiereTrazabilidad?: true
+    cantidad?: true
     creadoEn?: true
     actualizadoEn?: true
   }
@@ -34509,6 +34518,7 @@ export namespace Prisma {
     estado?: true
     requiereLote?: true
     requiereTrazabilidad?: true
+    cantidad?: true
     creadoEn?: true
     actualizadoEn?: true
     _all?: true
@@ -34611,6 +34621,7 @@ export namespace Prisma {
     estado: string
     requiereLote: boolean
     requiereTrazabilidad: boolean
+    cantidad: number | null
     creadoEn: Date
     actualizadoEn: Date
     _count: ProductoCountAggregateOutputType | null
@@ -34645,6 +34656,7 @@ export namespace Prisma {
     estado?: boolean
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: boolean
     creadoEn?: boolean
     actualizadoEn?: boolean
     categoria?: boolean | Producto$categoriaArgs<ExtArgs>
@@ -34663,6 +34675,7 @@ export namespace Prisma {
     estado?: boolean
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: boolean
     creadoEn?: boolean
     actualizadoEn?: boolean
     categoria?: boolean | Producto$categoriaArgs<ExtArgs>
@@ -34679,6 +34692,7 @@ export namespace Prisma {
     estado?: boolean
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: boolean
     creadoEn?: boolean
     actualizadoEn?: boolean
     categoria?: boolean | Producto$categoriaArgs<ExtArgs>
@@ -34695,11 +34709,12 @@ export namespace Prisma {
     estado?: boolean
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: boolean
     creadoEn?: boolean
     actualizadoEn?: boolean
   }
 
-  export type ProductoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "codigoProducto" | "categoriaProductoId" | "nombre" | "tipoProducto" | "unidadMedida" | "descripcion" | "estado" | "requiereLote" | "requiereTrazabilidad" | "creadoEn" | "actualizadoEn", ExtArgs["result"]["producto"]>
+  export type ProductoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "codigoProducto" | "categoriaProductoId" | "nombre" | "tipoProducto" | "unidadMedida" | "descripcion" | "estado" | "requiereLote" | "requiereTrazabilidad" | "cantidad" | "creadoEn" | "actualizadoEn", ExtArgs["result"]["producto"]>
   export type ProductoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     categoria?: boolean | Producto$categoriaArgs<ExtArgs>
     lotes?: boolean | Producto$lotesArgs<ExtArgs>
@@ -34729,6 +34744,7 @@ export namespace Prisma {
       estado: string
       requiereLote: boolean
       requiereTrazabilidad: boolean
+      cantidad: number | null
       creadoEn: Date
       actualizadoEn: Date
     }, ExtArgs["result"]["producto"]>
@@ -35166,6 +35182,7 @@ export namespace Prisma {
     readonly estado: FieldRef<"Producto", 'String'>
     readonly requiereLote: FieldRef<"Producto", 'Boolean'>
     readonly requiereTrazabilidad: FieldRef<"Producto", 'Boolean'>
+    readonly cantidad: FieldRef<"Producto", 'Float'>
     readonly creadoEn: FieldRef<"Producto", 'DateTime'>
     readonly actualizadoEn: FieldRef<"Producto", 'DateTime'>
   }
@@ -38616,6 +38633,7 @@ export namespace Prisma {
     estado: 'estado',
     requiereLote: 'requiereLote',
     requiereTrazabilidad: 'requiereTrazabilidad',
+    cantidad: 'cantidad',
     creadoEn: 'creadoEn',
     actualizadoEn: 'actualizadoEn'
   };
@@ -41173,6 +41191,7 @@ export namespace Prisma {
     estado?: StringFilter<"Producto"> | string
     requiereLote?: BoolFilter<"Producto"> | boolean
     requiereTrazabilidad?: BoolFilter<"Producto"> | boolean
+    cantidad?: FloatNullableFilter<"Producto"> | number | null
     creadoEn?: DateTimeFilter<"Producto"> | Date | string
     actualizadoEn?: DateTimeFilter<"Producto"> | Date | string
     categoria?: XOR<CategoriaProductoNullableScalarRelationFilter, CategoriaProductoWhereInput> | null
@@ -41190,6 +41209,7 @@ export namespace Prisma {
     estado?: SortOrder
     requiereLote?: SortOrder
     requiereTrazabilidad?: SortOrder
+    cantidad?: SortOrderInput | SortOrder
     creadoEn?: SortOrder
     actualizadoEn?: SortOrder
     categoria?: CategoriaProductoOrderByWithRelationInput
@@ -41210,6 +41230,7 @@ export namespace Prisma {
     estado?: StringFilter<"Producto"> | string
     requiereLote?: BoolFilter<"Producto"> | boolean
     requiereTrazabilidad?: BoolFilter<"Producto"> | boolean
+    cantidad?: FloatNullableFilter<"Producto"> | number | null
     creadoEn?: DateTimeFilter<"Producto"> | Date | string
     actualizadoEn?: DateTimeFilter<"Producto"> | Date | string
     categoria?: XOR<CategoriaProductoNullableScalarRelationFilter, CategoriaProductoWhereInput> | null
@@ -41227,6 +41248,7 @@ export namespace Prisma {
     estado?: SortOrder
     requiereLote?: SortOrder
     requiereTrazabilidad?: SortOrder
+    cantidad?: SortOrderInput | SortOrder
     creadoEn?: SortOrder
     actualizadoEn?: SortOrder
     _count?: ProductoCountOrderByAggregateInput
@@ -41250,6 +41272,7 @@ export namespace Prisma {
     estado?: StringWithAggregatesFilter<"Producto"> | string
     requiereLote?: BoolWithAggregatesFilter<"Producto"> | boolean
     requiereTrazabilidad?: BoolWithAggregatesFilter<"Producto"> | boolean
+    cantidad?: FloatNullableWithAggregatesFilter<"Producto"> | number | null
     creadoEn?: DateTimeWithAggregatesFilter<"Producto"> | Date | string
     actualizadoEn?: DateTimeWithAggregatesFilter<"Producto"> | Date | string
   }
@@ -44126,6 +44149,7 @@ export namespace Prisma {
     estado?: string
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: number | null
     creadoEn?: Date | string
     actualizadoEn?: Date | string
     categoria?: CategoriaProductoCreateNestedOneWithoutProductosInput
@@ -44143,6 +44167,7 @@ export namespace Prisma {
     estado?: string
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: number | null
     creadoEn?: Date | string
     actualizadoEn?: Date | string
     lotes?: LoteProductoUncheckedCreateNestedManyWithoutProductoInput
@@ -44157,6 +44182,7 @@ export namespace Prisma {
     estado?: StringFieldUpdateOperationsInput | string
     requiereLote?: BoolFieldUpdateOperationsInput | boolean
     requiereTrazabilidad?: BoolFieldUpdateOperationsInput | boolean
+    cantidad?: NullableFloatFieldUpdateOperationsInput | number | null
     creadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     actualizadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     categoria?: CategoriaProductoUpdateOneWithoutProductosNestedInput
@@ -44174,6 +44200,7 @@ export namespace Prisma {
     estado?: StringFieldUpdateOperationsInput | string
     requiereLote?: BoolFieldUpdateOperationsInput | boolean
     requiereTrazabilidad?: BoolFieldUpdateOperationsInput | boolean
+    cantidad?: NullableFloatFieldUpdateOperationsInput | number | null
     creadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     actualizadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     lotes?: LoteProductoUncheckedUpdateManyWithoutProductoNestedInput
@@ -44190,6 +44217,7 @@ export namespace Prisma {
     estado?: string
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: number | null
     creadoEn?: Date | string
     actualizadoEn?: Date | string
   }
@@ -44203,6 +44231,7 @@ export namespace Prisma {
     estado?: StringFieldUpdateOperationsInput | string
     requiereLote?: BoolFieldUpdateOperationsInput | boolean
     requiereTrazabilidad?: BoolFieldUpdateOperationsInput | boolean
+    cantidad?: NullableFloatFieldUpdateOperationsInput | number | null
     creadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     actualizadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -44218,6 +44247,7 @@ export namespace Prisma {
     estado?: StringFieldUpdateOperationsInput | string
     requiereLote?: BoolFieldUpdateOperationsInput | boolean
     requiereTrazabilidad?: BoolFieldUpdateOperationsInput | boolean
+    cantidad?: NullableFloatFieldUpdateOperationsInput | number | null
     creadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     actualizadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -46443,6 +46473,7 @@ export namespace Prisma {
     estado?: SortOrder
     requiereLote?: SortOrder
     requiereTrazabilidad?: SortOrder
+    cantidad?: SortOrder
     creadoEn?: SortOrder
     actualizadoEn?: SortOrder
   }
@@ -46450,6 +46481,7 @@ export namespace Prisma {
   export type ProductoAvgOrderByAggregateInput = {
     id?: SortOrder
     categoriaProductoId?: SortOrder
+    cantidad?: SortOrder
   }
 
   export type ProductoMaxOrderByAggregateInput = {
@@ -46463,6 +46495,7 @@ export namespace Prisma {
     estado?: SortOrder
     requiereLote?: SortOrder
     requiereTrazabilidad?: SortOrder
+    cantidad?: SortOrder
     creadoEn?: SortOrder
     actualizadoEn?: SortOrder
   }
@@ -46478,6 +46511,7 @@ export namespace Prisma {
     estado?: SortOrder
     requiereLote?: SortOrder
     requiereTrazabilidad?: SortOrder
+    cantidad?: SortOrder
     creadoEn?: SortOrder
     actualizadoEn?: SortOrder
   }
@@ -46485,6 +46519,7 @@ export namespace Prisma {
   export type ProductoSumOrderByAggregateInput = {
     id?: SortOrder
     categoriaProductoId?: SortOrder
+    cantidad?: SortOrder
   }
 
   export type UbicacionStockCountOrderByAggregateInput = {
@@ -56023,6 +56058,7 @@ export namespace Prisma {
     estado?: string
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: number | null
     creadoEn?: Date | string
     actualizadoEn?: Date | string
     lotes?: LoteProductoCreateNestedManyWithoutProductoInput
@@ -56038,6 +56074,7 @@ export namespace Prisma {
     estado?: string
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: number | null
     creadoEn?: Date | string
     actualizadoEn?: Date | string
     lotes?: LoteProductoUncheckedCreateNestedManyWithoutProductoInput
@@ -56082,6 +56119,7 @@ export namespace Prisma {
     estado?: StringFilter<"Producto"> | string
     requiereLote?: BoolFilter<"Producto"> | boolean
     requiereTrazabilidad?: BoolFilter<"Producto"> | boolean
+    cantidad?: FloatNullableFilter<"Producto"> | number | null
     creadoEn?: DateTimeFilter<"Producto"> | Date | string
     actualizadoEn?: DateTimeFilter<"Producto"> | Date | string
   }
@@ -56273,6 +56311,7 @@ export namespace Prisma {
     estado?: string
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: number | null
     creadoEn?: Date | string
     actualizadoEn?: Date | string
     categoria?: CategoriaProductoCreateNestedOneWithoutProductosInput
@@ -56289,6 +56328,7 @@ export namespace Prisma {
     estado?: string
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: number | null
     creadoEn?: Date | string
     actualizadoEn?: Date | string
   }
@@ -56482,6 +56522,7 @@ export namespace Prisma {
     estado?: StringFieldUpdateOperationsInput | string
     requiereLote?: BoolFieldUpdateOperationsInput | boolean
     requiereTrazabilidad?: BoolFieldUpdateOperationsInput | boolean
+    cantidad?: NullableFloatFieldUpdateOperationsInput | number | null
     creadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     actualizadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     categoria?: CategoriaProductoUpdateOneWithoutProductosNestedInput
@@ -56498,6 +56539,7 @@ export namespace Prisma {
     estado?: StringFieldUpdateOperationsInput | string
     requiereLote?: BoolFieldUpdateOperationsInput | boolean
     requiereTrazabilidad?: BoolFieldUpdateOperationsInput | boolean
+    cantidad?: NullableFloatFieldUpdateOperationsInput | number | null
     creadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     actualizadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -59533,6 +59575,7 @@ export namespace Prisma {
     estado?: string
     requiereLote?: boolean
     requiereTrazabilidad?: boolean
+    cantidad?: number | null
     creadoEn?: Date | string
     actualizadoEn?: Date | string
   }
@@ -59546,6 +59589,7 @@ export namespace Prisma {
     estado?: StringFieldUpdateOperationsInput | string
     requiereLote?: BoolFieldUpdateOperationsInput | boolean
     requiereTrazabilidad?: BoolFieldUpdateOperationsInput | boolean
+    cantidad?: NullableFloatFieldUpdateOperationsInput | number | null
     creadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     actualizadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     lotes?: LoteProductoUpdateManyWithoutProductoNestedInput
@@ -59561,6 +59605,7 @@ export namespace Prisma {
     estado?: StringFieldUpdateOperationsInput | string
     requiereLote?: BoolFieldUpdateOperationsInput | boolean
     requiereTrazabilidad?: BoolFieldUpdateOperationsInput | boolean
+    cantidad?: NullableFloatFieldUpdateOperationsInput | number | null
     creadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     actualizadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     lotes?: LoteProductoUncheckedUpdateManyWithoutProductoNestedInput
@@ -59576,6 +59621,7 @@ export namespace Prisma {
     estado?: StringFieldUpdateOperationsInput | string
     requiereLote?: BoolFieldUpdateOperationsInput | boolean
     requiereTrazabilidad?: BoolFieldUpdateOperationsInput | boolean
+    cantidad?: NullableFloatFieldUpdateOperationsInput | number | null
     creadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
     actualizadoEn?: DateTimeFieldUpdateOperationsInput | Date | string
   }
