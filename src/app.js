@@ -700,7 +700,10 @@ productRouter.get("/", async (_req, res, next) => {
   catch (e) { next(e); }
 });
 productRouter.post("/", async (req, res, next) => {
-  try { res.status(201).json(await prisma.producto.create({ data: req.body })); }
+  try {
+    const { cantidad, ...data } = req.body;
+    res.status(201).json(await prisma.producto.create({ data }));
+  }
   catch (e) { next(e); }
 });
 productRouter.get("/categories", async (_req, res, next) => {
@@ -719,7 +722,10 @@ productRouter.get("/:id", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 const productUpdateHandler = async (req, res, next) => {
-  try { res.json(await prisma.producto.update({ where: { id: id(req) }, data: req.body })); }
+  try {
+    const { cantidad, ...data } = req.body;
+    res.json(await prisma.producto.update({ where: { id: id(req) }, data }));
+  }
   catch (e) { next(e); }
 };
 productRouter.put("/:id", productUpdateHandler);
@@ -736,8 +742,15 @@ app.use("/api/stock/locations", crudRouter(prisma.ubicacionStock, { orderBy: { n
 // Product batches
 const batchRouter = Router();
 const batchInclude = { producto: true, genetica: true, ubicacionStock: true, cosecha: { select: { id: true, codigoCosecha: true } } };
-batchRouter.get("/", async (_req, res, next) => {
-  try { res.json(await prisma.loteProducto.findMany({ include: batchInclude, orderBy: { id: "desc" } })); }
+batchRouter.get("/", async (req, res, next) => {
+  try {
+    const where = {};
+    if (req.query.estado) where.estado = req.query.estado;
+    if (req.query.productoId) where.productoId = Number(req.query.productoId);
+    if (req.query.geneticaId) where.geneticaId = Number(req.query.geneticaId);
+    if (req.query.ubicacionId) where.ubicacionStockId = Number(req.query.ubicacionId);
+    res.json(await prisma.loteProducto.findMany({ where, include: batchInclude, orderBy: { id: "desc" } }));
+  }
   catch (e) { next(e); }
 });
 batchRouter.get("/summary", async (_req, res, next) => {
