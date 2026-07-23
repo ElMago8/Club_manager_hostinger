@@ -20,6 +20,20 @@ console.log("DB file exists:", (() => { try { return fs.existsSync(dbFilePath); 
 console.log("DB writable:", (() => { try { fs.accessSync(dbFilePath, fs.constants.W_OK); return true; } catch { return false; } })());
 
 const prisma = new PrismaClient();
+
+// Migración inline: agrega columna cantidad si no existe
+(async () => {
+  try {
+    const cols = await prisma.$queryRawUnsafe(`PRAGMA table_info(productos)`);
+    if (!cols.some((c) => c.name === "cantidad")) {
+      await prisma.$executeRawUnsafe(`ALTER TABLE productos ADD COLUMN cantidad REAL`);
+      console.log("Migración: columna 'cantidad' agregada a productos");
+    }
+  } catch (e) {
+    console.error("Migración cantidad:", e.message);
+  }
+})();
+
 const app = express();
 const Router = express.Router;
 
