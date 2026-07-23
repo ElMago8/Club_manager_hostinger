@@ -1,3 +1,15 @@
+// Garantiza que el cliente Prisma esté generado antes de arrancar,
+// independientemente de si Hostinger corrió el build step o no.
+const { execSync } = require("child_process");
+try {
+  require("@prisma/client");
+  console.log("Prisma client OK");
+} catch {
+  console.log("Prisma client not found, generating...");
+  execSync("npx prisma generate", { stdio: "inherit", cwd: __dirname });
+  console.log("Prisma client generated");
+}
+
 const { app } = require("./src/app.js");
 
 const port = process.env.PORT || 3000;
