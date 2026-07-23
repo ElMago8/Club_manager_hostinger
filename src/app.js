@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require("./generated/prisma");
 
 // Prisma resuelve rutas relativas desde su propio binario, no desde process.cwd().
 // Convertimos a ruta absoluta antes de que Prisma lo lea.
