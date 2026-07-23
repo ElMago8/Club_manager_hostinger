@@ -863,7 +863,10 @@ billingRouter.get("/invoices/:id", async (req, res, next) => {
 });
 const billingUpdateHandler = async (req, res, next) => {
   try {
-    const { items, pagos, ...data } = req.body;
+    const { items, pagos, estado_arca, estado_cobro, ...rest } = req.body;
+    const data = { ...rest };
+    if (estado_arca !== undefined) data.estadoArca = estado_arca;
+    if (estado_cobro !== undefined) data.estadoCobro = estado_cobro;
     res.json(await prisma.comprobanteFacturacion.update({ where: { id: id(req) }, data, include: billingInclude }));
   } catch (e) { next(e); }
 };
