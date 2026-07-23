@@ -306,8 +306,8 @@ billingRoutes.post("/invoices/:id/mark-paid", async (req, res, next) => {
                 data: {
                     comprobanteFacturacionId: id,
                     fechaPago: body.fechaPago,
-                    monto: body.monto ?? Math.abs(invoice.total),
-                    medioPago: body.medioPago,
+                    monto: body.monto ?? Math.abs(Number(invoice.total)),
+                    medioPago: body.medioPago ?? "efectivo",
                     referencia: body.referencia,
                     observaciones: body.observaciones,
                 },
