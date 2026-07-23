@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "build": "echo 'No build needed'",
-    "postinstall": "prisma generate"
+    "build": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
