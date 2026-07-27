@@ -229,6 +229,8 @@ memberRouter.patch("/:id", memberUpdateHandler);
 memberRouter.delete("/:id", async (req, res, next) => {
   try {
     const socioId = id(req);
+    // Capturar el socio antes de borrar (el frontend espera el objeto de vuelta)
+    const socio = await prisma.socio.findUniqueOrThrow({ where: { id: socioId } });
     await prisma.$transaction([
       // Desvincular comprobantes (socioId es nullable — se conservan para auditoría)
       prisma.comprobanteFacturacion.updateMany({
@@ -237,7 +239,7 @@ memberRouter.delete("/:id", async (req, res, next) => {
       }),
       prisma.socio.delete({ where: { id: socioId } }),
     ]);
-    res.json({ ok: true });
+    res.json(socio);
   } catch (e) { next(e); }
 });
 
