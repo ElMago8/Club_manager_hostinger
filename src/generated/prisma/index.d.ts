@@ -17286,10 +17286,15 @@ export namespace Prisma {
     madreId: number | null
     phLiquido: number | null
     ppmLiquido: number | null
+    ecLiquido: number | null
     phSustrato: number | null
     ppmSustrato: number | null
+    ecSustrato: number | null
     phDrenaje: number | null
     ppmDrenaje: number | null
+    ecDrenaje: number | null
+    tempAgua: number | null
+    tempSustrato: number | null
   }
 
   export type MedicionCultivoSumAggregateOutputType = {
@@ -17301,10 +17306,15 @@ export namespace Prisma {
     madreId: number | null
     phLiquido: number | null
     ppmLiquido: number | null
+    ecLiquido: number | null
     phSustrato: number | null
     ppmSustrato: number | null
+    ecSustrato: number | null
     phDrenaje: number | null
     ppmDrenaje: number | null
+    ecDrenaje: number | null
+    tempAgua: number | null
+    tempSustrato: number | null
   }
 
   export type MedicionCultivoMinAggregateOutputType = {
@@ -17319,10 +17329,15 @@ export namespace Prisma {
     madreId: number | null
     phLiquido: number | null
     ppmLiquido: number | null
+    ecLiquido: number | null
     phSustrato: number | null
     ppmSustrato: number | null
+    ecSustrato: number | null
     phDrenaje: number | null
     ppmDrenaje: number | null
+    ecDrenaje: number | null
+    tempAgua: number | null
+    tempSustrato: number | null
     estado: string | null
     metodo: string | null
     responsable: string | null
@@ -17343,10 +17358,15 @@ export namespace Prisma {
     madreId: number | null
     phLiquido: number | null
     ppmLiquido: number | null
+    ecLiquido: number | null
     phSustrato: number | null
     ppmSustrato: number | null
+    ecSustrato: number | null
     phDrenaje: number | null
     ppmDrenaje: number | null
+    ecDrenaje: number | null
+    tempAgua: number | null
+    tempSustrato: number | null
     estado: string | null
     metodo: string | null
     responsable: string | null
@@ -17367,10 +17387,15 @@ export namespace Prisma {
     madreId: number
     phLiquido: number
     ppmLiquido: number
+    ecLiquido: number
     phSustrato: number
     ppmSustrato: number
+    ecSustrato: number
     phDrenaje: number
     ppmDrenaje: number
+    ecDrenaje: number
+    tempAgua: number
+    tempSustrato: number
     estado: number
     metodo: number
     responsable: number
@@ -17390,10 +17415,15 @@ export namespace Prisma {
     madreId?: true
     phLiquido?: true
     ppmLiquido?: true
+    ecLiquido?: true
     phSustrato?: true
     ppmSustrato?: true
+    ecSustrato?: true
     phDrenaje?: true
     ppmDrenaje?: true
+    ecDrenaje?: true
+    tempAgua?: true
+    tempSustrato?: true
   }
 
   export type MedicionCultivoSumAggregateInputType = {
@@ -17405,10 +17435,15 @@ export namespace Prisma {
     madreId?: true
     phLiquido?: true
     ppmLiquido?: true
+    ecLiquido?: true
     phSustrato?: true
     ppmSustrato?: true
+    ecSustrato?: true
     phDrenaje?: true
     ppmDrenaje?: true
+    ecDrenaje?: true
+    tempAgua?: true
+    tempSustrato?: true
   }
 
   export type MedicionCultivoMinAggregateInputType = {
@@ -17423,10 +17458,15 @@ export namespace Prisma {
     madreId?: true
     phLiquido?: true
     ppmLiquido?: true
+    ecLiquido?: true
     phSustrato?: true
     ppmSustrato?: true
+    ecSustrato?: true
     phDrenaje?: true
     ppmDrenaje?: true
+    ecDrenaje?: true
+    tempAgua?: true
+    tempSustrato?: true
     estado?: true
     metodo?: true
     responsable?: true
@@ -17447,10 +17487,15 @@ export namespace Prisma {
     madreId?: true
     phLiquido?: true
     ppmLiquido?: true
+    ecLiquido?: true
     phSustrato?: true
     ppmSustrato?: true
+    ecSustrato?: true
     phDrenaje?: true
     ppmDrenaje?: true
+    ecDrenaje?: true
+    tempAgua?: true
+    tempSustrato?: true
     estado?: true
     metodo?: true
     responsable?: true
@@ -17471,10 +17516,15 @@ export namespace Prisma {
     madreId?: true
     phLiquido?: true
     ppmLiquido?: true
+    ecLiquido?: true
     phSustrato?: true
     ppmSustrato?: true
+    ecSustrato?: true
     phDrenaje?: true
     ppmDrenaje?: true
+    ecDrenaje?: true
+    tempAgua?: true
+    tempSustrato?: true
     estado?: true
     metodo?: true
     responsable?: true
@@ -17582,10 +17632,15 @@ export namespace Prisma {
     madreId: number | null
     phLiquido: number | null
     ppmLiquido: number | null
+    ecLiquido: number | null
     phSustrato: number | null
     ppmSustrato: number | null
+    ecSustrato: number | null
     phDrenaje: number | null
     ppmDrenaje: number | null
+    ecDrenaje: number | null
+    tempAgua: number | null
+    tempSustrato: number | null
     estado: string
     metodo: string | null
     responsable: string | null
@@ -17625,10 +17680,15 @@ export namespace Prisma {
     madreId?: boolean
     phLiquido?: boolean
     ppmLiquido?: boolean
+    ecLiquido?: boolean
     phSustrato?: boolean
     ppmSustrato?: boolean
+    ecSustrato?: boolean
     phDrenaje?: boolean
     ppmDrenaje?: boolean
+    ecDrenaje?: boolean
+    tempAgua?: boolean
+    tempSustrato?: boolean
     estado?: boolean
     metodo?: boolean
     responsable?: boolean
@@ -17654,10 +17714,15 @@ export namespace Prisma {
     madreId?: boolean
     phLiquido?: boolean
     ppmLiquido?: boolean
+    ecLiquido?: boolean
     phSustrato?: boolean
     ppmSustrato?: boolean
+    ecSustrato?: boolean
     phDrenaje?: boolean
     ppmDrenaje?: boolean
+    ecDrenaje?: boolean
+    tempAgua?: boolean
+    tempSustrato?: boolean
     estado?: boolean
     metodo?: boolean
     responsable?: boolean
@@ -17683,10 +17748,15 @@ export namespace Prisma {
     madreId?: boolean
     phLiquido?: boolean
     ppmLiquido?: boolean
+    ecLiquido?: boolean
     phSustrato?: boolean
     ppmSustrato?: boolean
+    ecSustrato?: boolean
     phDrenaje?: boolean
     ppmDrenaje?: boolean
+    ecDrenaje?: boolean
+    tempAgua?: boolean
+    tempSustrato?: boolean
     estado?: boolean
     metodo?: boolean
     responsable?: boolean
@@ -17712,10 +17782,15 @@ export namespace Prisma {
     madreId?: boolean
     phLiquido?: boolean
     ppmLiquido?: boolean
+    ecLiquido?: boolean
     phSustrato?: boolean
     ppmSustrato?: boolean
+    ecSustrato?: boolean
     phDrenaje?: boolean
     ppmDrenaje?: boolean
+    ecDrenaje?: boolean
+    tempAgua?: boolean
+    tempSustrato?: boolean
     estado?: boolean
     metodo?: boolean
     responsable?: boolean
@@ -17724,7 +17799,7 @@ export namespace Prisma {
     actualizadoEn?: boolean
   }
 
-  export type MedicionCultivoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "fecha" | "hora" | "tipo" | "salaCultivoId" | "camillaId" | "clonadorId" | "plantaId" | "madreId" | "phLiquido" | "ppmLiquido" | "phSustrato" | "ppmSustrato" | "phDrenaje" | "ppmDrenaje" | "estado" | "metodo" | "responsable" | "observaciones" | "creadoEn" | "actualizadoEn", ExtArgs["result"]["medicionCultivo"]>
+  export type MedicionCultivoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "fecha" | "hora" | "tipo" | "salaCultivoId" | "camillaId" | "clonadorId" | "plantaId" | "madreId" | "phLiquido" | "ppmLiquido" | "ecLiquido" | "phSustrato" | "ppmSustrato" | "ecSustrato" | "phDrenaje" | "ppmDrenaje" | "ecDrenaje" | "tempAgua" | "tempSustrato" | "estado" | "metodo" | "responsable" | "observaciones" | "creadoEn" | "actualizadoEn", ExtArgs["result"]["medicionCultivo"]>
   export type MedicionCultivoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     salaCultivo?: boolean | SalaCultivoDefaultArgs<ExtArgs>
     camilla?: boolean | MedicionCultivo$camillaArgs<ExtArgs>
@@ -17768,10 +17843,15 @@ export namespace Prisma {
       madreId: number | null
       phLiquido: number | null
       ppmLiquido: number | null
+      ecLiquido: number | null
       phSustrato: number | null
       ppmSustrato: number | null
+      ecSustrato: number | null
       phDrenaje: number | null
       ppmDrenaje: number | null
+      ecDrenaje: number | null
+      tempAgua: number | null
+      tempSustrato: number | null
       estado: string
       metodo: string | null
       responsable: string | null
@@ -18217,10 +18297,15 @@ export namespace Prisma {
     readonly madreId: FieldRef<"MedicionCultivo", 'Int'>
     readonly phLiquido: FieldRef<"MedicionCultivo", 'Float'>
     readonly ppmLiquido: FieldRef<"MedicionCultivo", 'Float'>
+    readonly ecLiquido: FieldRef<"MedicionCultivo", 'Float'>
     readonly phSustrato: FieldRef<"MedicionCultivo", 'Float'>
     readonly ppmSustrato: FieldRef<"MedicionCultivo", 'Float'>
+    readonly ecSustrato: FieldRef<"MedicionCultivo", 'Float'>
     readonly phDrenaje: FieldRef<"MedicionCultivo", 'Float'>
     readonly ppmDrenaje: FieldRef<"MedicionCultivo", 'Float'>
+    readonly ecDrenaje: FieldRef<"MedicionCultivo", 'Float'>
+    readonly tempAgua: FieldRef<"MedicionCultivo", 'Float'>
+    readonly tempSustrato: FieldRef<"MedicionCultivo", 'Float'>
     readonly estado: FieldRef<"MedicionCultivo", 'String'>
     readonly metodo: FieldRef<"MedicionCultivo", 'String'>
     readonly responsable: FieldRef<"MedicionCultivo", 'String'>
@@ -38389,10 +38474,15 @@ export namespace Prisma {
     madreId: 'madreId',
     phLiquido: 'phLiquido',
     ppmLiquido: 'ppmLiquido',
+    ecLiquido: 'ecLiquido',
     phSustrato: 'phSustrato',
     ppmSustrato: 'ppmSustrato',
+    ecSustrato: 'ecSustrato',
     phDrenaje: 'phDrenaje',
     ppmDrenaje: 'ppmDrenaje',
+    ecDrenaje: 'ecDrenaje',
+    tempAgua: 'tempAgua',
+    tempSustrato: 'tempSustrato',
     estado: 'estado',
     metodo: 'metodo',
     responsable: 'responsable',
@@ -39886,10 +39976,15 @@ export namespace Prisma {
     madreId?: IntNullableFilter<"MedicionCultivo"> | number | null
     phLiquido?: FloatNullableFilter<"MedicionCultivo"> | number | null
     ppmLiquido?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    ecLiquido?: FloatNullableFilter<"MedicionCultivo"> | number | null
     phSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
     ppmSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    ecSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
     phDrenaje?: FloatNullableFilter<"MedicionCultivo"> | number | null
     ppmDrenaje?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    ecDrenaje?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    tempAgua?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    tempSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
     estado?: StringFilter<"MedicionCultivo"> | string
     metodo?: StringNullableFilter<"MedicionCultivo"> | string | null
     responsable?: StringNullableFilter<"MedicionCultivo"> | string | null
@@ -39915,10 +40010,15 @@ export namespace Prisma {
     madreId?: SortOrderInput | SortOrder
     phLiquido?: SortOrderInput | SortOrder
     ppmLiquido?: SortOrderInput | SortOrder
+    ecLiquido?: SortOrderInput | SortOrder
     phSustrato?: SortOrderInput | SortOrder
     ppmSustrato?: SortOrderInput | SortOrder
+    ecSustrato?: SortOrderInput | SortOrder
     phDrenaje?: SortOrderInput | SortOrder
     ppmDrenaje?: SortOrderInput | SortOrder
+    ecDrenaje?: SortOrderInput | SortOrder
+    tempAgua?: SortOrderInput | SortOrder
+    tempSustrato?: SortOrderInput | SortOrder
     estado?: SortOrder
     metodo?: SortOrderInput | SortOrder
     responsable?: SortOrderInput | SortOrder
@@ -39947,10 +40047,15 @@ export namespace Prisma {
     madreId?: IntNullableFilter<"MedicionCultivo"> | number | null
     phLiquido?: FloatNullableFilter<"MedicionCultivo"> | number | null
     ppmLiquido?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    ecLiquido?: FloatNullableFilter<"MedicionCultivo"> | number | null
     phSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
     ppmSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    ecSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
     phDrenaje?: FloatNullableFilter<"MedicionCultivo"> | number | null
     ppmDrenaje?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    ecDrenaje?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    tempAgua?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    tempSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
     estado?: StringFilter<"MedicionCultivo"> | string
     metodo?: StringNullableFilter<"MedicionCultivo"> | string | null
     responsable?: StringNullableFilter<"MedicionCultivo"> | string | null
@@ -39976,10 +40081,15 @@ export namespace Prisma {
     madreId?: SortOrderInput | SortOrder
     phLiquido?: SortOrderInput | SortOrder
     ppmLiquido?: SortOrderInput | SortOrder
+    ecLiquido?: SortOrderInput | SortOrder
     phSustrato?: SortOrderInput | SortOrder
     ppmSustrato?: SortOrderInput | SortOrder
+    ecSustrato?: SortOrderInput | SortOrder
     phDrenaje?: SortOrderInput | SortOrder
     ppmDrenaje?: SortOrderInput | SortOrder
+    ecDrenaje?: SortOrderInput | SortOrder
+    tempAgua?: SortOrderInput | SortOrder
+    tempSustrato?: SortOrderInput | SortOrder
     estado?: SortOrder
     metodo?: SortOrderInput | SortOrder
     responsable?: SortOrderInput | SortOrder
@@ -40008,10 +40118,15 @@ export namespace Prisma {
     madreId?: IntNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
     phLiquido?: FloatNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
     ppmLiquido?: FloatNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
+    ecLiquido?: FloatNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
     phSustrato?: FloatNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
     ppmSustrato?: FloatNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
+    ecSustrato?: FloatNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
     phDrenaje?: FloatNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
     ppmDrenaje?: FloatNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
+    ecDrenaje?: FloatNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
+    tempAgua?: FloatNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
+    tempSustrato?: FloatNullableWithAggregatesFilter<"MedicionCultivo"> | number | null
     estado?: StringWithAggregatesFilter<"MedicionCultivo"> | string
     metodo?: StringNullableWithAggregatesFilter<"MedicionCultivo"> | string | null
     responsable?: StringNullableWithAggregatesFilter<"MedicionCultivo"> | string | null
@@ -42743,10 +42858,15 @@ export namespace Prisma {
     tipo: string
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -42772,10 +42892,15 @@ export namespace Prisma {
     madreId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -42790,10 +42915,15 @@ export namespace Prisma {
     tipo?: StringFieldUpdateOperationsInput | string
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -42819,10 +42949,15 @@ export namespace Prisma {
     madreId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -42843,10 +42978,15 @@ export namespace Prisma {
     madreId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -42861,10 +43001,15 @@ export namespace Prisma {
     tipo?: StringFieldUpdateOperationsInput | string
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -42885,10 +43030,15 @@ export namespace Prisma {
     madreId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -45547,10 +45697,15 @@ export namespace Prisma {
     madreId?: SortOrder
     phLiquido?: SortOrder
     ppmLiquido?: SortOrder
+    ecLiquido?: SortOrder
     phSustrato?: SortOrder
     ppmSustrato?: SortOrder
+    ecSustrato?: SortOrder
     phDrenaje?: SortOrder
     ppmDrenaje?: SortOrder
+    ecDrenaje?: SortOrder
+    tempAgua?: SortOrder
+    tempSustrato?: SortOrder
     estado?: SortOrder
     metodo?: SortOrder
     responsable?: SortOrder
@@ -45568,10 +45723,15 @@ export namespace Prisma {
     madreId?: SortOrder
     phLiquido?: SortOrder
     ppmLiquido?: SortOrder
+    ecLiquido?: SortOrder
     phSustrato?: SortOrder
     ppmSustrato?: SortOrder
+    ecSustrato?: SortOrder
     phDrenaje?: SortOrder
     ppmDrenaje?: SortOrder
+    ecDrenaje?: SortOrder
+    tempAgua?: SortOrder
+    tempSustrato?: SortOrder
   }
 
   export type MedicionCultivoMaxOrderByAggregateInput = {
@@ -45586,10 +45746,15 @@ export namespace Prisma {
     madreId?: SortOrder
     phLiquido?: SortOrder
     ppmLiquido?: SortOrder
+    ecLiquido?: SortOrder
     phSustrato?: SortOrder
     ppmSustrato?: SortOrder
+    ecSustrato?: SortOrder
     phDrenaje?: SortOrder
     ppmDrenaje?: SortOrder
+    ecDrenaje?: SortOrder
+    tempAgua?: SortOrder
+    tempSustrato?: SortOrder
     estado?: SortOrder
     metodo?: SortOrder
     responsable?: SortOrder
@@ -45610,10 +45775,15 @@ export namespace Prisma {
     madreId?: SortOrder
     phLiquido?: SortOrder
     ppmLiquido?: SortOrder
+    ecLiquido?: SortOrder
     phSustrato?: SortOrder
     ppmSustrato?: SortOrder
+    ecSustrato?: SortOrder
     phDrenaje?: SortOrder
     ppmDrenaje?: SortOrder
+    ecDrenaje?: SortOrder
+    tempAgua?: SortOrder
+    tempSustrato?: SortOrder
     estado?: SortOrder
     metodo?: SortOrder
     responsable?: SortOrder
@@ -45631,10 +45801,15 @@ export namespace Prisma {
     madreId?: SortOrder
     phLiquido?: SortOrder
     ppmLiquido?: SortOrder
+    ecLiquido?: SortOrder
     phSustrato?: SortOrder
     ppmSustrato?: SortOrder
+    ecSustrato?: SortOrder
     phDrenaje?: SortOrder
     ppmDrenaje?: SortOrder
+    ecDrenaje?: SortOrder
+    tempAgua?: SortOrder
+    tempSustrato?: SortOrder
   }
 
   export type DocumentoSocioListRelationFilter = {
@@ -49762,10 +49937,15 @@ export namespace Prisma {
     tipo: string
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -49789,10 +49969,15 @@ export namespace Prisma {
     madreId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -50082,10 +50267,15 @@ export namespace Prisma {
     madreId?: IntNullableFilter<"MedicionCultivo"> | number | null
     phLiquido?: FloatNullableFilter<"MedicionCultivo"> | number | null
     ppmLiquido?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    ecLiquido?: FloatNullableFilter<"MedicionCultivo"> | number | null
     phSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
     ppmSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    ecSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
     phDrenaje?: FloatNullableFilter<"MedicionCultivo"> | number | null
     ppmDrenaje?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    ecDrenaje?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    tempAgua?: FloatNullableFilter<"MedicionCultivo"> | number | null
+    tempSustrato?: FloatNullableFilter<"MedicionCultivo"> | number | null
     estado?: StringFilter<"MedicionCultivo"> | string
     metodo?: StringNullableFilter<"MedicionCultivo"> | string | null
     responsable?: StringNullableFilter<"MedicionCultivo"> | string | null
@@ -50340,10 +50530,15 @@ export namespace Prisma {
     tipo: string
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -50367,10 +50562,15 @@ export namespace Prisma {
     madreId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -50754,10 +50954,15 @@ export namespace Prisma {
     tipo: string
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -50781,10 +50986,15 @@ export namespace Prisma {
     madreId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -51403,10 +51613,15 @@ export namespace Prisma {
     tipo: string
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -51430,10 +51645,15 @@ export namespace Prisma {
     plantaId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -52505,10 +52725,15 @@ export namespace Prisma {
     tipo: string
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -52532,10 +52757,15 @@ export namespace Prisma {
     madreId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -56844,10 +57074,15 @@ export namespace Prisma {
     madreId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -57192,10 +57427,15 @@ export namespace Prisma {
     tipo?: StringFieldUpdateOperationsInput | string
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -57219,10 +57459,15 @@ export namespace Prisma {
     madreId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -57242,10 +57487,15 @@ export namespace Prisma {
     madreId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -57337,10 +57587,15 @@ export namespace Prisma {
     madreId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -57592,10 +57847,15 @@ export namespace Prisma {
     tipo?: StringFieldUpdateOperationsInput | string
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -57619,10 +57879,15 @@ export namespace Prisma {
     madreId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -57642,10 +57907,15 @@ export namespace Prisma {
     madreId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -57734,10 +58004,15 @@ export namespace Prisma {
     madreId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -57832,10 +58107,15 @@ export namespace Prisma {
     tipo?: StringFieldUpdateOperationsInput | string
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -57859,10 +58139,15 @@ export namespace Prisma {
     madreId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -57882,10 +58167,15 @@ export namespace Prisma {
     madreId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58248,10 +58538,15 @@ export namespace Prisma {
     plantaId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -58346,10 +58641,15 @@ export namespace Prisma {
     tipo?: StringFieldUpdateOperationsInput | string
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58373,10 +58673,15 @@ export namespace Prisma {
     plantaId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58396,10 +58701,15 @@ export namespace Prisma {
     plantaId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58841,10 +59151,15 @@ export namespace Prisma {
     madreId?: number | null
     phLiquido?: number | null
     ppmLiquido?: number | null
+    ecLiquido?: number | null
     phSustrato?: number | null
     ppmSustrato?: number | null
+    ecSustrato?: number | null
     phDrenaje?: number | null
     ppmDrenaje?: number | null
+    ecDrenaje?: number | null
+    tempAgua?: number | null
+    tempSustrato?: number | null
     estado?: string
     metodo?: string | null
     responsable?: string | null
@@ -58911,10 +59226,15 @@ export namespace Prisma {
     tipo?: StringFieldUpdateOperationsInput | string
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58938,10 +59258,15 @@ export namespace Prisma {
     madreId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58961,10 +59286,15 @@ export namespace Prisma {
     madreId?: NullableIntFieldUpdateOperationsInput | number | null
     phLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecLiquido?: NullableFloatFieldUpdateOperationsInput | number | null
     phSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     phDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
     ppmDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    ecDrenaje?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempAgua?: NullableFloatFieldUpdateOperationsInput | number | null
+    tempSustrato?: NullableFloatFieldUpdateOperationsInput | number | null
     estado?: StringFieldUpdateOperationsInput | string
     metodo?: NullableStringFieldUpdateOperationsInput | string | null
     responsable?: NullableStringFieldUpdateOperationsInput | string | null
