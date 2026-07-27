@@ -291,10 +291,15 @@ model MedicionCultivo {
   madreId        Int?     @map("madre_id")
   phLiquido      Float?   @map("ph_liquido")
   ppmLiquido     Float?   @map("ppm_liquido")
+  ecLiquido      Float?   @map("ec_liquido")
   phSustrato     Float?   @map("ph_sustrato")
   ppmSustrato    Float?   @map("ppm_sustrato")
+  ecSustrato     Float?   @map("ec_sustrato")
   phDrenaje      Float?   @map("ph_drenaje")
   ppmDrenaje     Float?   @map("ppm_drenaje")
+  ecDrenaje      Float?   @map("ec_drenaje")
+  tempAgua       Float?   @map("temp_agua")
+  tempSustrato   Float?   @map("temp_sustrato")
   estado         String   @default("normal")
   metodo         String?
   responsable    String?
