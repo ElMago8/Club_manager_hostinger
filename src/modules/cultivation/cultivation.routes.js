@@ -719,10 +719,15 @@ const medicionCultivoSchema = z.object({
     madreId: intId.optional(),
     phLiquido: z.coerce.number().min(0).max(14).optional(),
     ppmLiquido: z.coerce.number().min(0).optional(),
+    ecLiquido: z.coerce.number().min(0).optional(),
     phSustrato: z.coerce.number().min(0).max(14).optional(),
     ppmSustrato: z.coerce.number().min(0).optional(),
+    ecSustrato: z.coerce.number().min(0).optional(),
     phDrenaje: z.coerce.number().min(0).max(14).optional(),
     ppmDrenaje: z.coerce.number().min(0).optional(),
+    ecDrenaje: z.coerce.number().min(0).optional(),
+    tempAgua: z.coerce.number().optional(),
+    tempSustrato: z.coerce.number().optional(),
     estado: z.string().trim().min(1).default("normal"),
     metodo: optionalText,
     responsable: optionalText,
@@ -898,6 +903,36 @@ function registroAmbientalRoutes() {
             next(error);
         }
     });
+    router.put("/:id", async (req, res, next) => {
+        try {
+            const body = req.body;
+            const salaCultivoId = intId.parse(body.roomId);
+            const camillaId = body.bedId != null && body.bedId !== "" && body.bedId !== "none"
+                ? intId.parse(body.bedId)
+                : undefined;
+            const airTempC = Number(body.airTempC);
+            const relativeHumidity = Number(body.relativeHumidity);
+            const leafTempC = body.leafTempC != null && body.leafTempC !== "" ? Number(body.leafTempC) : undefined;
+            const vpd = envLogCalcVPD(airTempC, relativeHumidity, leafTempC);
+            const record = await prisma.registroAmbiental.update({
+                where: { id: parseId(req) },
+                data: {
+                    salaCultivoId,
+                    camillaId,
+                    temperatura: airTempC,
+                    humedad: relativeHumidity,
+                    vpd,
+                    co2: body.co2ppm != null && body.co2ppm !== "" ? Math.round(Number(body.co2ppm)) : undefined,
+                    observaciones: typeof body.notes === "string" && body.notes.trim() ? body.notes.trim() : undefined,
+                    registradoEn: new Date(`${body.date}T${body.time}:00`),
+                },
+            });
+            res.json(envLogToApi(record));
+        }
+        catch (error) {
+            next(error);
+        }
+    });
     router.delete("/:id", async (req, res, next) => {
         try {
             await prisma.registroAmbiental.delete({ where: { id: parseId(req) } });
@@ -966,6 +1001,18 @@ function medicionRoutes() {
         }
     });
     router.put("/:id", async (req, res, next) => {
+        try {
+            res.json(await prisma.medicionCultivo.update({
+                where: { id: parseId(req) },
+                data: medicionCultivoSchema.partial().parse(req.body),
+                include,
+            }));
+        }
+        catch (error) {
+            next(error);
+        }
+    });
+    router.patch("/:id", async (req, res, next) => {
         try {
             res.json(await prisma.medicionCultivo.update({
                 where: { id: parseId(req) },
